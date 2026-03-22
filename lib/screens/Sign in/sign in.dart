@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/Ui_helper/Ui_helper.dart';
-import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
+import 'package:skill_swap/screens/Home Screens/Home Screen1.dart';
 import 'package:skill_swap/screens/reset/Reset.dart';
-import 'package:skill_swap/screens/sign%20up/sign%20up.dart';
+import 'package:skill_swap/screens/sign up/sign up.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -13,19 +13,40 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  bool isPasswordVisible = false;
+  bool? isEmailValid;
+
+  void validateEmail(String value) {
+
+    if (!value.contains("@") || !value.contains(".")) {
+      setState(() {
+        isEmailValid = null;
+      });
+      return;
+    }
+
+    bool valid = RegExp(
+        r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+")
+        .hasMatch(value);
+
+    setState(() {
+      isEmailValid = valid;
+    });
+  }
+
   Future<void> signInUser() async {
+
     try {
 
       await _auth.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login Successful")),
       );
 
       Navigator.pushReplacement(
@@ -35,26 +56,37 @@ class _SignInScreenState extends State<SignInScreen> {
 
     } on FirebaseAuthException catch (e) {
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? "Login Failed")),
-      );
+      String message = "Login failed";
 
+      if (e.code == 'wrong-password') {
+        message = "Wrong password entered";
+      }
+      else if (e.code == 'user-not-found') {
+        message = "Login failed";
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     }
   }
+
   @override
   Widget build(BuildContext context) {
+
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Matching dark background
+      backgroundColor: const Color(0xFF0F172A),
       body: SingleChildScrollView(
         physics: const ClampingScrollPhysics(),
         child: Column(
           children: [
             Stack(
-              clipBehavior: Clip.none, // Allows the girl to overlap the dark section
+              clipBehavior: Clip.none,
               children: [
-                // 1. TOP GRADIENT SECTION (Bottom Layer)
+
+                // Top Gradient
                 Container(
                   height: screenHeight * 0.4,
                   width: double.infinity,
@@ -67,7 +99,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   child: Stack(
                     children: [
-                      // "Welcome Back!" Text & Badge
+
                       Positioned(
                         top: 80,
                         left: 20,
@@ -80,7 +112,10 @@ class _SignInScreenState extends State<SignInScreen> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Text("Hi!", style: TextStyle(fontWeight: FontWeight.bold)),
+                              child: const Text(
+                                "Hi!",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ),
                             const SizedBox(height: 10),
                             const Text(
@@ -95,7 +130,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           ],
                         ),
                       ),
-                      // Floating Message Bubbles
+
                       Positioned(
                         top: 90,
                         right: 80,
@@ -108,9 +143,9 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                 ),
 
-                // 2. THE DARK BLUE FORM SECTION (Middle Layer)
+                // Form Section
                 Padding(
-                  padding: EdgeInsets.only(top: screenHeight * 0.32), // Cuts into the gradient
+                  padding: EdgeInsets.only(top: screenHeight * 0.32),
                   child: Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
@@ -120,10 +155,13 @@ class _SignInScreenState extends State<SignInScreen> {
                         topRight: Radius.circular(40),
                       ),
                     ),
+
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 35),
+
                       child: Column(
                         children: [
+
                           const Text(
                             "Sign in",
                             style: TextStyle(
@@ -132,39 +170,61 @@ class _SignInScreenState extends State<SignInScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+
                           const SizedBox(height: 40),
 
-                          // Email Field
+                          // EMAIL FIELD
                           UiHelper.CustomTextField(
                             controller: _emailController,
                             text: "user@gmail.com",
                             tohide: false,
                             textinputtype: TextInputType.emailAddress,
                             prefixIcon: Icons.mail_outline,
-                            suffixIcon: const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                            onChanged: validateEmail,
+                            suffixIcon: isEmailValid == null
+                                ? null
+                                : Icon(
+                              isEmailValid!
+                                  ? Icons.check_circle
+                                  : Icons.cancel,
+                              color: isEmailValid!
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
                           ),
+
                           const SizedBox(height: 25),
 
-                          // Password Field
+                          // PASSWORD FIELD
                           UiHelper.CustomTextField(
                             controller: _passwordController,
                             text: "Password",
-                            tohide: true,
+                            tohide: !isPasswordVisible,
                             textinputtype: TextInputType.text,
                             prefixIcon: Icons.lock_outline,
-                            suffixIcon: const Icon(Icons.visibility_outlined, color: Colors.white60, size: 20),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                isPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: Colors.white60,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  isPasswordVisible = !isPasswordVisible;
+                                });
+                              },
+                            ),
                           ),
 
                           const SizedBox(height: 40),
 
-                          // Proceed Button
+                          // LOGIN BUTTON
                           SizedBox(
                             width: double.infinity,
                             height: 55,
                             child: ElevatedButton(
-                              onPressed: () {
-                                signInUser();
-                              },
+                              onPressed: signInUser,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF00C2FF),
                                 shape: RoundedRectangleBorder(
@@ -173,35 +233,56 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                               child: const Text(
                                 "Proceed",
-                                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
 
                           const SizedBox(height: 25),
 
-                          // Footer Links (Forgot Password & New Member)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
+
                               TextButton(
                                 onPressed: () {
-                                  Navigator.push(context, MaterialPageRoute(
-                                      builder: (context)=>EmailVerificationScreen(),),
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => EmailVerificationScreen(),
+                                    ),
                                   );
                                 },
-                                child: const Text("Forgot Password?", style: TextStyle(color: Color(0xFF00C2FF))),
+                                child: const Text(
+                                  "Forgot Password?",
+                                  style: TextStyle(color: Color(0xFF00C2FF)),
+                                ),
                               ),
+
                               Row(
                                 children: [
-                                  const Text("New member? ", style: TextStyle(color: Colors.white70)),
+                                  const Text(
+                                    "New member? ",
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
                                   GestureDetector(
                                     onTap: () {
-                                      Navigator.push(context, MaterialPageRoute(builder: (context) => const SignUpScreen()));
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const SignUpScreen(),
+                                        ),
+                                      );
                                     },
                                     child: const Text(
                                       "Sign up",
-                                      style: TextStyle(color: Color(0xFF00C2FF), fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                        color: Color(0xFF00C2FF),
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -211,11 +292,11 @@ class _SignInScreenState extends State<SignInScreen> {
 
                           const SizedBox(height: 140),
 
-                          // THE LOGO (Clearly at the bottom)
                           SizedBox(
                             height: 45,
                             child: UiHelper.CustomImage(imgurl: "Cl.png"),
                           ),
+
                           const SizedBox(height: 20),
                         ],
                       ),
@@ -223,14 +304,12 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                 ),
 
-                // 3. THE GIRL ILLUSTRATION (Top Layer)
-                // Placed LAST in the Stack to ensure she's on top of the dark curve
+                // Girl Image
                 Positioned(
                   top: screenHeight * 0.08,
                   right: -10,
                   child: SizedBox(
                     height: 280,
-
                     child: UiHelper.CustomImage(imgurl: "skill girl.png"),
                   ),
                 ),

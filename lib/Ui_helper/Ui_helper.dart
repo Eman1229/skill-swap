@@ -18,6 +18,7 @@ class UiHelper{
     required TextInputType textinputtype,
     required IconData prefixIcon,
     Widget? suffixIcon,
+    Function(String)? onChanged,
   }) {
     return Container(
       width: 343,
@@ -30,6 +31,7 @@ class UiHelper{
         controller: controller,
         obscureText: tohide,
         keyboardType: textinputtype,
+        onChanged: onChanged,
         style: const TextStyle(color: Colors.white, fontSize: 16),
         decoration: InputDecoration(
           hintText: text,
