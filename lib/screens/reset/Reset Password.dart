@@ -50,6 +50,8 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
         newPassword: password,
       );
 
+      if (!mounted) return; // ✅ FIXED
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Password reset successful"),
@@ -65,15 +67,16 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
     } on FirebaseAuthException catch(e){
 
+      setState(() {
+        loading = false; // ✅ FIXED — only stops loading on error
+      });
+
+      if (!mounted) return; // ✅ FIXED
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? "Reset failed")),
       );
-
     }
-
-    setState(() {
-      loading = false;
-    });
   }
 
   @override
@@ -143,7 +146,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                   "Reset Password",
-                  style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
