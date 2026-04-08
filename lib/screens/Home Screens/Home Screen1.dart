@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show AppBar, BuildContext, Center, Color, Column, ElevatedButton, FontWeight, Key, MainAxisAlignment, MaterialPageRoute, Navigator, Scaffold, SizedBox, StatelessWidget, Text, TextStyle, Widget;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
