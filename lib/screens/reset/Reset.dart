@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/reset/Reset Password.dart';
+import 'package:skill_swap/screens/Sign in/sign in.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  STEP 1 — Email Entry Screen (generates & stores OTP, navigates to verify)
@@ -53,6 +54,14 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
           DateTime.now().add(const Duration(minutes: 10)),
         ),
         'used': false,
+
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: email,
+      );
+
+      setState(() {
+        emailSent = true;
+        loading = false;
       });
 
       // Show OTP in snackbar (in production, send via email service / Cloud Function)
@@ -81,6 +90,14 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), backgroundColor: color),
     );
+    } on FirebaseAuthException catch(e){
+      setState(() {
+        loading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? "Error sending email")),
+      );
+    }
   }
 
   @override
@@ -105,6 +122,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 25),
         child: Column(
           children: [
+
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
@@ -460,6 +478,70 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
                       Text(
                         'Enter the 6-digit OTP sent to\n${widget.email}',
+                    // ✅ Show email field only if email not sent yet
+                    if(!emailSent) ...[
+
+                      TextField(
+                        controller: emailController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: "Enter your email",
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          filled: true,
+                          fillColor: Colors.white10,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 25),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: loading ? null : sendResetEmail,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00C2FF),
+                          ),
+                          child: loading
+                              ? const CircularProgressIndicator(color: Colors.white)
+                              : const Text("Send Reset Link"),
+                        ),
+                      ),
+
+                    ],
+
+                    // ✅ Show instructions + button after email is sent
+                    if(emailSent) ...[
+
+                      const Icon(
+                        Icons.mark_email_read_outlined,
+                        color: Color(0xFF00C2FF),
+                        size: 80,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      const Text(
+                        "Email Sent!",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      const Text(
+                        "Step 1: Open your email\nStep 2: Click the reset link\nStep 3: Reset your password in the browser\nStep 4: Come back and press the button below",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          height: 2,
+                        ),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white54,
@@ -568,6 +650,46 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             ),
 
             // Bottom logo
+                      const SizedBox(height: 30),
+
+                      // This button takes user to SignIn after resetting in browser
+                      SizedBox(
+                        width: double.infinity,
+                        height: 55,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SignInScreen(),
+                              ),
+                                  (route) => false,
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            "I've Reset My Password → Sign In",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    ],
+
+                  ],
+                ),
+              ),
+            ),
+
             Padding(
               padding: const EdgeInsets.only(bottom: 24),
               child: SizedBox(

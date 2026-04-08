@@ -52,6 +52,8 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
       if (!mounted) return;
 
+      if (!mounted) return; // ✅ FIXED
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -71,19 +73,19 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
         MaterialPageRoute(builder: (context) => const SignInScreen()),
         (route) => false,
       );
-    } on FirebaseAuthException catch (e) {
-      _snack(e.message ?? 'Password reset failed');
-    } catch (e) {
-      _snack('Unexpected error. Please try again.');
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
-  }
 
-  void _snack(String msg, {Color color = Colors.redAccent}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: color),
-    );
+    } on FirebaseAuthException catch(e){
+
+      setState(() {
+        loading = false; // ✅ FIXED — only stops loading on error
+      });
+
+      if (!mounted) return; // ✅ FIXED
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? "Reset failed")),
+      );
+    }
   }
 
   @override
@@ -243,6 +245,45 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
               child: SizedBox(
                 height: 45,
                 child: UiHelper.CustomImage(imgurl: 'Cl.png'),
+            const SizedBox(height: 30),
+
+            UiHelper.CustomTextField(
+              controller: passwordController,
+              text: "New Password",
+              tohide: true,
+              textinputtype: TextInputType.text,
+              prefixIcon: Icons.lock_outline,
+            ),
+
+            const SizedBox(height: 20),
+
+            UiHelper.CustomTextField(
+              controller: confirmController,
+              text: "Confirm Password",
+              tohide: true,
+              textinputtype: TextInputType.text,
+              prefixIcon: Icons.lock_outline,
+            ),
+
+            const SizedBox(height: 30),
+
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+
+              child: ElevatedButton(
+                onPressed: loading ? null : resetPassword,
+
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00C2FF),
+                ),
+
+                child: loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                  "Reset Password",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],

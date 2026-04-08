@@ -23,7 +23,6 @@ class _SignInScreenState extends State<SignInScreen> {
   bool? isEmailValid;
 
   void validateEmail(String value) {
-
     if (!value.contains("@") || !value.contains(".")) {
       setState(() {
         isEmailValid = null;
@@ -41,13 +40,13 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> signInUser() async {
-
     try {
-
       await _auth.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
+      if (!mounted) return;  // ← fix 1
 
       Navigator.pushReplacement(
         context,
@@ -56,12 +55,13 @@ class _SignInScreenState extends State<SignInScreen> {
 
     } on FirebaseAuthException catch (e) {
 
+      if (!mounted) return;  // ← fix 2
+
       String message = "Login failed";
 
       if (e.code == 'wrong-password') {
         message = "Wrong password entered";
-      }
-      else if (e.code == 'user-not-found') {
+      } else if (e.code == 'user-not-found') {
         message = "Login failed";
       }
 
@@ -69,6 +69,13 @@ class _SignInScreenState extends State<SignInScreen> {
         SnackBar(content: Text(message)),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -99,7 +106,6 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   child: Stack(
                     children: [
-
                       Positioned(
                         top: 80,
                         left: 20,
@@ -107,7 +113,8 @@ class _SignInScreenState extends State<SignInScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(8),
@@ -155,10 +162,9 @@ class _SignInScreenState extends State<SignInScreen> {
                         topRight: Radius.circular(40),
                       ),
                     ),
-
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 35),
-
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24.0, vertical: 35),
                       child: Column(
                         children: [
 
@@ -252,7 +258,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => EmailVerificationScreen(),
+                                      builder: (context) =>
+                                          EmailVerificationScreen(),
                                     ),
                                   );
                                 },
@@ -273,7 +280,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => const SignUpScreen(),
+                                          builder: (context) =>
+                                          const SignUpScreen(),
                                         ),
                                       );
                                     },
