@@ -42,23 +42,18 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
     setState(() => loading = true);
 
     try {
-      // Send a fresh Firebase password reset email to the verified email.
-      // After OTP verification, we use Firebase's built-in sendPasswordResetEmail
-      // (without ActionCodeSettings — uses default Firebase hosted link).
-      // For a fully custom flow (no Firebase link), use Admin SDK / Cloud Function.
-      //
-      // Here we use the simplest approach compatible with the existing Firebase setup:
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: widget.email);
+      // Send Firebase password reset email to the OTP-verified address.
+      // The user clicks the link in their inbox to complete the reset.
+      await FirebaseAuth.instance
+          .sendPasswordResetEmail(email: widget.email);
 
       if (!mounted) return;
-
-      if (!mounted) return; // ✅ FIXED
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
             'A password reset link has been sent to your email. '
-            'Click the link to complete the reset.',
+                'Click the link to complete the reset.',
           ),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 5),
@@ -68,24 +63,24 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
       await Future.delayed(const Duration(seconds: 2));
 
       if (!mounted) return;
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const SignInScreen()),
-        (route) => false,
+            (route) => false,
       );
-
-    } on FirebaseAuthException catch(e){
-
-      setState(() {
-        loading = false; // ✅ FIXED — only stops loading on error
-      });
-
-      if (!mounted) return; // ✅ FIXED
-
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() => loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? "Reset failed")),
+        SnackBar(content: Text(e.message ?? 'Reset failed')),
       );
     }
+  }
+
+  void _snack(String msg, {Color color = Colors.redAccent}) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
   @override
@@ -131,9 +126,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                           color: Color(0xFF00C2FF),
                         ),
                       ),
-
                       const SizedBox(height: 28),
-
                       const Text(
                         'Create New Password',
                         style: TextStyle(
@@ -142,9 +135,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
                       const Text(
                         'Your identity has been verified.\nSet your new password below.',
                         textAlign: TextAlign.center,
@@ -154,7 +145,6 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                           height: 1.5,
                         ),
                       ),
-
                       const SizedBox(height: 36),
 
                       // New Password Field
@@ -176,7 +166,6 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                               setState(() => showPassword = !showPassword),
                         ),
                       ),
-
                       const SizedBox(height: 22),
 
                       // Confirm Password Field
@@ -198,7 +187,6 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                               setState(() => showConfirm = !showConfirm),
                         ),
                       ),
-
                       const SizedBox(height: 36),
 
                       SizedBox(
@@ -209,28 +197,28 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF00C2FF),
                             disabledBackgroundColor:
-                                const Color(0xFF00C2FF).withOpacity(0.4),
+                            const Color(0xFF00C2FF).withOpacity(0.4),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           child: loading
                               ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
                               : const Text(
-                                  'Reset Password',
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                            'Reset Password',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -245,45 +233,6 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
               child: SizedBox(
                 height: 45,
                 child: UiHelper.CustomImage(imgurl: 'Cl.png'),
-            const SizedBox(height: 30),
-
-            UiHelper.CustomTextField(
-              controller: passwordController,
-              text: "New Password",
-              tohide: true,
-              textinputtype: TextInputType.text,
-              prefixIcon: Icons.lock_outline,
-            ),
-
-            const SizedBox(height: 20),
-
-            UiHelper.CustomTextField(
-              controller: confirmController,
-              text: "Confirm Password",
-              tohide: true,
-              textinputtype: TextInputType.text,
-              prefixIcon: Icons.lock_outline,
-            ),
-
-            const SizedBox(height: 30),
-
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-
-              child: ElevatedButton(
-                onPressed: loading ? null : resetPassword,
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00C2FF),
-                ),
-
-                child: loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                  "Reset Password",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
               ),
             ),
           ],

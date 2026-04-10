@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show AppBar, BuildContext, Center, Color, Column, ElevatedButton, FontWeight, Key, MainAxisAlignment, MaterialPageRoute, Navigator, Scaffold, SizedBox, StatelessWidget, Text, TextStyle, Widget;
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
@@ -24,11 +24,9 @@ class _HomeScreenState extends State<HomeScreen> {
     'Data Analysis',
     'AI',
     'Music',
-    'Photos',
     'Drawing',
   ];
 
-  // ── Gets the signed-in user's display name (or email prefix) ─────────
   String get _userName {
     final user = _auth.currentUser;
     if (user == null) return 'User';
@@ -55,9 +53,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _signOut() async {
     await _auth.signOut();
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => SignInScreen()),
+      MaterialPageRoute(builder: (_) => const SignInScreen()),
     );
   }
 
@@ -66,11 +65,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A ),
+      backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
         child: Column(
           children: [
-            // ── TOP GRADIENT HEADER (matches signup gradient style) ──────
+            // ── TOP GRADIENT HEADER ──────────────────────────────────
             Container(
               width: double.infinity,
               height: screenHeight * 0.16,
@@ -84,14 +83,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   bottomLeft: Radius.circular(28),
                   bottomRight: Radius.circular(28),
                 ),
-
-
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Avatar with initials
+                  // Avatar
                   Container(
                     width: 48,
                     height: 48,
@@ -115,25 +113,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '$_greeting, $_userName',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Good $_greeting, $_userName',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
-                      ),
-                      const Text(
-                        'Keep growing every day!',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ],
+                        const Text(
+                          'Keep growing every day!',
+                          style:
+                          TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
                   ),
-                  const Spacer(),
                   // Notification Bell
                   Stack(
                     children: [
@@ -186,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // ── SCROLLABLE BODY ────────────────────────────────────────
+            // ── SCROLLABLE BODY ──────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -203,7 +205,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: const Color(0xFF1E293B),
                         borderRadius: BorderRadius.circular(15),
                         border: Border.all(
-                          color: const Color(0xFF00C2FF).withOpacity(0.2),
+                          color:
+                          const Color(0xFF00C2FF).withOpacity(0.2),
                         ),
                       ),
                       child: const TextField(
@@ -240,10 +243,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemBuilder: (context, index) {
                           final selected = _selectedCategory == index;
                           return GestureDetector(
-                            onTap: () =>
-                                setState(() => _selectedCategory = index),
+                            onTap: () => setState(
+                                    () => _selectedCategory = index),
                             child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
+                              duration:
+                              const Duration(milliseconds: 200),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 18,
                                 vertical: 8,
@@ -294,19 +298,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     const _SectionTitle(title: 'Featured Swaps'),
                     const SizedBox(height: 14),
 
-                    // Empty state card
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      padding:
+                      const EdgeInsets.symmetric(vertical: 40),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E293B),
                         borderRadius: BorderRadius.circular(25),
                         border: Border.all(
-                          color: const Color(0xFF00C2FF).withOpacity(0.15),
+                          color: const Color(0xFF00C2FF)
+                              .withOpacity(0.15),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF00C2FF).withOpacity(0.06),
+                            color: const Color(0xFF00C2FF)
+                                .withOpacity(0.06),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
@@ -322,12 +328,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
                                 colors: [
-                                  const Color(0xFF00C2FF).withOpacity(0.2),
-                                  const Color(0xFF6B8AFF).withOpacity(0.2),
+                                  const Color(0xFF00C2FF)
+                                      .withOpacity(0.2),
+                                  const Color(0xFF6B8AFF)
+                                      .withOpacity(0.2),
                                 ],
                               ),
                               border: Border.all(
-                                color: const Color(0xFF00C2FF).withOpacity(0.3),
+                                color: const Color(0xFF00C2FF)
+                                    .withOpacity(0.3),
                                 width: 1.5,
                               ),
                             ),
@@ -357,7 +366,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          // Gradient "Add a Listing" button — matches Proceed button
                           Container(
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
@@ -403,12 +411,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      padding:
+                      const EdgeInsets.symmetric(vertical: 32),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E293B),
                         borderRadius: BorderRadius.circular(25),
                         border: Border.all(
-                          color: const Color(0xFF00C2FF).withOpacity(0.15),
+                          color: const Color(0xFF00C2FF)
+                              .withOpacity(0.15),
                         ),
                       ),
                       child: Column(
@@ -420,8 +430,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
                                 colors: [
-                                  const Color(0xFF00C2FF).withOpacity(0.15),
-                                  const Color(0xFF6B8AFF).withOpacity(0.15),
+                                  const Color(0xFF00C2FF)
+                                      .withOpacity(0.15),
+                                  const Color(0xFF6B8AFF)
+                                      .withOpacity(0.15),
                                 ],
                               ),
                             ),
@@ -470,7 +482,8 @@ class _HomeScreenState extends State<HomeScreen> {
           child: const Icon(Icons.add, color: Colors.white, size: 30),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation:
+      FloatingActionButtonLocation.centerDocked,
 
       // ── Bottom Nav Bar ───────────────────────────────────────────────
       bottomNavigationBar: BottomAppBar(
@@ -519,7 +532,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── Section Title with gradient accent bar ─────────────────────────────
+// ── Section Title ──────────────────────────────────────────────────────
 class _SectionTitle extends StatelessWidget {
   final String title;
   const _SectionTitle({required this.title});
@@ -538,7 +551,6 @@ class _SectionTitle extends StatelessWidget {
               end: Alignment.bottomCenter,
             ),
             borderRadius: BorderRadius.circular(2),
-
           ),
         ),
         const SizedBox(width: 10),
@@ -581,16 +593,22 @@ class _NavItem extends StatelessWidget {
         children: [
           Icon(
             selected ? activeIcon : icon,
-            color: selected ? const Color(0xFF00C2FF) : Colors.white38,
+            color: selected
+                ? const Color(0xFF00C2FF)
+                : Colors.white38,
             size: 24,
           ),
           const SizedBox(height: 3),
           Text(
             label,
             style: TextStyle(
-              color: selected ? const Color(0xFF00C2FF) : Colors.white38,
+              color: selected
+                  ? const Color(0xFF00C2FF)
+                  : Colors.white38,
               fontSize: 10,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              fontWeight: selected
+                  ? FontWeight.w600
+                  : FontWeight.normal,
             ),
           ),
         ],

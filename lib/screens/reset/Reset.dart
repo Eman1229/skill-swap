@@ -4,10 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/reset/Reset Password.dart';
-import 'package:skill_swap/screens/Sign in/sign in.dart';
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 // ─────────────────────────────────────────────────────────────────────────────
-//  STEP 1 — Email Entry Screen (generates & stores OTP, navigates to verify)
+//  STEP 1 — Email Entry Screen
 // ─────────────────────────────────────────────────────────────────────────────
 class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({Key? key}) : super(key: key);
@@ -20,9 +20,33 @@ class EmailVerificationScreen extends StatefulWidget {
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   final TextEditingController emailController = TextEditingController();
   bool loading = false;
+  Future<void> _sendEmailOtp(String email, String otp) async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.emailjs.com/api/v1.0/email/send'),
+        headers: {
+          'Content-Type': 'application/json',
+          'origin': 'http://localhost',
+        },
+        body: jsonEncode({
+          'service_id': 'service_arqfv3m',       // ✅ Paste your Service ID
+          'template_id': 'template_2i05gk8',     // ✅ Paste your Template ID
+          'user_id': 'cbyedSBUQfq84tNqX',          // ✅ Paste your Public Key
+          'template_params': {
+            'to_email': email,
+            'otp': otp,
+          },
+        }),
+      );
 
-  /// Generates a 6-digit OTP, stores it in Firestore under `password_resets/`,
-  /// and navigates to the OTP verification screen.
+      if (response.statusCode != 200) {
+        debugPrint('EmailJS Error: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Email send failed: $e');
+    }
+  }
+
   Future<void> sendOtp() async {
     final email = emailController.text.trim();
 
@@ -39,11 +63,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     setState(() => loading = true);
 
     try {
-      // Generate 6-digit OTP
-      final String otp =
-          (100000 + Random().nextInt(900000)).toString();
+      final String otp = (100000 + Random().nextInt(900000)).toString();
 
-      // Save OTP to Firestore (expires in 10 minutes)
       await FirebaseFirestore.instance
           .collection('password_resets')
           .doc(email)
@@ -54,27 +75,17 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
           DateTime.now().add(const Duration(minutes: 10)),
         ),
         'used': false,
-
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: email,
-      );
-
-      setState(() {
-        emailSent = true;
-        loading = false;
       });
 
-      // Show OTP in snackbar (in production, send via email service / Cloud Function)
-      // For development: OTP is shown in the UI below & also printed to console.
-      debugPrint('🔑 OTP for $email: $otp');
+      await _sendEmailOtp(email, otp);
 
       if (!mounted) return;
 
-      // Navigate to OTP verification screen
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => OtpVerificationScreen(email: email, otp: otp),
+          builder: (context) =>
+              OtpVerificationScreen(email: email, otp: otp),
         ),
       );
     } on FirebaseException catch (e) {
@@ -87,17 +98,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   }
 
   void _snack(String msg, {Color color = Colors.redAccent}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: color),
-    );
-    } on FirebaseAuthException catch(e){
-      setState(() {
-        loading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? "Error sending email")),
-      );
-    }
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
   @override
@@ -122,14 +124,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 25),
         child: Column(
           children: [
-
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Icon / illustration
                       Container(
                         width: 90,
                         height: 90,
@@ -143,9 +143,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                           color: Color(0xFF00C2FF),
                         ),
                       ),
-
                       const SizedBox(height: 28),
-
                       const Text(
                         'Forgot Password?',
                         style: TextStyle(
@@ -154,9 +152,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
                       const Text(
                         'Enter your registered email address.\nWe will send a 6-digit OTP to verify your identity.',
                         textAlign: TextAlign.center,
@@ -166,9 +162,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                           height: 1.5,
                         ),
                       ),
-
                       const SizedBox(height: 36),
-
                       UiHelper.CustomTextField(
                         controller: emailController,
                         text: 'Enter your email',
@@ -176,9 +170,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         textinputtype: TextInputType.emailAddress,
                         prefixIcon: Icons.mail_outline,
                       ),
-
                       const SizedBox(height: 32),
-
                       SizedBox(
                         width: double.infinity,
                         height: 54,
@@ -187,28 +179,28 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF00C2FF),
                             disabledBackgroundColor:
-                                const Color(0xFF00C2FF).withOpacity(0.4),
+                            const Color(0xFF00C2FF).withOpacity(0.4),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           child: loading
                               ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
                               : const Text(
-                                  'Send OTP',
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                            'Send OTP',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -216,8 +208,6 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 ),
               ),
             ),
-
-            // Bottom logo
             Padding(
               padding: const EdgeInsets.only(bottom: 24),
               child: SizedBox(
@@ -237,7 +227,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 // ─────────────────────────────────────────────────────────────────────────────
 class OtpVerificationScreen extends StatefulWidget {
   final String email;
-  final String otp; // passed for dev/demo; in prod compare from Firestore only
+  final String otp;
 
   const OtpVerificationScreen({
     Key? key,
@@ -251,14 +241,13 @@ class OtpVerificationScreen extends StatefulWidget {
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final List<TextEditingController> _controllers =
-      List.generate(6, (_) => TextEditingController());
+  List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
   bool loading = false;
   bool _otpVisible = false;
 
-  String get _enteredOtp =>
-      _controllers.map((c) => c.text).join();
+  String get _enteredOtp => _controllers.map((c) => c.text).join();
 
   Future<void> verifyOtp() async {
     if (_enteredOtp.length < 6) {
@@ -303,7 +292,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         return;
       }
 
-      // Mark OTP as used
       await FirebaseFirestore.instance
           .collection('password_resets')
           .doc(widget.email)
@@ -311,7 +299,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
       if (!mounted) return;
 
-      // Navigate to reset password
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -326,12 +313,36 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (mounted) setState(() => loading = false);
     }
   }
+  Future<void> _sendEmailOtp(String email, String otp) async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.emailjs.com/api/v1.0/email/send'),
+        headers: {
+          'Content-Type': 'application/json',
+          'origin': 'http://localhost',
+        },
+        body: jsonEncode({
+          'service_id': 'service_arqfv3m',       // ✅ Same values as before
+          'template_id': 'template_2i05gk8',
+          'user_id': 'cbyedSBUQfq84tNqX',
+          'template_params': {
+            'to_email': email,
+            'otp': otp,
+          },
+        }),
+      );
 
+      if (response.statusCode != 200) {
+        debugPrint('EmailJS Error: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Email send failed: $e');
+    }
+  }
   Future<void> resendOtp() async {
     setState(() => loading = true);
     try {
-      final String newOtp =
-          (100000 + Random().nextInt(900000)).toString();
+      final String newOtp = (100000 + Random().nextInt(900000)).toString();
 
       await FirebaseFirestore.instance
           .collection('password_resets')
@@ -345,16 +356,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         'used': false,
       });
 
-      debugPrint('🔑 Resent OTP for ${widget.email}: $newOtp');
-
+      await _sendEmailOtp(widget.email, newOtp);
       _snack('A new OTP has been sent to ${widget.email}',
           color: Colors.green);
 
-      // Clear existing input
       for (final c in _controllers) {
         c.clear();
       }
-      FocusScope.of(context).requestFocus(_focusNodes[0]);
+      if (mounted) FocusScope.of(context).requestFocus(_focusNodes[0]);
     } catch (e) {
       _snack('Failed to resend OTP. Please try again.');
     } finally {
@@ -363,19 +372,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   void _snack(String msg, {Color color = Colors.redAccent}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: color),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
   @override
   void dispose() {
-    for (final c in _controllers) {
-      c.dispose();
-    }
-    for (final f in _focusNodes) {
-      f.dispose();
-    }
+    for (final c in _controllers) c.dispose();
+    for (final f in _focusNodes) f.dispose();
     super.dispose();
   }
 
@@ -410,8 +414,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide:
-                const BorderSide(color: Color(0xFF00C2FF), width: 2),
+            borderSide: const BorderSide(color: Color(0xFF00C2FF), width: 2),
           ),
         ),
         onChanged: (value) {
@@ -448,7 +451,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Icon
                       Container(
                         width: 90,
                         height: 90,
@@ -462,9 +464,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           color: Color(0xFF00C2FF),
                         ),
                       ),
-
                       const SizedBox(height: 28),
-
                       const Text(
                         'Verify OTP',
                         style: TextStyle(
@@ -473,75 +473,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
                       Text(
                         'Enter the 6-digit OTP sent to\n${widget.email}',
-                    // ✅ Show email field only if email not sent yet
-                    if(!emailSent) ...[
-
-                      TextField(
-                        controller: emailController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: "Enter your email",
-                          hintStyle: const TextStyle(color: Colors.white54),
-                          filled: true,
-                          fillColor: Colors.white10,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 25),
-
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: loading ? null : sendResetEmail,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00C2FF),
-                          ),
-                          child: loading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text("Send Reset Link"),
-                        ),
-                      ),
-
-                    ],
-
-                    // ✅ Show instructions + button after email is sent
-                    if(emailSent) ...[
-
-                      const Icon(
-                        Icons.mark_email_read_outlined,
-                        color: Color(0xFF00C2FF),
-                        size: 80,
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      const Text(
-                        "Email Sent!",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      const SizedBox(height: 15),
-
-                      const Text(
-                        "Step 1: Open your email\nStep 2: Click the reset link\nStep 3: Reset your password in the browser\nStep 4: Come back and press the button below",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          height: 2,
-                        ),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white54,
@@ -549,18 +483,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           height: 1.5,
                         ),
                       ),
-
                       const SizedBox(height: 36),
-
-                      // OTP boxes
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(6, _buildOtpBox),
                       ),
-
                       const SizedBox(height: 14),
-
-                      // Show / Hide OTP toggle
                       GestureDetector(
                         onTap: () =>
                             setState(() => _otpVisible = !_otpVisible),
@@ -583,9 +511,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 32),
-
                       SizedBox(
                         width: double.infinity,
                         height: 54,
@@ -594,41 +520,38 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF00C2FF),
                             disabledBackgroundColor:
-                                const Color(0xFF00C2FF).withOpacity(0.4),
+                            const Color(0xFF00C2FF).withOpacity(0.4),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           child: loading
                               ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
                               : const Text(
-                                  'Verify OTP',
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                            'Verify OTP',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
-
                       const SizedBox(height: 22),
-
-                      // Resend
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Text(
                             "Didn't receive OTP?  ",
                             style:
-                                TextStyle(color: Colors.white54, fontSize: 14),
+                            TextStyle(color: Colors.white54, fontSize: 14),
                           ),
                           GestureDetector(
                             onTap: loading ? null : resendOtp,
@@ -648,48 +571,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 ),
               ),
             ),
-
-            // Bottom logo
-                      const SizedBox(height: 30),
-
-                      // This button takes user to SignIn after resetting in browser
-                      SizedBox(
-                        width: double.infinity,
-                        height: 55,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SignInScreen(),
-                              ),
-                                  (route) => false,
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            "I've Reset My Password → Sign In",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    ],
-
-                  ],
-                ),
-              ),
-            ),
-
             Padding(
               padding: const EdgeInsets.only(bottom: 24),
               child: SizedBox(
