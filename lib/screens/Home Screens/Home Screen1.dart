@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
+import 'package:skill_swap/screens/Home%20Screens/Swapping%20Available.dart';
 
+import 'offer skill.dart';
+
+// ─────────────────────────────────────────────────────────────────────
+// HOME SCREEN — shown when there are NO swap listings
+// Listens to Firestore in real-time: if a listing appears, it
+// automatically navigates to SwappingAvailable without user action.
+// ─────────────────────────────────────────────────────────────────────
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -12,9 +21,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   int _selectedIndex = 0;
   int _selectedCategory = 0;
+  bool _navigating = false; // prevents double navigation
 
   final List<String> _categories = [
     'All',
@@ -26,6 +37,21 @@ class _HomeScreenState extends State<HomeScreen> {
     'Music',
     'Drawing',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Watch Firestore — if any listing is added, jump to SwappingAvailable
+    _db.collection('swapListings').snapshots().listen((snap) {
+      if (snap.docs.isNotEmpty && !_navigating && mounted) {
+        _navigating = true;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const SwappingAvailable()),
+        );
+      }
+    });
+  }
 
   String get _userName {
     final user = _auth.currentUser;
@@ -84,8 +110,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   bottomRight: Radius.circular(28),
                 ),
               ),
-              padding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -130,8 +156,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const Text(
                           'Keep growing every day!',
-                          style:
-                          TextStyle(color: Colors.white70, fontSize: 12),
+                          style: TextStyle(
+                              color: Colors.white70, fontSize: 12),
                         ),
                       ],
                     ),
@@ -210,7 +236,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       child: const TextField(
-                        style: TextStyle(color: Colors.white, fontSize: 14),
+                        style: TextStyle(
+                            color: Colors.white, fontSize: 14),
                         decoration: InputDecoration(
                           hintText: 'Search skills or topic...',
                           hintStyle: TextStyle(
@@ -294,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 26),
 
-                    // ── Featured Swaps ───────────────────────────────
+                    // ── Featured Swaps — Empty State ─────────────────
                     const _SectionTitle(title: 'Featured Swaps'),
                     const SizedBox(height: 14),
 
@@ -379,7 +406,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               borderRadius: BorderRadius.circular(30),
                             ),
                             child: ElevatedButton(
-                              onPressed: () {},
+                              onPressed: () {Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const OfferSkillScreen())
+                                // TODO: navigate to Add Listing screen
+                              );
+                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 shadowColor: Colors.transparent,
@@ -405,7 +437,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 30),
 
-                    // ── Active Swap Sessions ─────────────────────────
+                    // ── Active Swap Sessions — Empty State ───────────
                     const _SectionTitle(title: 'Active Swap Sessions'),
                     const SizedBox(height: 14),
 
@@ -464,7 +496,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
 
-      // ── Gradient FAB ────────────────────────────────────────────────
+      // ── Gradient FAB ──────────────────────────────────────────────
       floatingActionButton: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -485,7 +517,7 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButtonLocation:
       FloatingActionButtonLocation.centerDocked,
 
-      // ── Bottom Nav Bar ───────────────────────────────────────────────
+      // ── Bottom Nav Bar ────────────────────────────────────────────
       bottomNavigationBar: BottomAppBar(
         color: const Color(0xFF1E293B),
         shape: const CircularNotchedRectangle(),
@@ -509,7 +541,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 selected: _selectedIndex == 1,
                 onTap: () => setState(() => _selectedIndex = 1),
               ),
-              const SizedBox(width: 48), // FAB gap
+              const SizedBox(width: 48),
               _NavItem(
                 icon: Icons.swap_vert_rounded,
                 activeIcon: Icons.swap_vert_rounded,
@@ -532,7 +564,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── Section Title ──────────────────────────────────────────────────────
+// ── Section Title ─────────────────────────────────────────────────────
 class _SectionTitle extends StatelessWidget {
   final String title;
   const _SectionTitle({required this.title});
@@ -567,7 +599,7 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-// ── Bottom Nav Item ────────────────────────────────────────────────────
+// ── Bottom Nav Item ───────────────────────────────────────────────────
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final IconData activeIcon;
@@ -593,22 +625,19 @@ class _NavItem extends StatelessWidget {
         children: [
           Icon(
             selected ? activeIcon : icon,
-            color: selected
-                ? const Color(0xFF00C2FF)
-                : Colors.white38,
+            color:
+            selected ? const Color(0xFF00C2FF) : Colors.white38,
             size: 24,
           ),
           const SizedBox(height: 3),
           Text(
             label,
             style: TextStyle(
-              color: selected
-                  ? const Color(0xFF00C2FF)
-                  : Colors.white38,
+              color:
+              selected ? const Color(0xFF00C2FF) : Colors.white38,
               fontSize: 10,
-              fontWeight: selected
-                  ? FontWeight.w600
-                  : FontWeight.normal,
+              fontWeight:
+              selected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
         ],

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/Ui_helper/Ui_helper.dart';
-import 'package:skill_swap/screens/Home Screens/Home Screen1.dart';
+import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
+import 'package:skill_swap/screens/Home%20Screens/Swapping%20Available.dart';
 import 'package:skill_swap/screens/reset/Reset.dart';
-import 'package:skill_swap/screens/sign up/sign up.dart';
+import 'package:skill_swap/screens/sign%20up/sign%20up.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({Key? key}) : super(key: key);
@@ -13,61 +15,95 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   bool isPasswordVisible = false;
   bool? isEmailValid;
+  bool _isLoading = false;
 
   void validateEmail(String value) {
     if (!value.contains("@") || !value.contains(".")) {
-      setState(() {
-        isEmailValid = null;
-      });
+      setState(() => isEmailValid = null);
       return;
     }
-
-    bool valid = RegExp(
-        r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+")
+    bool valid = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+")
         .hasMatch(value);
-
-    setState(() {
-      isEmailValid = valid;
-    });
+    setState(() => isEmailValid = valid);
   }
 
   Future<void> signInUser() async {
+    // Basic validation
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill in all fields")),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
     try {
+      // Step 1: Sign in with Firebase Auth
       await _auth.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      if (!mounted) return;  // ← fix 1
+      if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
-      );
+      // Step 2: Check Firestore for any swap listings
+      final snapshot =
+      await _db.collection('swapListings').limit(1).get();
 
+      if (!mounted) return;
+
+      // Step 3: Route based on whether listings exist
+      if (snapshot.docs.isNotEmpty) {
+        // Listings exist → go to SwappingAvailable (3rd screen)
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SwappingAvailable(),
+          ),
+        );
+      } else {
+        // No listings → go to HomeScreen (2nd screen / empty state)
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const HomeScreen(),
+          ),
+        );
+      }
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
 
-      if (!mounted) return;  // ← fix 2
-
-      String message = "Login failed";
-
+      String message = "Login failed. Please try again.";
       if (e.code == 'wrong-password') {
-        message = "Wrong password entered";
+        message = "Wrong password entered.";
       } else if (e.code == 'user-not-found') {
-        message = "Login failed";
+        message = "No account found with this email.";
+      } else if (e.code == 'invalid-email') {
+        message = "Invalid email address.";
+      } else if (e.code == 'too-many-requests') {
+        message = "Too many attempts. Please try again later.";
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: ${e.toString()}")),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -80,7 +116,6 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
@@ -92,8 +127,7 @@ class _SignInScreenState extends State<SignInScreen> {
             Stack(
               clipBehavior: Clip.none,
               children: [
-
-                // Top Gradient
+                // ── Top Gradient ──────────────────────────────────
                 Container(
                   height: screenHeight * 0.4,
                   width: double.infinity,
@@ -121,7 +155,8 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                               child: const Text(
                                 "Hi!",
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -137,20 +172,20 @@ class _SignInScreenState extends State<SignInScreen> {
                           ],
                         ),
                       ),
-
                       Positioned(
                         top: 90,
                         right: 80,
                         child: SizedBox(
                           height: 140,
-                          child: UiHelper.CustomImage(imgurl: "messages.png"),
+                          child:
+                          UiHelper.CustomImage(imgurl: "messages.png"),
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                // Form Section
+                // ── Form Section ──────────────────────────────────
                 Padding(
                   padding: EdgeInsets.only(top: screenHeight * 0.32),
                   child: Container(
@@ -167,7 +202,6 @@ class _SignInScreenState extends State<SignInScreen> {
                           horizontal: 24.0, vertical: 35),
                       child: Column(
                         children: [
-
                           const Text(
                             "Sign in",
                             style: TextStyle(
@@ -230,19 +264,32 @@ class _SignInScreenState extends State<SignInScreen> {
                             width: double.infinity,
                             height: 55,
                             child: ElevatedButton(
-                              onPressed: signInUser,
+                              onPressed:
+                              _isLoading ? null : signInUser,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00C2FF),
+                                backgroundColor:
+                                const Color(0xFF00C2FF),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
+                                  borderRadius:
+                                  BorderRadius.circular(15),
                                 ),
                               ),
-                              child: const Text(
+                              child: _isLoading
+                                  ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                                  : const Text(
                                 "Proceed",
                                 style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold),
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -250,37 +297,38 @@ class _SignInScreenState extends State<SignInScreen> {
                           const SizedBox(height: 25),
 
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
                             children: [
-
                               TextButton(
                                 onPressed: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
+                                      builder: (_) =>
                                           EmailVerificationScreen(),
                                     ),
                                   );
                                 },
                                 child: const Text(
                                   "Forgot Password?",
-                                  style: TextStyle(color: Color(0xFF00C2FF)),
+                                  style: TextStyle(
+                                      color: Color(0xFF00C2FF)),
                                 ),
                               ),
-
                               Row(
                                 children: [
                                   const Text(
                                     "New member? ",
-                                    style: TextStyle(color: Colors.white70),
+                                    style:
+                                    TextStyle(color: Colors.white70),
                                   ),
                                   GestureDetector(
                                     onTap: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) =>
+                                          builder: (_) =>
                                           const SignUpScreen(),
                                         ),
                                       );
@@ -302,7 +350,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
                           SizedBox(
                             height: 45,
-                            child: UiHelper.CustomImage(imgurl: "Cl.png"),
+                            child:
+                            UiHelper.CustomImage(imgurl: "Cl.png"),
                           ),
 
                           const SizedBox(height: 20),
@@ -312,13 +361,14 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                 ),
 
-                // Girl Image
+                // ── Girl Image ────────────────────────────────────
                 Positioned(
                   top: screenHeight * 0.08,
                   right: -10,
                   child: SizedBox(
                     height: 280,
-                    child: UiHelper.CustomImage(imgurl: "skill girl.png"),
+                    child: UiHelper.CustomImage(
+                        imgurl: "skill girl.png"),
                   ),
                 ),
               ],
