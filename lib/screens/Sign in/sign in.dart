@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
 import 'package:skill_swap/screens/Home%20Screens/Swapping%20Available.dart';
 import 'package:skill_swap/screens/reset/Reset.dart';
 import 'package:skill_swap/screens/sign%20up/sign%20up.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({Key? key}) : super(key: key);
@@ -26,21 +27,26 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _isLoading = false;
 
   void validateEmail(String value) {
-    if (!value.contains("@") || !value.contains(".")) {
+    if (value.trim().isEmpty) {
       setState(() => isEmailValid = null);
       return;
     }
-    bool valid = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]+")
-        .hasMatch(value);
+
+    bool valid = RegExp(
+      r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
+    ).hasMatch(value.trim());
+
     setState(() => isEmailValid = valid);
   }
 
   Future<void> signInUser() async {
-    // Basic validation
-    if (_emailController.text.trim().isEmpty ||
-        _passwordController.text.trim().isEmpty) {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // Validation
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in all fields")),
+        const SnackBar(content: Text("Please fill all fields")),
       );
       return;
     }
@@ -48,23 +54,21 @@ class _SignInScreenState extends State<SignInScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Step 1: Sign in with Firebase Auth
+      // 🔐 ONLY AUTH LOGIN (NO FIRESTORE HERE)
+      UserCredential userCredential =
       await _auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        email: email,
+        password: password,
       );
 
       if (!mounted) return;
 
-      // Step 2: Check Firestore for any swap listings
-      final snapshot =
-      await _db.collection('swapListings').limit(1).get();
+      // OPTIONAL: check swap listings (your logic kept)
+      final snapshot = await _db.collection('swapListings').limit(1).get();
 
       if (!mounted) return;
 
-      // Step 3: Route based on whether listings exist
       if (snapshot.docs.isNotEmpty) {
-        // Listings exist → go to SwappingAvailable (3rd screen)
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -72,7 +76,6 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
         );
       } else {
-        // No listings → go to HomeScreen (2nd screen / empty state)
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -80,30 +83,47 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
         );
       }
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
 
-      String message = "Login failed. Please try again.";
-      if (e.code == 'wrong-password') {
-        message = "Wrong password entered.";
-      } else if (e.code == 'user-not-found') {
-        message = "No account found with this email.";
-      } else if (e.code == 'invalid-email') {
-        message = "Invalid email address.";
-      } else if (e.code == 'too-many-requests') {
-        message = "Too many attempts. Please try again later.";
+    } on FirebaseAuthException catch (e) {
+      String message;
+
+      switch (e.code) {
+        case 'user-not-found':
+          message = "No account found with this email.";
+          break;
+
+        case 'wrong-password':
+          message = "Incorrect password.";
+          break;
+
+        case 'invalid-email':
+          message = "Invalid email format.";
+          break;
+
+        case 'invalid-credential':
+          message = "Wrong email or password.";
+          break;
+
+        case 'too-many-requests':
+          message = "Too many attempts. Try again later.";
+          break;
+
+        case 'network-request-failed':
+          message = "Check your internet connection.";
+          break;
+
+        default:
+          message = e.message ?? "Login failed";
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${e.toString()}")),
-      );
+
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -127,7 +147,7 @@ class _SignInScreenState extends State<SignInScreen> {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                // ── Top Gradient ──────────────────────────────────
+                // ── TOP GRADIENT ──
                 Container(
                   height: screenHeight * 0.4,
                   width: double.infinity,
@@ -146,17 +166,11 @@ class _SignInScreenState extends State<SignInScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 4),
-                              decoration: BoxDecoration(
+                            const Text(
+                              "Hi!",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                "Hi!",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -166,7 +180,6 @@ class _SignInScreenState extends State<SignInScreen> {
                                 color: Colors.white,
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
-                                height: 1.1,
                               ),
                             ),
                           ],
@@ -177,15 +190,15 @@ class _SignInScreenState extends State<SignInScreen> {
                         right: 80,
                         child: SizedBox(
                           height: 140,
-                          child:
-                          UiHelper.CustomImage(imgurl: "messages.png"),
+                          child: UiHelper.CustomImage(
+                              imgurl: "messages.png"),
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                // ── Form Section ──────────────────────────────────
+                // ── FORM ──
                 Padding(
                   padding: EdgeInsets.only(top: screenHeight * 0.32),
                   child: Container(
@@ -213,10 +226,10 @@ class _SignInScreenState extends State<SignInScreen> {
 
                           const SizedBox(height: 40),
 
-                          // EMAIL FIELD
+                          // EMAIL
                           UiHelper.CustomTextField(
                             controller: _emailController,
-                            text: "user@gmail.com",
+                            text: "Email",
                             tohide: false,
                             textinputtype: TextInputType.emailAddress,
                             prefixIcon: Icons.mail_outline,
@@ -235,7 +248,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
                           const SizedBox(height: 25),
 
-                          // PASSWORD FIELD
+                          // PASSWORD
                           UiHelper.CustomTextField(
                             controller: _passwordController,
                             text: "Password",
@@ -251,7 +264,8 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                               onPressed: () {
                                 setState(() {
-                                  isPasswordVisible = !isPasswordVisible;
+                                  isPasswordVisible =
+                                  !isPasswordVisible;
                                 });
                               },
                             ),
@@ -259,7 +273,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
                           const SizedBox(height: 40),
 
-                          // LOGIN BUTTON
+                          // BUTTON
                           SizedBox(
                             width: double.infinity,
                             height: 55,
@@ -275,13 +289,9 @@ class _SignInScreenState extends State<SignInScreen> {
                                 ),
                               ),
                               child: _isLoading
-                                  ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
+                                  ? const CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
                               )
                                   : const Text(
                                 "Proceed",
@@ -320,8 +330,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                 children: [
                                   const Text(
                                     "New member? ",
-                                    style:
-                                    TextStyle(color: Colors.white70),
+                                    style: TextStyle(
+                                        color: Colors.white70),
                                   ),
                                   GestureDetector(
                                     onTap: () {
@@ -346,22 +356,16 @@ class _SignInScreenState extends State<SignInScreen> {
                             ],
                           ),
 
-                          const SizedBox(height: 140),
+                          const SizedBox(height: 100),
 
-                          SizedBox(
-                            height: 45,
-                            child:
-                            UiHelper.CustomImage(imgurl: "Cl.png"),
-                          ),
-
-                          const SizedBox(height: 20),
+                          UiHelper.CustomImage(imgurl: "Cl.png"),
                         ],
                       ),
                     ),
                   ),
                 ),
 
-                // ── Girl Image ────────────────────────────────────
+                // ── IMAGE ──
                 Positioned(
                   top: screenHeight * 0.08,
                   right: -10,

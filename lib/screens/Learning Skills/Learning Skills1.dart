@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 
 class LearningSkill1 extends StatefulWidget {
@@ -71,7 +72,7 @@ class _LearningSkill1State extends State<LearningSkill1> {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.push(context, MaterialPageRoute(builder: (context)
-                  =>SignInScreen(),),
+                  =>HomeScreen(),),
                   );
                   print("Teaching: ${_skillController.text}");
                 },
