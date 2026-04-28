@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:skill_swap/models/swap_listing.dart';
+import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Home Screens/profile screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────

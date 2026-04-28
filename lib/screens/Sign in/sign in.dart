@@ -9,7 +9,7 @@ import 'package:skill_swap/screens/reset/Reset.dart';
 import 'package:skill_swap/screens/sign%20up/sign%20up.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({Key? key}) : super(key: key);
+  const SignInScreen({super.key});
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -26,36 +26,104 @@ class _SignInScreenState extends State<SignInScreen> {
   bool? isEmailValid;
   bool _isLoading = false;
 
+  String? _emailError;
+  String? _passwordError;
+  String? _generalError;
+
   void validateEmail(String value) {
     if (value.trim().isEmpty) {
-      setState(() => isEmailValid = null);
+      setState(() {
+        isEmailValid = null;
+        _emailError = null;
+      });
       return;
     }
-
     bool valid = RegExp(
       r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
     ).hasMatch(value.trim());
+    setState(() {
+      isEmailValid = valid;
+      _emailError = valid ? null : "Please enter a valid email address.";
+    });
+  }
 
-    setState(() => isEmailValid = valid);
+  void _clearErrors() {
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+      _generalError = null;
+    });
   }
 
   Future<void> signInUser() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    // Validation
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields")),
-      );
-      return;
+    _clearErrors();
+
+    bool hasError = false;
+
+    if (email.isEmpty) {
+      setState(() => _emailError = "Email is required.");
+      hasError = true;
+    } else if (isEmailValid == false) {
+      setState(() => _emailError = "Please enter a valid email address.");
+      hasError = true;
     }
+
+    if (password.isEmpty) {
+      setState(() => _passwordError = "Password is required.");
+      hasError = true;
+    } else if (password.length < 6) {
+      setState(() => _passwordError = "Password must be at least 6 characters.");
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     setState(() => _isLoading = true);
 
+    // ── STEP 1: Check if email exists using dummy password ──
+    bool emailExists = false;
+
     try {
-      // 🔐 ONLY AUTH LOGIN (NO FIRESTORE HERE)
-      UserCredential userCredential =
+      await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: '________dummy________',
+      );
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        setState(() => _emailError = "No account found with this email.");
+        setState(() => _isLoading = false);
+        return;
+      } else if (e.code == 'invalid-credential' ||
+          e.code == 'wrong-password' ||
+          e.code == 'invalid-email') {
+        // Email exists but dummy password was wrong — expected
+        emailExists = true;
+      } else if (e.code == 'user-disabled') {
+        setState(() => _emailError = "This account has been disabled. Contact support.");
+        setState(() => _isLoading = false);
+        return;
+      } else if (e.code == 'too-many-requests') {
+        setState(() => _generalError = "Too many failed attempts. Please try again later.");
+        setState(() => _isLoading = false);
+        return;
+      } else if (e.code == 'network-request-failed') {
+        setState(() => _generalError = "No internet connection. Please check your network.");
+        setState(() => _isLoading = false);
+        return;
+      }
+    }
+
+    if (!emailExists) {
+      setState(() => _emailError = "No account found with this email.");
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    // ── STEP 2: Email exists, now try with real password ──
+    try {
       await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -63,67 +131,78 @@ class _SignInScreenState extends State<SignInScreen> {
 
       if (!mounted) return;
 
-      // OPTIONAL: check swap listings (your logic kept)
       final snapshot = await _db.collection('swapListings').limit(1).get();
 
       if (!mounted) return;
 
-      if (snapshot.docs.isNotEmpty) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const SwappingAvailable(),
-          ),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const HomeScreen(),
-          ),
-        );
-      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => snapshot.docs.isNotEmpty
+              ? const SwappingAvailable()
+              : const HomeScreen(),
+        ),
+      );
 
     } on FirebaseAuthException catch (e) {
-      String message;
+      if (!mounted) return;
 
       switch (e.code) {
-        case 'user-not-found':
-          message = "No account found with this email.";
-          break;
-
         case 'wrong-password':
-          message = "Incorrect password.";
-          break;
-
-        case 'invalid-email':
-          message = "Invalid email format.";
-          break;
-
         case 'invalid-credential':
-          message = "Wrong email or password.";
+          setState(() => _passwordError = "Incorrect password. Please try again.");
+          break;
+
+        case 'user-disabled':
+          setState(() => _emailError = "This account has been disabled. Contact support.");
           break;
 
         case 'too-many-requests':
-          message = "Too many attempts. Try again later.";
+          setState(() => _generalError = "Too many failed attempts. Please try again later.");
           break;
 
         case 'network-request-failed':
-          message = "Check your internet connection.";
+          setState(() => _generalError = "No internet connection. Please check your network.");
+          break;
+
+        case 'operation-not-allowed':
+          setState(() => _generalError = "Email sign-in is not enabled. Contact support.");
+          break;
+
+        case 'account-exists-with-different-credential':
+          setState(() => _emailError = "An account already exists with a different sign-in method.");
+          break;
+
+        case 'requires-recent-login':
+          setState(() => _generalError = "Please sign in again to continue.");
+          break;
+
+        case 'weak-password':
+          setState(() => _passwordError = "Password is too weak. Use at least 6 characters.");
+          break;
+
+        case 'expired-action-code':
+          setState(() => _generalError = "This link has expired. Please request a new one.");
+          break;
+
+        case 'invalid-action-code':
+          setState(() => _generalError = "This link is invalid. Please request a new one.");
+          break;
+
+        case 'session-cookie-expired':
+          setState(() => _generalError = "Your session has expired. Please sign in again.");
+          break;
+
+        case 'internal-error':
+          setState(() => _generalError = "An internal error occurred. Please try again.");
           break;
 
         default:
-          message = e.message ?? "Login failed";
+          setState(() => _generalError = e.message ?? "Something went wrong. Please try again.");
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
 
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -147,6 +226,7 @@ class _SignInScreenState extends State<SignInScreen> {
             Stack(
               clipBehavior: Clip.none,
               children: [
+
                 // ── TOP GRADIENT ──
                 Container(
                   height: screenHeight * 0.4,
@@ -165,16 +245,16 @@ class _SignInScreenState extends State<SignInScreen> {
                         left: 20,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
+                          children: const [
+                            Text(
                               "Hi!",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
                             ),
-                            const SizedBox(height: 10),
-                            const Text(
+                            SizedBox(height: 10),
+                            Text(
                               "Welcome\nBack!",
                               style: TextStyle(
                                 color: Colors.white,
@@ -190,8 +270,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         right: 80,
                         child: SizedBox(
                           height: 140,
-                          child: UiHelper.CustomImage(
-                              imgurl: "messages.png"),
+                          child: UiHelper.CustomImage(imgurl: "messages.png"),
                         ),
                       ),
                     ],
@@ -214,19 +293,24 @@ class _SignInScreenState extends State<SignInScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 24.0, vertical: 35),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "Sign in",
-                            style: TextStyle(
-                              color: Color(0xFF00C2FF),
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
+
+                          // ── TITLE ──
+                          const Center(
+                            child: Text(
+                              "Sign in",
+                              style: TextStyle(
+                                color: Color(0xFF00C2FF),
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
 
                           const SizedBox(height: 40),
 
-                          // EMAIL
+                          // ── EMAIL FIELD ──
                           UiHelper.CustomTextField(
                             controller: _emailController,
                             text: "Email",
@@ -246,9 +330,34 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: 25),
+                          // ── EMAIL ERROR ──
+                          if (_emailError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6, left: 4),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline,
+                                    color: Colors.redAccent,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      _emailError!,
+                                      style: const TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
 
-                          // PASSWORD
+                          const SizedBox(height: 20),
+
+                          // ── PASSWORD FIELD ──
                           UiHelper.CustomTextField(
                             controller: _passwordController,
                             text: "Password",
@@ -262,30 +371,85 @@ class _SignInScreenState extends State<SignInScreen> {
                                     : Icons.visibility_off,
                                 color: Colors.white60,
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  isPasswordVisible =
-                                  !isPasswordVisible;
-                                });
-                              },
+                              onPressed: () => setState(
+                                      () => isPasswordVisible = !isPasswordVisible),
                             ),
                           ),
 
-                          const SizedBox(height: 40),
+                          // ── PASSWORD ERROR ──
+                          if (_passwordError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6, left: 4),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline,
+                                    color: Colors.redAccent,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      _passwordError!,
+                                      style: const TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
 
-                          // BUTTON
+                          const SizedBox(height: 24),
+
+                          // ── GENERAL ERROR BOX ──
+                          if (_generalError != null)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                // ── FIXED: withOpacity → withValues ──
+                                color: Colors.red.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  // ── FIXED: withOpacity → withValues ──
+                                  color: Colors.redAccent.withValues(alpha: 0.35),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.warning_amber_rounded,
+                                    color: Colors.orangeAccent,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _generalError!,
+                                      style: const TextStyle(
+                                        color: Colors.orangeAccent,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // ── SIGN IN BUTTON ──
                           SizedBox(
                             width: double.infinity,
                             height: 55,
                             child: ElevatedButton(
-                              onPressed:
-                              _isLoading ? null : signInUser,
+                              onPressed: _isLoading ? null : signInUser,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                const Color(0xFF00C2FF),
+                                backgroundColor: const Color(0xFF00C2FF),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(15),
+                                  borderRadius: BorderRadius.circular(15),
                                 ),
                               ),
                               child: _isLoading
@@ -306,40 +470,36 @@ class _SignInScreenState extends State<SignInScreen> {
 
                           const SizedBox(height: 25),
 
+                          // ── FORGOT PASSWORD + SIGN UP ──
                           Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               TextButton(
                                 onPressed: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) =>
-                                          EmailVerificationScreen(),
+                                      builder: (_) => EmailVerificationScreen(),
                                     ),
                                   );
                                 },
                                 child: const Text(
                                   "Forgot Password?",
-                                  style: TextStyle(
-                                      color: Color(0xFF00C2FF)),
+                                  style: TextStyle(color: Color(0xFF00C2FF)),
                                 ),
                               ),
                               Row(
                                 children: [
                                   const Text(
                                     "New member? ",
-                                    style: TextStyle(
-                                        color: Colors.white70),
+                                    style: TextStyle(color: Colors.white70),
                                   ),
                                   GestureDetector(
                                     onTap: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) =>
-                                          const SignUpScreen(),
+                                          builder: (_) => const SignUpScreen(),
                                         ),
                                       );
                                     },
@@ -358,21 +518,22 @@ class _SignInScreenState extends State<SignInScreen> {
 
                           const SizedBox(height: 100),
 
-                          UiHelper.CustomImage(imgurl: "Cl.png"),
+                          Center(
+                            child: UiHelper.CustomImage(imgurl: "Cl.png"),
+                          ),
                         ],
                       ),
                     ),
                   ),
                 ),
 
-                // ── IMAGE ──
+                // ── HERO IMAGE ──
                 Positioned(
                   top: screenHeight * 0.08,
                   right: -10,
                   child: SizedBox(
                     height: 280,
-                    child: UiHelper.CustomImage(
-                        imgurl: "skill girl.png"),
+                    child: UiHelper.CustomImage(imgurl: "skill girl.png"),
                   ),
                 ),
               ],

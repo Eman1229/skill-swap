@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,11 +8,6 @@ import 'package:skill_swap/screens/Home%20Screens/Swapping%20Available.dart';
 
 import 'offer skill.dart';
 
-// ─────────────────────────────────────────────────────────────────────
-// HOME SCREEN — shown when there are NO swap listings
-// Listens to Firestore in real-time: if a listing appears, it
-// automatically navigates to SwappingAvailable without user action.
-// ─────────────────────────────────────────────────────────────────────
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -25,7 +21,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int _selectedIndex = 0;
   int _selectedCategory = 0;
-  bool _navigating = false; // prevents double navigation
+  bool _navigating = false;
+  StreamSubscription? _listingsSub;
 
   final List<String> _categories = [
     'All',
@@ -41,8 +38,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Watch Firestore — if any listing is added, jump to SwappingAvailable
-    _db.collection('swapListings').snapshots().listen((snap) {
+    _startListening();
+  }
+
+  void _startListening() {
+    _listingsSub?.cancel();
+    _listingsSub = _db.collection('swapListings').snapshots().listen((snap) {
       if (snap.docs.isNotEmpty && !_navigating && mounted) {
         _navigating = true;
         Navigator.pushReplacement(
@@ -51,6 +52,21 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _listingsSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _openOfferSkill() async {
+    _listingsSub?.cancel();
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const OfferSkillScreen()),
+    );
+    if (mounted) _startListening();
   }
 
   String get _userName {
@@ -101,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: screenHeight * 0.16,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF0B1F3B), Color(0xFF2563E)],
+                  colors: [Color(0xFF0B1F3B), Color(0xFF2563EB)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -110,8 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   bottomRight: Radius.circular(28),
                 ),
               ),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -156,8 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const Text(
                           'Keep growing every day!',
-                          style: TextStyle(
-                              color: Colors.white70, fontSize: 12),
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ],
                     ),
@@ -231,13 +245,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: const Color(0xFF1E293B),
                         borderRadius: BorderRadius.circular(15),
                         border: Border.all(
-                          color:
-                          const Color(0xFF00C2FF).withOpacity(0.2),
+                          color: const Color(0xFF00C2FF).withOpacity(0.2),
                         ),
                       ),
                       child: const TextField(
-                        style: TextStyle(
-                            color: Colors.white, fontSize: 14),
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                         decoration: InputDecoration(
                           hintText: 'Search skills or topic...',
                           hintStyle: TextStyle(
@@ -265,16 +277,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: _categories.length,
-                        separatorBuilder: (_, __) =>
-                        const SizedBox(width: 10),
+                        separatorBuilder: (_, __) => const SizedBox(width: 10),
                         itemBuilder: (context, index) {
                           final selected = _selectedCategory == index;
                           return GestureDetector(
-                            onTap: () => setState(
-                                    () => _selectedCategory = index),
+                            onTap: () =>
+                                setState(() => _selectedCategory = index),
                             child: AnimatedContainer(
-                              duration:
-                              const Duration(milliseconds: 200),
+                              duration: const Duration(milliseconds: 200),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 18,
                                 vertical: 8,
@@ -327,19 +337,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     Container(
                       width: double.infinity,
-                      padding:
-                      const EdgeInsets.symmetric(vertical: 40),
+                      padding: const EdgeInsets.symmetric(vertical: 40),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E293B),
                         borderRadius: BorderRadius.circular(25),
                         border: Border.all(
-                          color: const Color(0xFF00C2FF)
-                              .withOpacity(0.15),
+                          color: const Color(0xFF00C2FF).withOpacity(0.15),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF00C2FF)
-                                .withOpacity(0.06),
+                            color: const Color(0xFF00C2FF).withOpacity(0.06),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
@@ -355,15 +362,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
                                 colors: [
-                                  const Color(0xFF00C2FF)
-                                      .withOpacity(0.2),
-                                  const Color(0xFF6B8AFF)
-                                      .withOpacity(0.2),
+                                  const Color(0xFF00C2FF).withOpacity(0.2),
+                                  const Color(0xFF6B8AFF).withOpacity(0.2),
                                 ],
                               ),
                               border: Border.all(
-                                color: const Color(0xFF00C2FF)
-                                    .withOpacity(0.3),
+                                color: const Color(0xFF00C2FF).withOpacity(0.3),
                                 width: 1.5,
                               ),
                             ),
@@ -406,12 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               borderRadius: BorderRadius.circular(30),
                             ),
                             child: ElevatedButton(
-                              onPressed: () {Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const OfferSkillScreen())
-                                // TODO: navigate to Add Listing screen
-                              );
-                              },
+                              onPressed: _openOfferSkill,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 shadowColor: Colors.transparent,
@@ -443,14 +442,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     Container(
                       width: double.infinity,
-                      padding:
-                      const EdgeInsets.symmetric(vertical: 32),
+                      padding: const EdgeInsets.symmetric(vertical: 32),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E293B),
                         borderRadius: BorderRadius.circular(25),
                         border: Border.all(
-                          color: const Color(0xFF00C2FF)
-                              .withOpacity(0.15),
+                          color: const Color(0xFF00C2FF).withOpacity(0.15),
                         ),
                       ),
                       child: Column(
@@ -462,10 +459,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
                                 colors: [
-                                  const Color(0xFF00C2FF)
-                                      .withOpacity(0.15),
-                                  const Color(0xFF6B8AFF)
-                                      .withOpacity(0.15),
+                                  const Color(0xFF00C2FF).withOpacity(0.15),
+                                  const Color(0xFF6B8AFF).withOpacity(0.15),
                                 ],
                               ),
                             ),
@@ -507,15 +502,14 @@ class _HomeScreenState extends State<HomeScreen> {
           shape: BoxShape.circle,
         ),
         child: FloatingActionButton(
-          onPressed: () {},
+          onPressed: _openOfferSkill,
           backgroundColor: Colors.transparent,
           elevation: 0,
           shape: const CircleBorder(),
           child: const Icon(Icons.add, color: Colors.white, size: 30),
         ),
       ),
-      floatingActionButtonLocation:
-      FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       // ── Bottom Nav Bar ────────────────────────────────────────────
       bottomNavigationBar: BottomAppBar(
@@ -625,19 +619,16 @@ class _NavItem extends StatelessWidget {
         children: [
           Icon(
             selected ? activeIcon : icon,
-            color:
-            selected ? const Color(0xFF00C2FF) : Colors.white38,
+            color: selected ? const Color(0xFF00C2FF) : Colors.white38,
             size: 24,
           ),
           const SizedBox(height: 3),
           Text(
             label,
             style: TextStyle(
-              color:
-              selected ? const Color(0xFF00C2FF) : Colors.white38,
+              color: selected ? const Color(0xFF00C2FF) : Colors.white38,
               fontSize: 10,
-              fontWeight:
-              selected ? FontWeight.w600 : FontWeight.normal,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
         ],

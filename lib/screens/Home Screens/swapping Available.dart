@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:skill_swap/screens/Chat/conversation_screen.dart';
 import 'package:skill_swap/screens/Home%20Screens/offer%20skill.dart';
 import 'package:skill_swap/screens/Home%20Screens/see%20all.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
+import 'package:skill_swap/screens/Chat/chat_screen.dart';
 
-// ─────────────────────────────────────────────────────────────────────
-// DATA MODEL — mirrors your Firestore document fields
-// ─────────────────────────────────────────────────────────────────────
 class SwapListing {
   final String id;
   final String name;
@@ -20,6 +19,11 @@ class SwapListing {
   final int reviews;
   final String category;
   final bool isLive;
+  final String skillLevel;
+  final String? userId;
+  final String portfolioFile;
+  final String description;
+  final String experience;
 
   const SwapListing({
     required this.id,
@@ -32,6 +36,11 @@ class SwapListing {
     required this.reviews,
     required this.category,
     this.isLive = false,
+    this.skillLevel = '',
+    this.userId,
+    this.portfolioFile = '',
+    this.description = '',
+    this.experience = '',
   });
 
   /// Change field names here to match your actual Firestore schema.
@@ -57,7 +66,13 @@ class SwapListing {
       reviews: (d['Reviews'] as num?)?.toInt() ?? 0,
       category: (d['Category'] as String?) ?? 'All',
       isLive: (d['is Live'] as bool?) ?? false,
+      skillLevel: (d['experienceLevel'] as String?) ?? '',
+      userId: d['userId'] as String?,
+      portfolioFile: (d['portfolio'] as String?) ?? '',
+      description: (d['description'] as String?) ?? '',
+      experience: (d['experienceLevel'] as String?) ?? '',
     );
+
   }
 }
 
@@ -77,6 +92,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 
   int _selectedIndex = 0;
   int _selectedCategory = 0;
+  bool _addingSkill = false;
 
   final List<String> _categories = [
     'All',
@@ -186,7 +202,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const OfferSkillScreen()),
+                            builder: (_) => const HomeScreen()),
                       );
                     });
                   }
@@ -289,8 +305,12 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           shape: BoxShape.circle,
         ),
         child: FloatingActionButton(
-          onPressed: () {
-            // TODO: navigate to Add Listing screen
+          onPressed: ()async{
+            setState(() => _addingSkill = true);
+          Navigator.push(context, MaterialPageRoute(builder: (context)
+          => OfferSkillScreen())
+          );
+          if (mounted) setState(() => _addingSkill = false);
           },
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -323,7 +343,14 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                 activeIcon: Icons.chat_bubble_rounded,
                 label: 'Chat',
                 selected: _selectedIndex == 1,
-                onTap: () => setState(() => _selectedIndex = 1),
+                onTap: () {
+                  setState(() => _selectedIndex = 1);
+                Navigator.push(context
+                ,MaterialPageRoute(builder:(_)
+              => const ChatScreen()),
+
+              );
+        },
               ),
               const SizedBox(width: 48),
               _NavItem(
@@ -340,6 +367,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                 selected: _selectedIndex == 3,
                 onTap: () => setState(() => _selectedIndex = 3),
               ),
+
             ],
           ),
         ),

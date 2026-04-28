@@ -1,10 +1,444 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:skill_swap/models/swap_listing.dart';
-
-
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
+import 'package:skill_swap/screens/Home Screens/no_skill_dialog.dart';
+import 'package:skill_swap/screens/Home Screens/confirm_swap_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────
-// PROFILE SCREEN
+// GLOBAL PROFILE IMAGE NOTIFIER
+// (Put this in a shared file, e.g. lib/providers/profile_image_provider.dart)
+// ─────────────────────────────────────────────────────────────────────
+class ProfileImageNotifier extends ValueNotifier<File?> {
+  ProfileImageNotifier() : super(null);
+
+  static final ProfileImageNotifier instance = ProfileImageNotifier();
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// REUSABLE PROFILE AVATAR WIDGET
+// Use this widget on EVERY page where the avatar should appear
+// ─────────────────────────────────────────────────────────────────────
+class ProfileAvatar extends StatefulWidget {
+  final SwapListing swap;
+  final double size;
+  final bool allowEdit;
+  final Color borderColor;
+
+  const ProfileAvatar({
+    Key? key,
+    required this.swap,
+    this.size = 100,
+    this.allowEdit = true,
+    this.borderColor = const Color(0xFF0F172A),
+  }) : super(key: key);
+
+  @override
+  State<ProfileAvatar> createState() => _ProfileAvatarState();
+}
+
+class _ProfileAvatarState extends State<ProfileAvatar> {
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _showImageSourceSheet() async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ImageSourceSheet(
+        onCameraSelected: () async {
+          Navigator.pop(context);
+          await _pickImage(ImageSource.camera);
+        },
+        onGallerySelected: () async {
+          Navigator.pop(context);
+          await _pickImage(ImageSource.gallery);
+        },
+        onRemoveSelected: ProfileImageNotifier.instance.value != null
+            ? () {
+          Navigator.pop(context);
+          ProfileImageNotifier.instance.value = null;
+        }
+            : null,
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 600,
+        maxHeight: 600,
+      );
+      if (picked != null) {
+        ProfileImageNotifier.instance.value = File(picked.path);
+      }
+    } catch (e) {
+      // Permission denied or other error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              source == ImageSource.camera
+                  ? 'Camera access denied. Please allow access in Settings.'
+                  : 'Gallery access denied. Please allow access in Settings.',
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double size = widget.size;
+    final double cameraIconSize = size * 0.28;
+
+    return ValueListenableBuilder<File?>(
+      valueListenable: ProfileImageNotifier.instance,
+      builder: (context, imageFile, _) {
+        return GestureDetector(
+          onTap: widget.allowEdit ? _showImageSourceSheet : null,
+          child: SizedBox(
+            width: size + 8,
+            height: size + 8,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // ── Avatar Circle ──
+                Container(
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    color: imageFile == null ? widget.swap.avatarColor : null,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: widget.borderColor,
+                      width: 4,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: widget.swap.avatarColor.withOpacity(0.4),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                    image: imageFile != null
+                        ? DecorationImage(
+                      image: FileImage(imageFile),
+                      fit: BoxFit.cover,
+                    )
+                        : null,
+                  ),
+                  child: imageFile == null
+                      ? Center(
+                    child: Text(
+                      widget.swap.initials,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: size * 0.32,
+                      ),
+                    ),
+                  )
+                      : null,
+                ),
+
+                // ── Camera Badge (edit indicator) ──
+                if (widget.allowEdit)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: cameraIconSize + 6,
+                      height: cameraIconSize + 6,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: widget.borderColor,
+                          width: 2.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF00C2FF).withOpacity(0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.camera_alt_rounded,
+                        color: Colors.white,
+                        size: cameraIconSize,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// IMAGE SOURCE BOTTOM SHEET
+// ─────────────────────────────────────────────────────────────────────
+class _ImageSourceSheet extends StatelessWidget {
+  final VoidCallback onCameraSelected;
+  final VoidCallback onGallerySelected;
+  final VoidCallback? onRemoveSelected;
+
+  const _ImageSourceSheet({
+    required this.onCameraSelected,
+    required this.onGallerySelected,
+    this.onRemoveSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: const Color(0xFF00C2FF).withOpacity(0.15),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Handle ──
+          Container(
+            margin: const EdgeInsets.only(top: 12, bottom: 4),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // ── Header ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.account_circle_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Update Profile Photo',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Choose how to upload your picture',
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          Divider(color: Colors.white.withOpacity(0.07), height: 24),
+
+          // ── Camera Option ──
+          _SheetOption(
+            icon: Icons.camera_alt_rounded,
+            iconGradient: const [Color(0xFF00C2FF), Color(0xFF0EA5E9)],
+            label: 'Take a Photo',
+            subtitle: 'Allow camera access to take a new picture',
+            onTap: onCameraSelected,
+          ),
+
+          const SizedBox(height: 4),
+
+          // ── Gallery Option ──
+          _SheetOption(
+            icon: Icons.photo_library_rounded,
+            iconGradient: const [Color(0xFF6B8AFF), Color(0xFF8B5CF6)],
+            label: 'Choose from Gallery',
+            subtitle: 'Pick an existing photo from your device',
+            onTap: onGallerySelected,
+          ),
+
+          // ── Remove Option (only if photo is set) ──
+          if (onRemoveSelected != null) ...[
+            const SizedBox(height: 4),
+            _SheetOption(
+              icon: Icons.delete_outline_rounded,
+              iconGradient: const [Color(0xFFEF4444), Color(0xFFF97316)],
+              label: 'Remove Photo',
+              subtitle: 'Revert back to your initials avatar',
+              onTap: onRemoveSelected!,
+              isDestructive: true,
+            ),
+          ],
+
+          const SizedBox(height: 12),
+
+          // ── Cancel ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: Colors.white.withOpacity(0.05),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SheetOption extends StatelessWidget {
+  final IconData icon;
+  final List<Color> iconGradient;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  const _SheetOption({
+    required this.icon,
+    required this.iconGradient,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDestructive
+                    ? const Color(0xFFEF4444).withOpacity(0.15)
+                    : Colors.white.withOpacity(0.06),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: iconGradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: isDestructive
+                              ? const Color(0xFFEF4444)
+                              : Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 11.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: isDestructive
+                      ? const Color(0xFFEF4444).withOpacity(0.5)
+                      : Colors.white24,
+                  size: 14,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// PROFILE SCREEN (updated to use ProfileAvatar)
 // ─────────────────────────────────────────────────────────────────────
 class ProfileScreen extends StatelessWidget {
   final SwapListing swap;
@@ -17,7 +451,6 @@ class ProfileScreen extends StatelessWidget {
       backgroundColor: const Color(0xFF0F172A),
       body: Stack(
         children: [
-          // ── Scrollable Content ──────────────────────────────────
           SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.only(bottom: 100),
@@ -57,8 +490,6 @@ class ProfileScreen extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-
                         ],
                       ),
                     ),
@@ -70,35 +501,13 @@ class ProfileScreen extends StatelessWidget {
                   offset: const Offset(0, -60),
                   child: Column(
                     children: [
+                      // ✅ Replaced initials circle with ProfileAvatar widget
                       Center(
-                        child: Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: swap.avatarColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFF0F172A),
-                              width: 4,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: swap.avatarColor.withOpacity(0.4),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              swap.initials,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 32,
-                              ),
-                            ),
-                          ),
+                        child: ProfileAvatar(
+                          swap: swap,
+                          size: 100,
+                          allowEdit: true,
+                          borderColor: const Color(0xFF0F172A),
                         ),
                       ),
 
@@ -276,7 +685,7 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
 
-          // ── Sticky Bottom Buttons ───────────────────────────────
+          // ── Sticky Bottom Buttons ──
           Positioned(
             bottom: 0,
             left: 0,
@@ -295,9 +704,7 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () {
-                        // TODO: navigate to chat screen
-                      },
+                      onPressed: () {},
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(
                             color: Color(0xFF00C2FF), width: 1.5),
@@ -316,9 +723,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 16),
-
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -330,15 +735,36 @@ class ProfileScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: ElevatedButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content:
-                              Text('Swap request sent to ${swap.name}!'),
-                              backgroundColor: const Color(0xFF00C2FF),
-                            ),
-                          );
-                        },
+                        onPressed: () async{
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    // Check if current user has created any skill listing
+    final snap = await FirebaseFirestore.instance
+        .collection('swapListings')
+        .where('userId', isEqualTo: uid)
+        .limit(1)
+        .get();
+
+    if (!context.mounted) return;
+
+    if (snap.docs.isEmpty) {
+
+            showDialog(
+                context: context,
+          builder: (_) => const NoSkillDialog(),
+         );
+      } else {
+
+          Navigator.push(
+           context,
+          MaterialPageRoute(
+             builder: (_) => ConfirmSwapScreen(swap: swap),
+    ),
+    );
+    }
+    },
+
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
@@ -380,7 +806,7 @@ class ProfileScreen extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// DETAIL ROW WIDGET
+// DETAIL ROW WIDGET (unchanged)
 // ─────────────────────────────────────────────────────────────────────
 class _DetailRow extends StatelessWidget {
   final String label;
@@ -409,10 +835,7 @@ class _DetailRow extends StatelessWidget {
             width: 110,
             child: Text(
               label,
-              style: const TextStyle(
-                color: Colors.white38,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: Colors.white38, fontSize: 13),
             ),
           ),
           Expanded(
@@ -435,8 +858,7 @@ class _DetailRow extends StatelessWidget {
                           : Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      decoration:
-                      isLink ? TextDecoration.underline : null,
+                      decoration: isLink ? TextDecoration.underline : null,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -453,9 +875,6 @@ class _DetailRow extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Divider(
-      color: Colors.white.withOpacity(0.07),
-      height: 1,
-    );
+    return Divider(color: Colors.white.withOpacity(0.07), height: 1);
   }
 }
