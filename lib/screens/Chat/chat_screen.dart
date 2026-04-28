@@ -17,13 +17,13 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // ── All listings to show as "Suggested Mentors" ─────────────────
+  int _selectedIndex = 1;
+
   Stream<List<SwapListing>> get _listingsStream => _db
       .collection('swapListings')
       .snapshots()
       .map((s) => s.docs.map(SwapListing.fromDoc).toList());
 
-  // ── Conversations this user is part of ──────────────────────────
   Stream<List<Map<String, dynamic>>> get _conversationsStream {
     final uid = _auth.currentUser?.uid ?? '';
     return _db
@@ -59,11 +59,58 @@ class _ChatScreenState extends State<ChatScreen> {
             }).toList();
             final hasConversations = validConversations.isNotEmpty;
 
-
             return hasConversations
-                ? _buildConversationsList(conversations)
+                ? _buildConversationsList(validConversations)
                 : _buildEmptyState();
           },
+        ),
+      ),
+      bottomNavigationBar: BottomAppBar(
+        color: const Color(0xFF1E293B),
+        child: SizedBox(
+          height: 60,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _NavItem(
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_rounded,
+                label: 'Home',
+                selected: _selectedIndex == 0,
+                onTap: () {
+                  setState(() => _selectedIndex = 0);
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SwappingAvailable(),
+                    ),
+                        (route) => false,
+                  );
+                },
+              ),
+              _NavItem(
+                icon: Icons.chat_bubble_outline_rounded,
+                activeIcon: Icons.chat_bubble_rounded,
+                label: 'Chat',
+                selected: _selectedIndex == 1,
+                onTap: () => setState(() => _selectedIndex = 1),
+              ),
+              _NavItem(
+                icon: Icons.swap_vert_rounded,
+                activeIcon: Icons.swap_vert_rounded,
+                label: 'Swaps',
+                selected: _selectedIndex == 2,
+                onTap: () => setState(() => _selectedIndex = 2),
+              ),
+              _NavItem(
+                icon: Icons.settings_outlined,
+                activeIcon: Icons.settings_rounded,
+                label: 'Settings',
+                selected: _selectedIndex == 3,
+                onTap: () => setState(() => _selectedIndex = 3),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -120,9 +167,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       child: Container(
                         width: 36,
                         height: 36,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: const LinearGradient(
+                          gradient: LinearGradient(
                             colors: [Color(0xFF6B8AFF), Color(0xFF8B5CF6)],
                           ),
                         ),
@@ -207,7 +254,12 @@ class _ChatScreenState extends State<ChatScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const SwappingAvailable()),
+                          (route) => false,
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
@@ -285,9 +337,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ── SCREEN 2 — Conversations list ───────────────────────────────
-  Widget _buildConversationsList(
-      List<Map<String, dynamic>> conversations) {
-    // filter by search
+  Widget _buildConversationsList(List<Map<String, dynamic>> conversations) {
     final filtered = conversations.where((c) {
       final name = (c['otherName'] as String? ?? '').toLowerCase();
       return _searchQuery.isEmpty ||
@@ -323,8 +373,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   height: 90,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     itemCount: mentors.length,
                     itemBuilder: (_, i) =>
                         _RecentMentorAvatar(swap: mentors[i]),
@@ -341,8 +390,8 @@ class _ChatScreenState extends State<ChatScreen> {
           child: filtered.isEmpty
               ? const Center(
             child: Text('No conversations found',
-                style: TextStyle(
-                    color: Colors.white38, fontSize: 13)),
+                style:
+                TextStyle(color: Colors.white38, fontSize: 13)),
           )
               : ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -363,12 +412,11 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Row(
             children: [
-              // Avatar
               Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
                     colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
                   ),
                   shape: BoxShape.circle,
@@ -387,7 +435,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
               ),
-              // 3-dot menu
               _ThreeDotMenu(),
             ],
           ),
@@ -413,8 +460,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   suffixIcon: Icon(Icons.search_rounded,
                       color: Colors.white38, size: 20),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
+                  contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
               ),
             ),
@@ -431,12 +478,11 @@ class _ThreeDotMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       color: const Color(0xFF1E293B),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape:
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       icon: const Icon(Icons.more_vert_rounded,
           color: Colors.white54, size: 22),
-      onSelected: (value) {
-        // TODO: handle mute/mark/clear
-      },
+      onSelected: (value) {},
       itemBuilder: (_) => [
         PopupMenuItem(
           value: 'mute',
@@ -462,8 +508,7 @@ class _ThreeDotMenu extends StatelessWidget {
         const PopupMenuItem(
           value: 'clear',
           child: Text('Clear all chats',
-              style: TextStyle(
-                  color: Color(0xFFFF3B3B), fontSize: 13)),
+              style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
         ),
       ],
     );
@@ -478,10 +523,16 @@ class _SuggestedMentorTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => _openConversation(context),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ConversationScreen(swap: swap),
+        ),
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding:
+        const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: const Color(0xFF1E293B),
           borderRadius: BorderRadius.circular(16),
@@ -490,7 +541,6 @@ class _SuggestedMentorTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Avatar
             Container(
               width: 46,
               height: 46,
@@ -525,15 +575,6 @@ class _SuggestedMentorTile extends StatelessWidget {
                 color: Colors.white24, size: 14),
           ],
         ),
-      ),
-    );
-  }
-
-  void _openConversation(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ConversationScreen(swap: swap),
       ),
     );
   }
@@ -577,7 +618,6 @@ class _RecentMentorAvatar extends StatelessWidget {
                             fontSize: 18)),
                   ),
                 ),
-                // Online dot
                 Positioned(
                   bottom: 2,
                   right: 2,
@@ -597,9 +637,8 @@ class _RecentMentorAvatar extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               swap.name.split(' ').first,
-              style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 11),
+              style:
+              const TextStyle(color: Colors.white54, fontSize: 11),
             ),
           ],
         ),
@@ -619,23 +658,40 @@ class _ConversationTile extends StatelessWidget {
     final lastMsg = data['lastMessage'] as String? ?? '';
     final unread = (data['unreadCount'] as int?) ?? 0;
     final skill = data['skill'] as String? ?? '';
+    final wanting = data['wanting'] as String? ?? '';
+    final otherUserId = data['otherUserId'] as String? ?? '';
+    final conversationId = data['id'] as String? ?? '';
     final Timestamp? ts = data['lastMessageAt'] as Timestamp?;
     final timeStr = ts != null ? _formatTime(ts.toDate()) : '';
+
     final initials = name.trim().split(' ').length >= 2
         ? '${name.trim().split(' ')[0][0]}${name.trim().split(' ')[1][0]}'
         .toUpperCase()
-        : name[0].toUpperCase();
+        : name.isNotEmpty
+        ? name[0].toUpperCase()
+        : '?';
+
+    // ✅ Fixed: all required fields provided, userId included
+    final swap = SwapListing(
+      id: conversationId,
+      userId: otherUserId,
+      name: name,
+      initials: initials,
+      avatarColor: const Color(0xFF6B8AFF),
+      offering: skill,
+      wanting: wanting,
+      rating: 0.0,
+      reviews: 0,
+      category: 'All',
+    );
 
     return GestureDetector(
-      onTap: () {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Opening chat with $name'),
-            backgroundColor: const Color(0xFF00C2FF),
-          ),
-        );
-      },
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ConversationScreen(swap: swap),
+        ),
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
@@ -653,8 +709,8 @@ class _ConversationTile extends StatelessWidget {
                 Container(
                   width: 50,
                   height: 50,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF6B8AFF),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF6B8AFF),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -699,8 +755,7 @@ class _ConversationTile extends StatelessWidget {
                       ),
                       Text(timeStr,
                           style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 11)),
+                              color: Colors.white38, fontSize: 11)),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -708,10 +763,9 @@ class _ConversationTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          '"$lastMsg"',
+                          lastMsg,
                           style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 12),
+                              color: Colors.white38, fontSize: 12),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -735,12 +789,9 @@ class _ConversationTile extends StatelessWidget {
                   ),
                   if (skill.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        _SkillTag(label: 'Skill: $skill',
-                            color: const Color(0xFF00C2FF)),
-                      ],
-                    ),
+                    _SkillTag(
+                        label: 'Skill: $skill',
+                        color: const Color(0xFF00C2FF)),
                   ],
                 ],
               ),
@@ -760,6 +811,7 @@ class _ConversationTile extends StatelessWidget {
   }
 }
 
+// ── Skill tag ────────────────────────────────────────────────────────
 class _SkillTag extends StatelessWidget {
   final String label;
   final Color color;
@@ -779,6 +831,51 @@ class _SkillTag extends StatelessWidget {
               color: color,
               fontSize: 10,
               fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+// ── Bottom Nav Item ──────────────────────────────────────────────────
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            selected ? activeIcon : icon,
+            color: selected ? const Color(0xFF00C2FF) : Colors.white38,
+            size: 24,
+          ),
+          const SizedBox(height: 3),
+          Text(label,
+              style: TextStyle(
+                color: selected
+                    ? const Color(0xFF00C2FF)
+                    : Colors.white38,
+                fontSize: 10,
+                fontWeight:
+                selected ? FontWeight.w600 : FontWeight.normal,
+              )),
+        ],
+      ),
     );
   }
 }

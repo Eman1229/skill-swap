@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SwapListing {
   final String id;
+  final String userId;
   final String name;
   final String initials;
   final Color avatarColor;
@@ -27,6 +28,7 @@ class SwapListing {
     required this.rating,
     required this.reviews,
     required this.category,
+    this.userId = '',
     this.isLive = false,
     this.skillLevel = 'Intermediates',
     this.description = '',
@@ -47,6 +49,7 @@ class SwapListing {
 
     return SwapListing(
       id: doc.id,
+      userId: (d['userId'] as String?) ?? '',
       name: name,
       initials: initials,
       avatarColor: color,

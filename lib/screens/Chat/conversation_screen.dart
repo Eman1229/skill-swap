@@ -20,7 +20,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
   final ScrollController _scrollController = ScrollController();
 
   String? _conversationId;
-  int _selectedIndex = 1; // Chat tab selected by default
 
   // ── Real-time online status listener ─────────────────────────────
   Stream<bool> get _onlineStream {
@@ -58,14 +57,13 @@ class _ConversationScreenState extends State<ConversationScreen> {
         return;
       }
     }
-
   }
 
   // ── Send a message ───────────────────────────────────────────────
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty || _conversationId == null) return;
     final uid = _auth.currentUser?.uid ?? '';
-    final otherId= widget.swap.userId??widget.swap.id;
+    final otherId = widget.swap.userId ?? widget.swap.id;
 
     if (_conversationId == null) {
       final ref = await _db.collection('conversations').add({
@@ -240,55 +238,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
             // ── Input bar ──────────────────────────────────────────
             _buildInputBar(),
           ],
-        ),
-      ),
-
-      // ── Bottom Nav Bar (matches SwappingAvailable style, no FAB) ─
-      bottomNavigationBar: BottomAppBar(
-        color: const Color(0xFF1E293B),
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 10,
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home_rounded,
-                label: 'Home',
-                selected: _selectedIndex == 0,
-                onTap: () {
-                  setState(() => _selectedIndex = 0);
-                  Navigator.pop(context);
-                },
-              ),
-              _NavItem(
-                icon: Icons.chat_bubble_outline_rounded,
-                activeIcon: Icons.chat_bubble_rounded,
-                label: 'Chat',
-                selected: _selectedIndex == 1,
-                onTap: () {
-                  setState(() => _selectedIndex = 1);
-                  _navigateBackToChat();
-                },
-              ),
-              _NavItem(
-                icon: Icons.swap_vert_rounded,
-                activeIcon: Icons.swap_vert_rounded,
-                label: 'Swaps',
-                selected: _selectedIndex == 2,
-                onTap: () => setState(() => _selectedIndex = 2),
-              ),
-              _NavItem(
-                icon: Icons.settings_outlined,
-                activeIcon: Icons.settings_rounded,
-                label: 'Settings',
-                selected: _selectedIndex == 3,
-                onTap: () => setState(() => _selectedIndex = 3),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -526,53 +475,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   color: Colors.white, size: 18),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Bottom Nav Item ───────────────────────────────────────────────────
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            selected ? activeIcon : icon,
-            color: selected
-                ? const Color(0xFF00C2FF)
-                : Colors.white38,
-            size: 24,
-          ),
-          const SizedBox(height: 3),
-          Text(label,
-              style: TextStyle(
-                color: selected
-                    ? const Color(0xFF00C2FF)
-                    : Colors.white38,
-                fontSize: 10,
-                fontWeight:
-                selected ? FontWeight.w600 : FontWeight.normal,
-              )),
         ],
       ),
     );
