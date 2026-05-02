@@ -9,7 +9,7 @@ plugins {
 android {
     namespace = "com.example.skill_swap"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "30.0.14904198"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
