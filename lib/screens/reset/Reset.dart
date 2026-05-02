@@ -10,7 +10,8 @@ import 'package:http/http.dart' as http;
 //  STEP 1 — Email Entry Screen
 // ─────────────────────────────────────────────────────────────────────────────
 class EmailVerificationScreen extends StatefulWidget {
-  const EmailVerificationScreen({Key? key}) : super(key: key);
+  final String? email;
+  const EmailVerificationScreen({Key? key, this.email}) : super(key: key);
 
   @override
   State<EmailVerificationScreen> createState() =>
@@ -18,8 +19,14 @@ class EmailVerificationScreen extends StatefulWidget {
 }
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
-  final TextEditingController emailController = TextEditingController();
+  late final TextEditingController emailController;
   bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    emailController = TextEditingController(text: widget.email);
+  }
   Future<void> _sendEmailOtp(String email, String otp) async {
     try {
       final response = await http.post(
@@ -134,7 +141,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         width: 90,
                         height: 90,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00C2FF).withOpacity(0.12),
+                          color: const Color(0xFF00C2FF).withAlpha(31),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -179,7 +186,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF00C2FF),
                             disabledBackgroundColor:
-                            const Color(0xFF00C2FF).withOpacity(0.4),
+                            const Color(0xFF00C2FF).withAlpha(102),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
@@ -455,7 +462,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         width: 90,
                         height: 90,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00C2FF).withOpacity(0.12),
+                          color: const Color(0xFF00C2FF).withAlpha(31),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(

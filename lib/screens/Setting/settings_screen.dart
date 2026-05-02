@@ -5,6 +5,7 @@ import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/screens/Profile/profile%20screen.dart';
 import 'package:skill_swap/screens/Profile/edit_profile_screen.dart';
+import 'package:skill_swap/screens/reset/Reset.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -66,6 +67,19 @@ class SettingsScreen extends StatelessWidget {
           ),
           _buildSettingTile(
             icon: Icons.lock_outline_rounded,
+            title: 'Change Password',
+            onTap: () {
+              final email = FirebaseAuth.instance.currentUser?.email;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EmailVerificationScreen(email: email),
+                ),
+              );
+            },
+          ),
+          _buildSettingTile(
+            icon: Icons.security_rounded,
             title: 'Privacy & Security',
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
