@@ -65,54 +65,6 @@ class _ChatScreenState extends State<ChatScreen> {
           },
         ),
       ),
-      bottomNavigationBar: BottomAppBar(
-        color: const Color(0xFF1E293B),
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home_rounded,
-                label: 'Home',
-                selected: _selectedIndex == 0,
-                onTap: () {
-                  setState(() => _selectedIndex = 0);
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SwappingAvailable(),
-                    ),
-                        (route) => false,
-                  );
-                },
-              ),
-              _NavItem(
-                icon: Icons.chat_bubble_outline_rounded,
-                activeIcon: Icons.chat_bubble_rounded,
-                label: 'Chat',
-                selected: _selectedIndex == 1,
-                onTap: () => setState(() => _selectedIndex = 1),
-              ),
-              _NavItem(
-                icon: Icons.swap_vert_rounded,
-                activeIcon: Icons.swap_vert_rounded,
-                label: 'Swaps',
-                selected: _selectedIndex == 2,
-                onTap: () => setState(() => _selectedIndex = 2),
-              ),
-              _NavItem(
-                icon: Icons.settings_outlined,
-                activeIcon: Icons.settings_rounded,
-                label: 'Settings',
-                selected: _selectedIndex == 3,
-                onTap: () => setState(() => _selectedIndex = 3),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:skill_swap/screens/Chat/conversation_screen.dart';
-import 'package:skill_swap/screens/Home%20Screens/offer%20skill.dart';
+import 'package:skill_swap/screens/Add%20skill/offer%20skill.dart';
 import 'package:skill_swap/screens/Home%20Screens/see%20all.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
-import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
 import 'package:skill_swap/screens/Chat/chat_screen.dart';
+import 'package:skill_swap/screens/Profile/edit_profile_screen.dart';
+import 'package:skill_swap/screens/Profile/profile%20screen.dart';
+import 'package:skill_swap/screens/Swap/my_swaps_screen.dart';
+import 'package:skill_swap/screens/Setting/settings_screen.dart';
+import 'package:skill_swap/screens/Notifications/notifications_screen.dart';
 
 class SwapListing {
   final String id;
@@ -24,6 +27,7 @@ class SwapListing {
   final String portfolioFile;
   final String description;
   final String experience;
+  final String? imageUrl;
 
   const SwapListing({
     required this.id,
@@ -41,6 +45,7 @@ class SwapListing {
     this.portfolioFile = '',
     this.description = '',
     this.experience = '',
+    this.imageUrl,
   });
 
   /// Change field names here to match your actual Firestore schema.
@@ -50,7 +55,7 @@ class SwapListing {
     final parts = name.trim().split(' ');
     final initials = parts.length >= 2
         ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
-        : parts[0][0].toUpperCase();
+        : (parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?');
     final Color color = d['avatarColor'] != null
         ? Color(d['avatarColor'] as int)
         : const Color(0xFF6B8AFF);
@@ -71,8 +76,8 @@ class SwapListing {
       portfolioFile: (d['portfolio'] as String?) ?? '',
       description: (d['description'] as String?) ?? '',
       experience: (d['experienceLevel'] as String?) ?? '',
+      imageUrl: d['imageUrl'] as String?,
     );
-
   }
 }
 
@@ -110,12 +115,15 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     Query query = _db.collection('swapListings');
     if (_selectedCategory != 0) {
       query = query.where(
-        'category',
+        'Category',
         isEqualTo: _categories[_selectedCategory],
       );
     }
     return query.snapshots().map(
-          (snap) => snap.docs.map(SwapListing.fromDoc).toList(),
+          (snap) => snap.docs
+              .map(SwapListing.fromDoc)
+              .where((s) => s.userId != _auth.currentUser?.uid)
+              .toList(),
     );
   }
 
@@ -153,176 +161,50 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     );
   }
 
+  Future<void> _navigateToMyProfile() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final snap = await _db
+        .collection('swapListings')
+        .where('userId', isEqualTo: uid)
+        .limit(1)
+        .get();
+
+    if (!mounted) return;
+
+    if (snap.docs.isNotEmpty) {
+      final mySwap = SwapListing.fromDoc(snap.docs.first);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => EditProfileScreen(swap: mySwap)),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No skill listing found for your profile.'),
+          backgroundColor: Color(0xFF00C2FF),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenHeight = MediaQuery.of(context).size.height;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── TOP GRADIENT HEADER ─────────────────────────────────
-            _buildHeader(screenHeight),
-
-            // ── BODY — driven by Firestore stream ───────────────────
-            Expanded(
-              child: StreamBuilder<List<SwapListing>>(
-                stream: _swapsStream,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF00C2FF),
-                      ),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        'Something went wrong.\n${snapshot.error}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 13,
-                        ),
-                      ),
-                    );
-                  }
-
-                  final swaps = snapshot.data ?? [];
-                  final liveSessions =
-                  swaps.where((s) => s.isLive).toList();
-
-                  // If all listings were deleted, go back to empty screen
-                  if (swaps.isEmpty && mounted) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const HomeScreen()),
-                      );
-                    });
-                  }
-
-                  return SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 22),
-                        _buildSearchBar(),
-                        const SizedBox(height: 20),
-                        _buildCategoryChips(),
-                        const SizedBox(height: 26),
-
-                        // Featured Swaps header
-                        Row(
-                          mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
-                          children: [
-                            const _SectionTitle(
-                                title: 'Featured Swaps'),
-                            if (swaps.isNotEmpty)
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const SeeAllScreen(),
-                                    ),
-                                  );
-                                },
-                                child: const Text(
-                                  'See all',
-                                  style: TextStyle(
-                                    color: Color(0xFF00C2FF),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              )
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-
-                        // Listings list
-                        if (swaps.isNotEmpty)
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics:
-                            const NeverScrollableScrollPhysics(),
-                            itemCount: swaps.length,
-                            separatorBuilder: (_, __) =>
-                            const SizedBox(height: 14),
-                            itemBuilder: (_, i) =>
-                                _SwapCard(swap: swaps[i]),
-                          )
-                        else
-                          _buildEmptyFeatured(),
-
-                        const SizedBox(height: 30),
-
-                        // Active Swap Sessions
-                        const _SectionTitle(
-                            title: 'Active Swap Sessions'),
-                        const SizedBox(height: 14),
-
-                        if (liveSessions.isNotEmpty)
-                          ...liveSessions.map(
-                                (s) => Padding(
-                              padding:
-                              const EdgeInsets.only(bottom: 12),
-                              child: _LiveSessionCard(swap: s),
-                            ),
-                          )
-                        else
-                          _buildEmptySessions(),
-
-                        const SizedBox(height: 100),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      // ── Gradient FAB ──────────────────────────────────────────────
-      floatingActionButton: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          shape: BoxShape.circle,
-        ),
-        child: FloatingActionButton(
-          onPressed: ()async{
-            setState(() => _addingSkill = true);
-          Navigator.push(context, MaterialPageRoute(builder: (context)
-          => OfferSkillScreen())
-          );
-          if (mounted) setState(() => _addingSkill = false);
-          },
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, color: Colors.white, size: 30),
-        ),
-      ),
-      floatingActionButtonLocation:
-      FloatingActionButtonLocation.centerDocked,
-
-      // ── Bottom Nav Bar ────────────────────────────────────────────
-      bottomNavigationBar: BottomAppBar(
+    return PopScope(
+      canPop: _selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_selectedIndex != 0) {
+          setState(() => _selectedIndex = 0);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        body: _buildBody(screenHeight),
+        bottomNavigationBar: BottomAppBar(
         color: const Color(0xFF1E293B),
         shape: const CircularNotchedRectangle(),
         notchMargin: 10,
@@ -343,14 +225,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                 activeIcon: Icons.chat_bubble_rounded,
                 label: 'Chat',
                 selected: _selectedIndex == 1,
-                onTap: () {
-                  setState(() => _selectedIndex = 1);
-                Navigator.push(context
-                ,MaterialPageRoute(builder:(_)
-              => const ChatScreen()),
-
-              );
-        },
+                onTap: () => setState(() => _selectedIndex = 1),
               ),
               const SizedBox(width: 48),
               _NavItem(
@@ -367,10 +242,145 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                 selected: _selectedIndex == 3,
                 onTap: () => setState(() => _selectedIndex = 3),
               ),
-
             ],
           ),
         ),
+      ),
+      floatingActionButton: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shape: BoxShape.circle,
+        ),
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const OfferSkillScreen()),
+            );
+          },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          shape: const CircleBorder(),
+          child: const Icon(Icons.add, color: Colors.white, size: 30),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      ),
+    );
+  }
+
+  Widget _buildBody(double screenHeight) {
+    switch (_selectedIndex) {
+      case 1:
+        return const ChatScreen();
+      case 2:
+        return const MySwapsScreen();
+      case 3:
+        return const SettingsScreen();
+      case 0:
+      default:
+        return SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(screenHeight),
+              Expanded(
+                child: StreamBuilder<List<SwapListing>>(
+                  stream: _swapsStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Color(0xFF00C2FF)),
+                      );
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text('Error: ${snapshot.error}',
+                            style: const TextStyle(color: Colors.white54)),
+                      );
+                    }
+
+                    final swaps = snapshot.data ?? [];
+                    final liveSessions = swaps.where((s) => s.isLive).toList();
+
+                    if (swaps.isEmpty) {
+                      return _buildEmptyHomeState();
+                    }
+
+                    return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 22),
+                          _buildSearchBar(),
+                          const SizedBox(height: 20),
+                          _buildCategoryChips(),
+                          const SizedBox(height: 26),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const _SectionTitle(title: 'Featured Swaps'),
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const SeeAllScreen()),
+                                ),
+                                child: const Text(
+                                  'See all',
+                                  style: TextStyle(color: Color(0xFF00C2FF), fontSize: 12, fontWeight: FontWeight.w500),
+                                ),
+                              )
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: swaps.length > 3 ? 3 : swaps.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 14),
+                            itemBuilder: (_, i) => _SwapCard(swap: swaps[i]),
+                          ),
+                          const SizedBox(height: 30),
+                          const _SectionTitle(title: 'Active Swap Sessions'),
+                          const SizedBox(height: 14),
+                          if (liveSessions.isNotEmpty)
+                            ...liveSessions.map((s) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: _LiveSessionCard(swap: s),
+                                ))
+                          else
+                            _buildEmptySessions(),
+                          const SizedBox(height: 100),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+    }
+  }
+
+  Widget _buildEmptyHomeState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.search_off_rounded, color: Color(0xFF00C2FF), size: 64),
+          const SizedBox(height: 16),
+          const Text('No swaps available',
+              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('Check back later or offer a skill yourself!',
+              style: TextStyle(color: Colors.white38, fontSize: 14)),
+        ],
       ),
     );
   }
@@ -396,22 +406,25 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
-              shape: BoxShape.circle,
-              border: Border.all(
-                  color: Colors.white.withOpacity(0.6), width: 2),
-            ),
-            child: Center(
-              child: Text(
-                _initials,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+          GestureDetector(
+            onTap: _navigateToMyProfile,
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(64),
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: Colors.white.withAlpha(153), width: 2),
+              ),
+              child: Center(
+                child: Text(
+                  _initials,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ),
             ),
@@ -440,31 +453,44 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               ],
             ),
           ),
-          Stack(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.notifications_outlined,
-                    color: Colors.white, size: 22),
-              ),
-              Positioned(
-                top: 4,
-                right: 4,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFF3B3B),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
+            },
+            child: Stack(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
                     shape: BoxShape.circle,
                   ),
+                  child: const Icon(
+                    Icons.notifications_outlined,
+                    color: Colors.white,
+                    size: 22,
+                  ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: const Color(0xFF0F172A), width: 2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 8),
           GestureDetector(
@@ -629,102 +655,158 @@ class _SwapCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: const Color(0xFF00C2FF).withOpacity(0.15)),
+            color: const Color(0xFF00C2FF).withAlpha(38)), // 0.15 * 255
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00C2FF).withOpacity(0.05),
+            color: const Color(0xFF00C2FF).withAlpha(13), // 0.05 * 255
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Avatar
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-                color: swap.avatarColor, shape: BoxShape.circle),
-            child: Center(
-              child: Text(swap.initials,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16)),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProfileScreen(swap: swap),
             ),
-          ),
-          const SizedBox(width: 14),
+          );
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: swap.imageUrl == null ? swap.avatarColor : null,
+                  shape: BoxShape.circle,
+                  image: swap.imageUrl != null
+                      ? DecorationImage(
+                          image: NetworkImage(swap.imageUrl!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: swap.imageUrl == null
+                    ? Center(
+                        child: Text(swap.initials,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16)),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 14),
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Name + Live badge
-                Row(
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(swap.name,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14),
-                          overflow: TextOverflow.ellipsis),
+                    // Name + Rating Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(swap.name,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15),
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                        const Icon(Icons.star_rounded,
+                            color: Color(0xFFFBBF24), size: 16),
+                        const SizedBox(width: 4),
+                        Text(swap.rating.toStringAsFixed(1),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 4),
+                        Text('(${swap.reviews} Swaps)',
+                            style: const TextStyle(
+                                color: Colors.white38, fontSize: 11)),
+                      ],
                     ),
-                    if (swap.isLive) _LiveBadge(),
-                  ],
-                ),
-                const SizedBox(height: 8),
+                    const SizedBox(height: 4),
 
-                // Skill badges
-                Row(
-                  children: [
-                    _SkillBadge(
-                        label: swap.offering,
-                        icon: Icons.arrow_upward_rounded,
-                        color: const Color(0xFF00C2FF)),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.swap_horiz_rounded,
-                        color: Colors.white38, size: 16),
-                    const SizedBox(width: 8),
-                    _SkillBadge(
-                        label: swap.wanting,
-                        icon: Icons.arrow_downward_rounded,
-                        color: const Color(0xFF6B8AFF)),
-                  ],
-                ),
-                const SizedBox(height: 10),
+                    // Category Row
+                    Row(
+                      children: [
+                        Icon(_getCategoryIcon(swap.category),
+                            color: Colors.white38, size: 14),
+                        const SizedBox(width: 6),
+                        Text(swap.category,
+                            style: const TextStyle(
+                                color: Colors.white38, fontSize: 12)),
+                        if (swap.isLive) ...[
+                          const SizedBox(width: 8),
+                          _LiveBadge(),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 12),
 
-                // Rating + button
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded,
-                        color: Color(0xFFFBBF24), size: 15),
-                    const SizedBox(width: 4),
-                    Text(swap.rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600)),
-                    const SizedBox(width: 4),
-                    Text('(${swap.reviews})',
-                        style: const TextStyle(
-                            color: Colors.white38, fontSize: 11)),
-                    const Spacer(),
-                    _GradientButton(
-                        label: 'Request Swap', onTap: () {}),
+                    // Offering Title (Bold)
+                    Text(
+                      swap.offering,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Looking for text
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(fontSize: 12),
+                        children: [
+                          const TextSpan(
+                            text: 'Looking for: ',
+                            style: TextStyle(
+                                color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
+                          TextSpan(
+                            text: swap.wanting,
+                            style: const TextStyle(color: Colors.white54),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'design': return Icons.brush_rounded;
+      case 'coding': return Icons.code_rounded;
+      case 'ai': return Icons.auto_awesome_rounded;
+      case 'music': return Icons.music_note_rounded;
+      case 'drawing': return Icons.draw_rounded;
+      case 'photos': return Icons.camera_alt_rounded;
+      case 'data analysis': return Icons.analytics_rounded;
+      default: return Icons.category_rounded;
+    }
   }
 }
 
@@ -744,42 +826,63 @@ class _LiveSessionCard extends StatelessWidget {
         border: Border.all(
             color: const Color(0xFF00C2FF).withOpacity(0.25)),
       ),
-      padding:
-      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-                color: swap.avatarColor, shape: BoxShape.circle),
-            child: Center(
-              child: Text(swap.initials,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14)),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProfileScreen(swap: swap),
             ),
+          );
+        },
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                    color: swap.avatarColor, shape: BoxShape.circle),
+                child: Center(
+                  child: Text(swap.initials,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(swap.name,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13)),
+                    const SizedBox(height: 2),
+                    Text('${swap.offering} ↔ ${swap.wanting}',
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 11)),
+                  ],
+                ),
+              ),
+              _GradientButton(
+                  label: 'Join',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProfileScreen(swap: swap),
+                      ),
+                    );
+                  }),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(swap.name,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13)),
-                const SizedBox(height: 2),
-                Text('${swap.offering} ↔ ${swap.wanting}',
-                    style: const TextStyle(
-                        color: Colors.white54, fontSize: 11)),
-              ],
-            ),
-          ),
-          _GradientButton(label: 'Join', onTap: () {}),
-        ],
+        ),
       ),
     );
   }

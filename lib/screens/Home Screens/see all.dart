@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
-import 'package:skill_swap/screens/Home Screens/profile screen.dart';
+import 'package:skill_swap/screens/Profile/profile%20screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────
 // SEE ALL SCREEN

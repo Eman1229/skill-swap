@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:skill_swap/screens/Home Screens/offer skill.dart';
+import 'package:skill_swap/screens/Add%20skill/offer%20skill.dart';
 
 class NoSkillDialog extends StatelessWidget {
   const NoSkillDialog({Key? key}) : super(key: key);

@@ -57,15 +57,18 @@ class _ConversationScreenState extends State<ConversationScreen> {
         return;
       }
     }
+
+    // If no existing conversation found, set to empty string to stop loading spinner
+    setState(() => _conversationId = '');
   }
 
   // ── Send a message ───────────────────────────────────────────────
   Future<void> _sendMessage(String text) async {
-    if (text.trim().isEmpty || _conversationId == null) return;
+    if (text.trim().isEmpty) return;
     final uid = _auth.currentUser?.uid ?? '';
     final otherId = widget.swap.userId ?? widget.swap.id;
 
-    if (_conversationId == null) {
+    if (_conversationId == null || _conversationId!.isEmpty) {
       final ref = await _db.collection('conversations').add({
         'participants': [uid, otherId],
         'otherName': widget.swap.name,
@@ -75,7 +78,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
         'unreadCount': 0,
       });
 
-      _conversationId = ref.id;
+      setState(() => _conversationId = ref.id);
     }
 
     final msgRef = _db
@@ -113,7 +116,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   // ── Send Skill Swap Proposal card ────────────────────────────────
   Future<void> _sendSwapProposal() async {
-    if (_conversationId == null) return;
+    if (_conversationId == null || _conversationId!.isEmpty) return;
     final uid = _auth.currentUser?.uid ?? '';
 
     await _db
@@ -181,16 +184,18 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   ? const Center(
                   child: CircularProgressIndicator(
                       color: Color(0xFF00C2FF)))
+                  : (_conversationId!.isEmpty
+                  ? _buildEmptyChat()
                   : StreamBuilder<QuerySnapshot>(
                 stream: _db
                     .collection('conversations')
                     .doc(_conversationId)
                     .collection('messages')
                     .orderBy('timestamp', descending: false)
-                    .snapshots(),
+                    .snapshots(includeMetadataChanges: true),
                 builder: (context, snap) {
                   if (snap.connectionState ==
-                      ConnectionState.waiting) {
+                      ConnectionState.waiting && !snap.hasData) {
                     return const Center(
                         child: CircularProgressIndicator(
                             color: Color(0xFF00C2FF)));
@@ -232,7 +237,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     },
                   );
                 },
-              ),
+              )),
             ),
 
             // ── Input bar ──────────────────────────────────────────
