@@ -6,7 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 
 class OfferSkillScreen extends StatefulWidget {
-  const OfferSkillScreen({Key? key}) : super(key: key);
+  const OfferSkillScreen({super.key});
 
   @override
   State<OfferSkillScreen> createState() => _OfferSkillScreenState();
@@ -78,37 +78,65 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
 
     try {
       final uid = _auth.currentUser?.uid ?? 'anon';
-      final ref = _storage
-          .ref()
-          .child('portfolios/$uid/${DateTime.now().millisecondsSinceEpoch}_${file.name}');
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
+      final ref = _storage.ref().child('portfolios/$uid/$fileName');
 
-      final uploadTask = file.bytes != null
-          ? ref.putData(file.bytes!)
-          : ref.putFile(File(file.path!));
+      // ── Start Upload ──
+      UploadTask uploadTask;
+      if (file.bytes != null) {
+        uploadTask = ref.putData(file.bytes!);
+      } else if (file.path != null) {
+        uploadTask = ref.putFile(File(file.path!));
+      } else {
+        throw 'File data not found';
+      }
 
       final snapshot = await uploadTask;
-      final url = await snapshot.ref.getDownloadURL();
+      
+      // ── Get URL with simple retry ──
+      String? url;
+      int retries = 0;
+      while (retries < 3) {
+        try {
+          url = await snapshot.ref.getDownloadURL();
+          break;
+        } catch (e) {
+          retries++;
+          if (retries >= 3) rethrow;
+          await Future.delayed(const Duration(seconds: 1));
+        }
+      }
 
-      setState(() {
-        _uploadedFileUrl = url;
-        _portfolioController.text = url;   // populate field with the download URL
-        _isUploading = false;
-      });
+      if (url != null) {
+        setState(() {
+          _uploadedFileUrl = url;
+          _portfolioController.text = url!;
+          _isUploading = false;
+        });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('File uploaded successfully ✓'),
-          backgroundColor: Color(0xFF00C2FF),
-        ),
-      );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('File uploaded successfully ✓'),
+              backgroundColor: Color(0xFF00C2FF),
+            ),
+          );
+        }
+      }
     } catch (e) {
-      setState(() => _isUploading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Upload failed: $e'),
-          backgroundColor: const Color(0xFFFF3B3B),
-        ),
-      );
+      if (mounted) setState(() => _isUploading = false);
+      String errorMsg = e.toString();
+      if (errorMsg.contains('object-not-found')) {
+        errorMsg = 'Storage error: Object not found after upload. Please try again.';
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload failed: $errorMsg'),
+            backgroundColor: const Color(0xFFFF3B3B),
+          ),
+        );
+      }
     }
   }
 
@@ -151,13 +179,15 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       if (!mounted) return;
       Navigator.pop(context);
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: const Color(0xFFFF3B3B),
-        ),
-      );
+      if (mounted) setState(() => _isLoading = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFFF3B3B),
+          ),
+        );
+      }
     }
   }
 
@@ -272,29 +302,31 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             // ── Attach / loading icon ──
             suffixIcon: _isUploading
                 ? const Padding(
-              padding: EdgeInsets.all(12),
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  color: Color(0xFF00C2FF),
-                  strokeWidth: 2,
-                ),
-              ),
-            )
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF00C2FF),
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  )
                 : IconButton(
-              icon: const Icon(Icons.attach_file_rounded,
-                  color: Color(0xFF00C2FF), size: 20),
-              tooltip: 'Upload portfolio doc',
-              onPressed: _pickedFile == null ? _pickAndUploadFile : null,
-            ),
+                    icon: const Icon(Icons.attach_file_rounded,
+                        color: Color(0xFF00C2FF), size: 20),
+                    tooltip: 'Upload portfolio doc',
+                    onPressed: _pickedFile == null ? _pickAndUploadFile : null,
+                  ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: const Color(0xFF00C2FF).withOpacity(0.2)),
+              borderSide: BorderSide(
+                  color: const Color(0xFF00C2FF).withAlpha(51)), // 0.2 * 255
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: const Color(0xFF00C2FF).withOpacity(0.2)),
+              borderSide: BorderSide(
+                  color: const Color(0xFF00C2FF).withAlpha(51)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
@@ -319,7 +351,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF1E293B),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.3)),
+              border: Border.all(color: const Color(0xFF00C2FF).withAlpha(77)),
             ),
             child: Row(
               children: [
@@ -327,7 +359,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00C2FF).withOpacity(0.12),
+                    color: const Color(0xFF00C2FF).withAlpha(31),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(Icons.insert_drive_file_rounded,
@@ -367,7 +399,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00C2FF).withOpacity(0.15),
+                      color: const Color(0xFF00C2FF).withAlpha(38),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text('Uploaded ✓',
@@ -382,7 +414,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF3B3B).withOpacity(0.12),
+                      color: const Color(0xFFFF3B3B).withAlpha(31),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.close_rounded,
@@ -397,8 +429,6 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
     );
   }
 
-  // ── Remaining sub-widgets (unchanged) ───────────────────────────
-
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -409,7 +439,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             child: Container(
               width: 36, height: 36,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withAlpha(51),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.arrow_back_ios_new_rounded,
@@ -458,11 +488,11 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: const Color(0xFF00C2FF).withOpacity(0.2)),
+          borderSide: BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: const Color(0xFF00C2FF).withOpacity(0.2)),
+          borderSide: BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -502,11 +532,11 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: const Color(0xFF00C2FF).withOpacity(0.2)),
+          borderSide: BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: const Color(0xFF00C2FF).withOpacity(0.2)),
+          borderSide: BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -533,7 +563,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
           child: OutlinedButton(
             onPressed: _isLoading ? null : () => Navigator.pop(context),
             style: OutlinedButton.styleFrom(
-              side: BorderSide(color: const Color(0xFF00C2FF).withOpacity(0.4)),
+              side: BorderSide(color: const Color(0xFF00C2FF).withAlpha(102)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),

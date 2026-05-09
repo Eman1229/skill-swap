@@ -1,11 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
-import 'package:skill_swap/screens/Home Screens/no_skill_dialog.dart';
-import 'package:skill_swap/screens/Home Screens/confirm_swap_screen.dart';
+import 'package:skill_swap/screens/Add%20skill/no_skill_dialog.dart';
+import 'package:skill_swap/screens/Swap/confirm_swap_screen.dart';
+import 'package:skill_swap/screens/Chat/conversation_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────
 // GLOBAL PROFILE IMAGE NOTIFIER
@@ -133,9 +136,14 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
                       image: FileImage(imageFile),
                       fit: BoxFit.cover,
                     )
-                        : null,
+                        : (widget.swap.imageUrl != null
+                        ? DecorationImage(
+                      image: NetworkImage(widget.swap.imageUrl!),
+                      fit: BoxFit.cover,
+                    )
+                        : null),
                   ),
-                  child: imageFile == null
+                  child: imageFile == null && widget.swap.imageUrl == null
                       ? Center(
                     child: Text(
                       widget.swap.initials,
@@ -406,27 +414,19 @@ class _SheetOption extends StatelessWidget {
                           color: isDestructive
                               ? const Color(0xFFEF4444)
                               : Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 11.5,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 12,
                         ),
                       ),
                     ],
                   ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: isDestructive
-                      ? const Color(0xFFEF4444).withOpacity(0.5)
-                      : Colors.white24,
-                  size: 14,
                 ),
               ],
             ),
@@ -437,9 +437,6 @@ class _SheetOption extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// PROFILE SCREEN (updated to use ProfileAvatar)
-// ─────────────────────────────────────────────────────────────────────
 class ProfileScreen extends StatelessWidget {
   final SwapListing swap;
 
@@ -473,14 +470,14 @@ class ProfileScreen extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           GestureDetector(
                             onTap: () => Navigator.pop(context),
                             child: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withAlpha(51), // 0.2 * 255
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -500,45 +497,46 @@ class ProfileScreen extends StatelessWidget {
                 Transform.translate(
                   offset: const Offset(0, -60),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ✅ Replaced initials circle with ProfileAvatar widget
+                      // ✅ Centered Profile Header
                       Center(
-                        child: ProfileAvatar(
-                          swap: swap,
-                          size: 100,
-                          allowEdit: true,
-                          borderColor: const Color(0xFF0F172A),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      Text(
-                        swap.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      const SizedBox(height: 6),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.star_rounded,
-                              color: Color(0xFFFBBF24), size: 18),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${swap.rating.toStringAsFixed(1)}(${swap.reviews} Swaps)',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                        child: Column(
+                          children: [
+                            ProfileAvatar(
+                              swap: swap,
+                              size: 100,
+                              allowEdit: false,
+                              borderColor: const Color(0xFF0F172A),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 12),
+                            Text(
+                              swap.name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.star_rounded,
+                                    color: Color(0xFFFBBF24), size: 18),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${swap.rating.toStringAsFixed(1)}(${swap.reviews} Swaps)',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
 
                       const SizedBox(height: 28),
@@ -585,6 +583,13 @@ class ProfileScreen extends StatelessWidget {
                                 value: swap.portfolioFile,
                                 isText: false,
                                 isLink: true,
+                                onTap: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(
+                                            'Opening portfolio: ${swap.portfolioFile}')),
+                                  );
+                                },
                               ),
                               _Divider(),
                             ],
@@ -686,106 +691,111 @@ class ProfileScreen extends StatelessWidget {
           ),
 
           // ── Sticky Bottom Buttons ──
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                border: Border(
-                  top: BorderSide(
-                    color: const Color(0xFF00C2FF).withOpacity(0.1),
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                            color: Color(0xFF00C2FF), width: 1.5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        'Message',
-                        style: TextStyle(
-                          color: Color(0xFF00C2FF),
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+          if (FirebaseAuth.instance.currentUser?.uid != swap.userId)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  border: Border(
+                    top: BorderSide(
+                      color: const Color(0xFF00C2FF).withAlpha(26), // 0.1 * 255
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: ElevatedButton(
-                        onPressed: () async{
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-
-    // Check if current user has created any skill listing
-    final snap = await FirebaseFirestore.instance
-        .collection('swapListings')
-        .where('userId', isEqualTo: uid)
-        .limit(1)
-        .get();
-
-    if (!context.mounted) return;
-
-    if (snap.docs.isEmpty) {
-
-            showDialog(
-                context: context,
-          builder: (_) => const NoSkillDialog(),
-         );
-      } else {
-
-          Navigator.push(
-           context,
-          MaterialPageRoute(
-             builder: (_) => ConfirmSwapScreen(swap: swap),
-    ),
-    );
-    }
-    },
-
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: const StadiumBorder(),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ConversationScreen(swap: swap),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(
+                              color: Color(0xFF00C2FF), width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                         child: const Text(
-                          'Request Swap',
+                          'Message',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: Color(0xFF00C2FF),
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final uid = FirebaseAuth.instance.currentUser?.uid;
+                            if (uid == null) return;
+
+                            // Check if current user has created any skill listing
+                            final snap = await FirebaseFirestore.instance
+                                .collection('swapListings')
+                                .where('userId', isEqualTo: uid)
+                                .limit(1)
+                                .get();
+
+                            if (!context.mounted) return;
+
+                            if (snap.docs.isEmpty) {
+                              showDialog(
+                                context: context,
+                                builder: (_) => const NoSkillDialog(),
+                              );
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ConfirmSwapScreen(swap: swap),
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: const StadiumBorder(),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: const Text(
+                            'Request Swap',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -815,6 +825,7 @@ class _DetailRow extends StatelessWidget {
   final IconData? icon;
   final bool isHighlight;
   final bool isLink;
+  final VoidCallback? onTap;
 
   const _DetailRow({
     required this.label,
@@ -823,6 +834,7 @@ class _DetailRow extends StatelessWidget {
     this.icon,
     this.isHighlight = false,
     this.isLink = false,
+    this.onTap,
   });
 
   @override
@@ -847,20 +859,23 @@ class _DetailRow extends StatelessWidget {
                   const SizedBox(width: 6),
                 ],
                 Flexible(
-                  child: Text(
-                    value,
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      color: isHighlight
-                          ? const Color(0xFF00C2FF)
-                          : isLink
-                          ? const Color(0xFF6B8AFF)
-                          : Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      decoration: isLink ? TextDecoration.underline : null,
+                  child: GestureDetector(
+                    onTap: isLink ? onTap : null,
+                    child: Text(
+                      value,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: isHighlight
+                            ? const Color(0xFF00C2FF)
+                            : isLink
+                            ? const Color(0xFF6B8AFF)
+                            : Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        decoration: isLink ? TextDecoration.underline : null,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

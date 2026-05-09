@@ -4,9 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
-import 'package:skill_swap/screens/Home%20Screens/Swapping%20Available.dart';
+import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 
-import 'offer skill.dart';
+import '../Add skill/offer skill.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
