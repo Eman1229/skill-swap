@@ -691,6 +691,7 @@ class _SwapCard extends StatelessWidget {
                       ? DecorationImage(
                           image: NetworkImage(swap.imageUrl!),
                           fit: BoxFit.cover,
+                    onError: (_, __) {},
                         )
                       : null,
                 ),

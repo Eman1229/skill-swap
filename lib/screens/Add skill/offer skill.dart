@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // ✅ Supabase instead of Firebase Storage
 import 'dart:io';
 
 class OfferSkillScreen extends StatefulWidget {
@@ -16,7 +16,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final _supabase = Supabase.instance.client; // ✅ Supabase client
 
   final _titleController = TextEditingController();
   final _lookingForController = TextEditingController();
@@ -30,15 +30,24 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
   // ── Portfolio upload state ────────────────────────────────────────
   PlatformFile? _pickedFile;
   bool _isUploading = false;
-  String? _uploadedFileUrl;  // set after upload completes
+  String? _uploadedFileUrl;
 
   final List<String> _categories = [
-    'Creative & Design', 'Tech & Digital', 'Entrepreneurship',
-    'Professional Growth', 'Language', 'Music & Art', 'Lifestyle', 'Tutoring',
+    'Creative & Design',
+    'Tech & Digital',
+    'Entrepreneurship',
+    'Professional Growth',
+    'Language',
+    'Music & Art',
+    'Lifestyle',
+    'Tutoring',
   ];
 
   final List<String> _experienceLevels = [
-    'Beginner', 'Intermediate', 'Advanced', 'Expert',
+    'Beginner',
+    'Intermediate',
+    'Advanced',
+    'Expert',
   ];
 
   String _mapCategory(String label) {
@@ -59,7 +68,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
     super.dispose();
   }
 
-  // ── Pick & upload doc ────────────────────────────────────────────
+  // ✅ Upload portfolio to Supabase Storage
   Future<void> _pickAndUploadFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -73,66 +82,60 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
     setState(() {
       _pickedFile = file;
       _isUploading = true;
-      _portfolioController.clear();   // clear any typed link
+      _portfolioController.clear();
     });
 
     try {
       final uid = _auth.currentUser?.uid ?? 'anon';
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
-      final ref = _storage.ref().child('portfolios/$uid/$fileName');
+      final fileName =
+          'portfolios/$uid/${DateTime.now().millisecondsSinceEpoch}_${file.name}';
 
-      // ── Start Upload ──
-      UploadTask uploadTask;
+      // ✅ Upload to Supabase Storage bucket 'portfolios'
       if (file.bytes != null) {
-        uploadTask = ref.putData(file.bytes!);
+        await _supabase.storage
+            .from('portfolios')
+            .uploadBinary(
+          fileName,
+          file.bytes!,
+          fileOptions: const FileOptions(upsert: true),
+        );
       } else if (file.path != null) {
-        uploadTask = ref.putFile(File(file.path!));
+        await _supabase.storage
+            .from('portfolios')
+            .upload(
+          fileName,
+          File(file.path!),
+          fileOptions: const FileOptions(upsert: true),
+        );
       } else {
         throw 'File data not found';
       }
 
-      final snapshot = await uploadTask;
-      
-      // ── Get URL with simple retry ──
-      String? url;
-      int retries = 0;
-      while (retries < 3) {
-        try {
-          url = await snapshot.ref.getDownloadURL();
-          break;
-        } catch (e) {
-          retries++;
-          if (retries >= 3) rethrow;
-          await Future.delayed(const Duration(seconds: 1));
-        }
-      }
+      // ✅ Get public URL instantly — no retry needed with Supabase
+      final url = _supabase.storage
+          .from('portfolios')
+          .getPublicUrl(fileName);
 
-      if (url != null) {
-        setState(() {
-          _uploadedFileUrl = url;
-          _portfolioController.text = url!;
-          _isUploading = false;
-        });
+      setState(() {
+        _uploadedFileUrl = url;
+        _portfolioController.text = url;
+        _isUploading = false;
+      });
 
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('File uploaded successfully ✓'),
-              backgroundColor: Color(0xFF00C2FF),
-            ),
-          );
-        }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('File uploaded successfully ✓'),
+            backgroundColor: Color(0xFF00C2FF),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) setState(() => _isUploading = false);
-      String errorMsg = e.toString();
-      if (errorMsg.contains('object-not-found')) {
-        errorMsg = 'Storage error: Object not found after upload. Please try again.';
-      }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Upload failed: $errorMsg'),
+            content: Text('Upload failed: $e'),
             backgroundColor: const Color(0xFFFF3B3B),
           ),
         );
@@ -203,7 +206,8 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -214,7 +218,9 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       _buildTextField(
                         controller: _titleController,
                         hint: 'e.g. Web Engineering',
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Title is required' : null,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Title is required'
+                            : null,
                       ),
                       const SizedBox(height: 20),
 
@@ -224,8 +230,10 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                         hint: 'Select a category',
                         value: _selectedCategory,
                         items: _categories,
-                        onChanged: (v) => setState(() => _selectedCategory = v),
-                        validator: (v) => v == null ? 'Please select a category' : null,
+                        onChanged: (v) =>
+                            setState(() => _selectedCategory = v),
+                        validator: (v) =>
+                        v == null ? 'Please select a category' : null,
                       ),
                       const SizedBox(height: 20),
 
@@ -235,8 +243,10 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                         hint: 'Your experience level',
                         value: _selectedExperience,
                         items: _experienceLevels,
-                        onChanged: (v) => setState(() => _selectedExperience = v),
-                        validator: (v) => v == null ? 'Please select a level' : null,
+                        onChanged: (v) =>
+                            setState(() => _selectedExperience = v),
+                        validator: (v) =>
+                        v == null ? 'Please select a level' : null,
                       ),
                       const SizedBox(height: 20),
 
@@ -245,11 +255,12 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       _buildTextField(
                         controller: _lookingForController,
                         hint: 'Exchange skill preferences',
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Please enter what you want' : null,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Please enter what you want'
+                            : null,
                       ),
                       const SizedBox(height: 20),
 
-                      // ── Portfolio field ────────────────────────────
                       _buildLabel('Portfolio', required: true),
                       const SizedBox(height: 8),
                       _buildPortfolioField(),
@@ -259,7 +270,8 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: _descriptionController,
-                        hint: 'Describe your skill, experience level and what you can offer…',
+                        hint:
+                        'Describe your skill, experience level and what you can offer…',
                         maxLines: 4,
                       ),
                       const SizedBox(height: 36),
@@ -277,15 +289,14 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
     );
   }
 
-  // ── Portfolio field with file-chip ───────────────────────────────
+  // ── Portfolio field ──────────────────────────────────────────────
   Widget _buildPortfolioField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Text field — disabled while a file is attached
         TextFormField(
           controller: _portfolioController,
-          readOnly: _pickedFile != null,           // lock field when file attached
+          readOnly: _pickedFile != null,
           validator: (v) => v == null || v.trim().isEmpty
               ? 'Portfolio link or document is required'
               : null,
@@ -294,43 +305,44 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             fontSize: 14,
           ),
           decoration: InputDecoration(
-            hintText: 'Paste a link  or tap  to upload a doc',
+            hintText: 'Paste a link or tap to upload a doc',
             hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
             filled: true,
             fillColor: const Color(0xFF1E293B),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            // ── Attach / loading icon ──
+            contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             suffixIcon: _isUploading
                 ? const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF00C2FF),
-                        strokeWidth: 2,
-                      ),
-                    ),
-                  )
+              padding: EdgeInsets.all(12),
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  color: Color(0xFF00C2FF),
+                  strokeWidth: 2,
+                ),
+              ),
+            )
                 : IconButton(
-                    icon: const Icon(Icons.attach_file_rounded,
-                        color: Color(0xFF00C2FF), size: 20),
-                    tooltip: 'Upload portfolio doc',
-                    onPressed: _pickedFile == null ? _pickAndUploadFile : null,
-                  ),
+              icon: const Icon(Icons.attach_file_rounded,
+                  color: Color(0xFF00C2FF), size: 20),
+              tooltip: 'Upload portfolio doc',
+              onPressed: _pickedFile == null ? _pickAndUploadFile : null,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(
-                  color: const Color(0xFF00C2FF).withAlpha(51)), // 0.2 * 255
+              borderSide:
+              BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(
-                  color: const Color(0xFF00C2FF).withAlpha(51)),
+              borderSide:
+              BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF00C2FF), width: 1.5),
+              borderSide:
+              const BorderSide(color: Color(0xFF00C2FF), width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
@@ -338,24 +350,26 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFFF3B3B), width: 1.5),
+              borderSide:
+              const BorderSide(color: Color(0xFFFF3B3B), width: 1.5),
             ),
           ),
         ),
 
-        // ── Uploaded file chip ─────────────────────────────────────
+        // ── Uploaded file chip ──────────────────────────────────────
         if (_pickedFile != null) ...[
           const SizedBox(height: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: const Color(0xFF1E293B),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF00C2FF).withAlpha(77)),
+              border: Border.all(
+                  color: const Color(0xFF00C2FF).withAlpha(77)),
             ),
             child: Row(
               children: [
-                // File type icon
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
@@ -366,8 +380,6 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       color: Color(0xFF00C2FF), size: 18),
                 ),
                 const SizedBox(width: 10),
-
-                // File name + size
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,25 +402,23 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                     ],
                   ),
                 ),
-
-                // Status badge
                 if (_isUploading)
                   const Text('Uploading…',
-                      style: TextStyle(color: Color(0xFF00C2FF), fontSize: 11))
+                      style: TextStyle(
+                          color: Color(0xFF00C2FF), fontSize: 11))
                 else if (_uploadedFileUrl != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: const Color(0xFF00C2FF).withAlpha(38),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text('Uploaded ✓',
-                        style: TextStyle(color: Color(0xFF00C2FF), fontSize: 11)),
+                        style: TextStyle(
+                            color: Color(0xFF00C2FF), fontSize: 11)),
                   ),
-
                 const SizedBox(width: 8),
-
-                // Remove button
                 GestureDetector(
                   onTap: _clearFile,
                   child: Container(
@@ -437,7 +447,8 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              width: 36, height: 36,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha(51),
                 shape: BoxShape.circle,
@@ -449,7 +460,9 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
           const SizedBox(width: 14),
           const Text('Offer New Skill',
               style: TextStyle(
-                  color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -460,9 +473,12 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       children: [
         Text(text,
             style: const TextStyle(
-                color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600)),
         if (required)
-          const Text(' *', style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
+          const Text(' *',
+              style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
       ],
     );
   }
@@ -485,14 +501,17 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
         suffixIcon: suffix,
         filled: true,
         fillColor: const Color(0xFF1E293B),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
+          borderSide:
+          BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
+          borderSide:
+          BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -504,7 +523,8 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFFF3B3B), width: 1.5),
+          borderSide:
+          const BorderSide(color: Color(0xFFFF3B3B), width: 1.5),
         ),
       ),
     );
@@ -522,21 +542,25 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       onChanged: onChanged,
       validator: validator,
       dropdownColor: const Color(0xFF1E293B),
-      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF00C2FF)),
+      icon: const Icon(Icons.keyboard_arrow_down_rounded,
+          color: Color(0xFF00C2FF)),
       style: const TextStyle(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
         filled: true,
         fillColor: const Color(0xFF1E293B),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
+          borderSide:
+          BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
+          borderSide:
+          BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -550,7 +574,9 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       items: items
           .map((e) => DropdownMenuItem(
         value: e,
-        child: Text(e, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        child: Text(e,
+            style: const TextStyle(
+                color: Colors.white, fontSize: 14)),
       ))
           .toList(),
     );
@@ -563,8 +589,10 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
           child: OutlinedButton(
             onPressed: _isLoading ? null : () => Navigator.pop(context),
             style: OutlinedButton.styleFrom(
-              side: BorderSide(color: const Color(0xFF00C2FF).withAlpha(102)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              side: BorderSide(
+                  color: const Color(0xFF00C2FF).withAlpha(102)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30)),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             child: const Text('Cancel',
@@ -592,7 +620,8 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
               ),
               child: _isLoading
                   ? const SizedBox(
-                  width: 20, height: 20,
+                  width: 20,
+                  height: 20,
                   child: CircularProgressIndicator(
                       color: Colors.white, strokeWidth: 2))
                   : const Text('Add Skill',
