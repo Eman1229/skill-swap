@@ -654,12 +654,28 @@ class _ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = data['otherName'] as String? ?? 'Unknown';
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+    // ✅ FIX: Always derive the OTHER person's ID from participants list,
+    // not from otherUserId field (which only reflects the original sender's view)
+    final participants = List<String>.from(data['participants'] ?? []);
+    final otherUserId = participants.firstWhere(
+          (id) => id != currentUid,
+      orElse: () => '',
+    );
+
+    // ✅ FIX: Show correct name depending on who is viewing the conversation.
+    // If I am the original sender, otherUserId == data['otherUserId'], so show otherName.
+    // If I am the mentor (receiver), show senderName instead.
+    final bool iAmTheSender = data['otherUserId'] == otherUserId;
+    final name = iAmTheSender
+        ? (data['otherName'] as String? ?? 'Unknown')
+        : (data['senderName'] as String? ?? 'Unknown');
+
     final lastMsg = data['lastMessage'] as String? ?? '';
     final unread = (data['unreadCount'] as int?) ?? 0;
     final skill = data['skill'] as String? ?? '';
     final wanting = data['wanting'] as String? ?? '';
-    final otherUserId = data['otherUserId'] as String? ?? '';
     final conversationId = data['id'] as String? ?? '';
     final Timestamp? ts = data['lastMessageAt'] as Timestamp?;
     final timeStr = ts != null ? _formatTime(ts.toDate()) : '';
@@ -671,7 +687,8 @@ class _ConversationTile extends StatelessWidget {
         ? name[0].toUpperCase()
         : '?';
 
-    // ✅ Fixed: all required fields provided, userId included
+    // ✅ FIX: Pass the correct otherUserId so ConversationScreen
+    // resolves the same deterministic conversation doc for both users
     final swap = SwapListing(
       id: conversationId,
       userId: otherUserId,

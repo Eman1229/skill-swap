@@ -13,7 +13,8 @@ class ConversationScreen extends StatefulWidget {
   State<ConversationScreen> createState() => _ConversationScreenState();
 }
 
-class _ConversationScreenState extends State<ConversationScreen> {
+class _ConversationScreenState extends State<ConversationScreen>
+    with WidgetsBindingObserver {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _msgController = TextEditingController();
@@ -21,12 +22,15 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   String? _conversationId;
 
-  // ── Real-time online status listener ─────────────────────────────
+  String get _otherId =>
+      (widget.swap.userId != null && widget.swap.userId!.isNotEmpty)
+          ? widget.swap.userId!
+          : widget.swap.id;
+
   Stream<bool> get _onlineStream {
-    final otherId = widget.swap.userId ?? widget.swap.id;
     return _db
         .collection('users')
-        .doc(otherId)
+        .doc(_otherId)
         .snapshots()
         .map((doc) => (doc.data()?['isOnline'] as bool?) ?? false);
   }
@@ -34,7 +38,16 @@ class _ConversationScreenState extends State<ConversationScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initConversation();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When user comes back to the app, upgrade 'sent' → 'delivered'
+    if (state == AppLifecycleState.resumed && _conversationId != null) {
+      _markMessagesDelivered();
+    }
   }
 
   // ── Create or fetch existing conversation doc ────────────────────
@@ -42,52 +55,102 @@ class _ConversationScreenState extends State<ConversationScreen> {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    final otherId = widget.swap.userId ?? widget.swap.id;
+    final otherId = _otherId;
 
-    final query = await _db
+    final ids = [uid, otherId]..sort();
+    final deterministicId = '${ids[0]}_${ids[1]}';
+
+    final docRef = _db.collection('conversations').doc(deterministicId);
+    final doc = await docRef.get();
+
+    if (!doc.exists) {
+      final currentUserDoc = await _db.collection('users').doc(uid).get();
+      final currentUserName =
+          currentUserDoc.data()?['name'] as String? ?? 'Unknown';
+
+      await docRef.set({
+        'participants': [uid, otherId],
+        'otherName': widget.swap.name,
+        'senderName': currentUserName,
+        'otherUserId': otherId,
+        'skill': widget.swap.offering,
+        'wanting': widget.swap.wanting,
+        'lastMessage': '',
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'unreadCount': 0,
+      });
+    }
+
+    setState(() => _conversationId = deterministicId);
+
+    // User opened this conversation → mark other person's messages as read
+    await _markMessagesRead();
+    // Also upgrade any 'sent' messages to 'delivered' while we're here
+    await _markMessagesDelivered();
+  }
+
+  // ── 'sent' → 'delivered' ─────────────────────────────────────────
+  // Runs when the recipient opens the app (or this screen)
+  Future<void> _markMessagesDelivered() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null || _conversationId == null) return;
+
+    // Messages FROM the other person that are still only 'sent'
+    final snap = await _db
         .collection('conversations')
-        .where('participants', arrayContains: uid)
+        .doc(_conversationId)
+        .collection('messages')
+        .where('senderId', isNotEqualTo: uid)
+        .where('status', isEqualTo: 'sent')
         .get();
 
-    for (final doc in query.docs) {
-      final participants =
-      List<String>.from(doc.data()['participants'] ?? []);
-      if (participants.contains(otherId)) {
-        setState(() => _conversationId = doc.id);
-        return;
-      }
+    if (snap.docs.isEmpty) return;
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.update(doc.reference, {'status': 'delivered'});
     }
+    await batch.commit();
+  }
+
+  // ── 'sent'/'delivered' → 'read' ──────────────────────────────────
+  // Runs only when the recipient actually opens THIS conversation screen
+  Future<void> _markMessagesRead() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null || _conversationId == null) return;
+
+    // Messages FROM the other person that haven't been read yet
+    final snap = await _db
+        .collection('conversations')
+        .doc(_conversationId)
+        .collection('messages')
+        .where('senderId', isNotEqualTo: uid)
+        .where('status', whereIn: ['sent', 'delivered'])
+        .get();
+
+    if (snap.docs.isEmpty) return;
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.update(doc.reference, {'status': 'read'});
+    }
+    await batch.commit();
   }
 
   // ── Send a message ───────────────────────────────────────────────
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty || _conversationId == null) return;
+
     final uid = _auth.currentUser?.uid ?? '';
-    final otherId = widget.swap.userId ?? widget.swap.id;
 
-    if (_conversationId == null) {
-      final ref = await _db.collection('conversations').add({
-        'participants': [uid, otherId],
-        'otherName': widget.swap.name,
-        'skill': widget.swap.offering,
-        'lastMessage': text.trim(),
-        'lastMessageAt': FieldValue.serverTimestamp(),
-        'unreadCount': 0,
-      });
-
-      _conversationId = ref.id;
-    }
-
-    final msgRef = _db
+    await _db
         .collection('conversations')
         .doc(_conversationId)
-        .collection('messages');
-
-    await msgRef.add({
+        .collection('messages')
+        .add({
       'senderId': uid,
       'text': text.trim(),
       'timestamp': FieldValue.serverTimestamp(),
       'type': 'text',
+      'status': 'sent',   // always starts as sent
     });
 
     await _db.collection('conversations').doc(_conversationId).update({
@@ -126,12 +189,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
       'offering': widget.swap.offering,
       'wanting': widget.swap.wanting,
       'timestamp': FieldValue.serverTimestamp(),
+      'status': 'sent',
     });
 
-    await _db
-        .collection('conversations')
-        .doc(_conversationId)
-        .update({
+    await _db.collection('conversations').doc(_conversationId).update({
       'lastMessage': 'Skill Swap Proposal',
       'lastMessageAt': FieldValue.serverTimestamp(),
     });
@@ -139,19 +200,17 @@ class _ConversationScreenState extends State<ConversationScreen> {
     _scrollToBottom();
   }
 
-  // ── Navigate back to chat list ────────────────────────────────────
   void _navigateBackToChat() {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (_) => const ChatScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const ChatScreen()),
           (route) => false,
     );
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _msgController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -166,7 +225,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header with real-time online status ────────────────
             StreamBuilder<bool>(
               stream: _onlineStream,
               builder: (context, snap) {
@@ -175,7 +233,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
               },
             ),
 
-            // ── Messages ───────────────────────────────────────────
             Expanded(
               child: _conversationId == null
                   ? const Center(
@@ -189,17 +246,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     .orderBy('timestamp', descending: false)
                     .snapshots(),
                 builder: (context, snap) {
-                  if (snap.connectionState ==
-                      ConnectionState.waiting) {
+                  if (snap.connectionState == ConnectionState.waiting) {
                     return const Center(
                         child: CircularProgressIndicator(
                             color: Color(0xFF00C2FF)));
                   }
 
                   final docs = snap.data?.docs ?? [];
-                  if (docs.isEmpty) {
-                    return _buildEmptyChat();
-                  }
+                  if (docs.isEmpty) return _buildEmptyChat();
 
                   WidgetsBinding.instance
                       .addPostFrameCallback((_) => _scrollToBottom());
@@ -210,11 +264,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
                         horizontal: 16, vertical: 12),
                     itemCount: docs.length + 1,
                     itemBuilder: (_, i) {
-                      if (i == 0) return _DateChip(label: 'TODAY');
-                      final d = docs[i - 1].data()
-                      as Map<String, dynamic>;
+                      if (i == 0) {
+                        return const _DateChip(label: 'TODAY');
+                      }
+                      final d =
+                      docs[i - 1].data() as Map<String, dynamic>;
                       final isMine = d['senderId'] == uid;
                       final type = d['type'] as String? ?? 'text';
+                      final status = d['status'] as String? ?? 'sent';
 
                       if (type == 'swap_proposal') {
                         return _SwapProposalCard(
@@ -228,6 +285,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                         text: d['text'] as String? ?? '',
                         isMine: isMine,
                         timestamp: d['timestamp'] as Timestamp?,
+                        status: status,
                       );
                     },
                   );
@@ -235,7 +293,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
               ),
             ),
 
-            // ── Input bar ──────────────────────────────────────────
             _buildInputBar(),
           ],
         ),
@@ -255,7 +312,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ),
       child: Row(
         children: [
-          // Back button — pops to ChatScreen to show updated list
           GestureDetector(
             onTap: _navigateBackToChat,
             child: Container(
@@ -271,7 +327,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
           ),
           const SizedBox(width: 12),
 
-          // Avatar + online dot
           Stack(
             children: [
               Container(
@@ -357,7 +412,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
             ),
           ),
 
-          // Call + Video icons
           IconButton(
             icon: const Icon(Icons.call_rounded,
                 color: Color(0xFF00C2FF), size: 22),
@@ -412,7 +466,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ),
       child: Row(
         children: [
-          // Swap proposal button
           GestureDetector(
             onTap: _sendSwapProposal,
             child: Container(
@@ -430,7 +483,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
           ),
           const SizedBox(width: 10),
 
-          // Text field
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -441,8 +493,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
               ),
               child: TextField(
                 controller: _msgController,
-                style:
-                const TextStyle(color: Colors.white, fontSize: 14),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
                 decoration: const InputDecoration(
                   hintText: 'Type a message...',
                   hintStyle:
@@ -457,7 +508,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
           ),
           const SizedBox(width: 10),
 
-          // Send button
           GestureDetector(
             onTap: () => _sendMessage(_msgController.text),
             child: Container(
@@ -491,8 +541,7 @@ class _DateChip extends StatelessWidget {
     return Center(
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 12),
-        padding:
-        const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
         decoration: BoxDecoration(
           color: const Color(0xFF1E293B),
           borderRadius: BorderRadius.circular(20),
@@ -515,10 +564,12 @@ class _MessageBubble extends StatelessWidget {
   final String text;
   final bool isMine;
   final Timestamp? timestamp;
+  final String status; // 'sent' | 'delivered' | 'read'
 
   const _MessageBubble({
     required this.text,
     required this.isMine,
+    required this.status,
     this.timestamp,
   });
 
@@ -527,8 +578,7 @@ class _MessageBubble extends StatelessWidget {
     final timeStr = timestamp != null ? _fmt(timestamp!.toDate()) : '';
 
     return Align(
-      alignment:
-      isMine ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
         crossAxisAlignment:
         isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -537,8 +587,8 @@ class _MessageBubble extends StatelessWidget {
             constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.72),
             margin: const EdgeInsets.symmetric(vertical: 4),
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 11),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
             decoration: BoxDecoration(
               gradient: isMine
                   ? const LinearGradient(
@@ -557,8 +607,7 @@ class _MessageBubble extends StatelessWidget {
               border: isMine
                   ? null
                   : Border.all(
-                  color:
-                  const Color(0xFF00C2FF).withOpacity(0.1)),
+                  color: const Color(0xFF00C2FF).withOpacity(0.1)),
             ),
             child: Text(
               text,
@@ -570,18 +619,17 @@ class _MessageBubble extends StatelessWidget {
             ),
           ),
           Padding(
-            padding:
-            const EdgeInsets.only(bottom: 6, left: 4, right: 4),
+            padding: const EdgeInsets.only(bottom: 6, left: 4, right: 4),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(timeStr,
                     style: const TextStyle(
                         color: Colors.white24, fontSize: 10)),
+                // Tick only shown on my own messages
                 if (isMine) ...[
                   const SizedBox(width: 4),
-                  const Icon(Icons.done_all_rounded,
-                      color: Color(0xFF00C2FF), size: 13),
+                  _TickIcon(status: status),
                 ],
               ],
             ),
@@ -595,6 +643,56 @@ class _MessageBubble extends StatelessWidget {
     final h = dt.hour.toString().padLeft(2, '0');
     final m = dt.minute.toString().padLeft(2, '0');
     return '$h:$m ${dt.hour >= 12 ? 'PM' : 'AM'}';
+  }
+}
+
+// ── Tick icon ────────────────────────────────────────────────────────
+//
+//  sent      →  ✓   single grey
+//  delivered →  ✓✓  double grey
+//  read      →  ✓✓  double blue
+//
+class _TickIcon extends StatelessWidget {
+  final String status;
+  const _TickIcon({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    switch (status) {
+      case 'sent':
+      // Single grey tick
+        return const Icon(Icons.done_rounded, color: Colors.white38, size: 14);
+
+      case 'delivered':
+      // Double grey tick
+        return _doubleTick(color: Colors.white38);
+
+      case 'read':
+      // Double blue tick
+        return _doubleTick(color: Color(0xFF00C2FF));
+
+      default:
+        return const Icon(Icons.done_rounded, color: Colors.white38, size: 14);
+    }
+  }
+
+  Widget _doubleTick({required Color color}) {
+    return SizedBox(
+      width: 20,
+      height: 14,
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            child: Icon(Icons.done_rounded, color: color, size: 14),
+          ),
+          Positioned(
+            left: 6,
+            child: Icon(Icons.done_rounded, color: color, size: 14),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -623,10 +721,9 @@ class _SwapProposalCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Header badge
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 5),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
@@ -664,16 +761,14 @@ class _SwapProposalCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             '$senderName\'s expertise',
-            style:
-            const TextStyle(color: Colors.white38, fontSize: 12),
+            style: const TextStyle(color: Colors.white38, fontSize: 12),
           ),
 
           const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
-                  child: Divider(
-                      color: Colors.white.withOpacity(0.08))),
+                  child: Divider(color: Colors.white.withOpacity(0.08))),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
                 child: Text('FOR',
@@ -684,8 +779,7 @@ class _SwapProposalCard extends StatelessWidget {
                         letterSpacing: 1)),
               ),
               Expanded(
-                  child: Divider(
-                      color: Colors.white.withOpacity(0.08))),
+                  child: Divider(color: Colors.white.withOpacity(0.08))),
             ],
           ),
           const SizedBox(height: 10),
