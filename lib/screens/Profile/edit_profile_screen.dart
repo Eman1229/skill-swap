@@ -18,7 +18,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final _supabase = Supabase.instance.client; // ✅ Supabase client
+  final _supabase = Supabase.instance.client;
 
   late TextEditingController _nameController;
   late TextEditingController _emailController;
@@ -29,7 +29,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.swap.name);
-    _emailController = TextEditingController(text: _auth.currentUser?.email ?? '');
+    _emailController =
+        TextEditingController(text: _auth.currentUser?.email ?? '');
   }
 
   @override
@@ -50,14 +51,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  // ✅ Upload to Supabase Storage instead of Firebase Storage
   Future<String?> _uploadImageToSupabase(File imageFile) async {
     try {
       final String fileName =
           'profile_${widget.swap.userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
       await _supabase.storage
-          .from('profile-images') // ← your bucket name
+          .from('profile-images')
           .upload(
         fileName,
         imageFile,
@@ -89,38 +89,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       String? imageUrl = widget.swap.imageUrl;
-
-      // 1. Upload image to Supabase if changed
       if (_newImage != null) {
         final uploadedUrl = await _uploadImageToSupabase(_newImage!);
+
         if (uploadedUrl != null) {
+
+          if (imageUrl != null && imageUrl.isNotEmpty) {
+            await NetworkImage(imageUrl).evict();
+          }
+
           imageUrl = uploadedUrl;
         }
       }
-
-      // 2. Update Firestore listing
       await _db.collection('swapListings').doc(widget.swap.id).update({
         'name': _nameController.text.trim(),
-        if (imageUrl != null) 'imageUrl': imageUrl,
+        'imageUrl': imageUrl,
       });
 
-      // 3. Update email if changed
-      if (_emailController.text.trim() != _auth.currentUser?.email) {
+      await _db
+          .collection('swapListings')
+          .doc(widget.swap.id)
+          .get(const GetOptions(source: Source.server));
+
+      final currentEmail = _auth.currentUser?.email;
+      final newEmail = _emailController.text.trim();
+
+      if (newEmail.isNotEmpty && newEmail != currentEmail) {
         try {
-          await _auth.currentUser
-              ?.verifyBeforeUpdateEmail(_emailController.text.trim());
+          await _auth.currentUser?.verifyBeforeUpdateEmail(newEmail);
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text(
-                    'Email update requires recent login. Please sign out and in again.'),
+                  'Email update requires recent login. Please sign out and sign in again.',
+                ),
               ),
             );
           }
         }
       }
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -128,16 +136,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             backgroundColor: Color(0xFF00C2FF),
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('Error: $e'),
+          ),
         );
       }
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -150,7 +162,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         elevation: 0,
         title: const Text(
           'Edit Profile',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style:
+          TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         leading: IconButton(
@@ -208,13 +221,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       )
                           : (widget.swap.imageUrl != null
                           ? DecorationImage(
-                        image: NetworkImage(widget.swap.imageUrl!),
+                        image: NetworkImage(
+                            widget.swap.imageUrl!),
                         fit: BoxFit.cover,
                         onError: (_, __) {},
                       )
                           : null),
                     ),
-                    child: _newImage == null && widget.swap.imageUrl == null
+                    child:
+                    _newImage == null && widget.swap.imageUrl == null
                         ? Center(
                       child: Text(
                         widget.swap.initials,
@@ -307,10 +322,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             keyboardType: keyboardType,
             style: const TextStyle(color: Colors.white, fontSize: 15),
             decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: Colors.white38, size: 20),
+              prefixIcon:
+              Icon(icon, color: Colors.white38, size: 20),
               border: InputBorder.none,
-              contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 14),
             ),
           ),
         ),
