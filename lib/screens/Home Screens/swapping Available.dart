@@ -93,13 +93,22 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 
   int _selectedIndex = 0;
   int _selectedCategory = 0;
+  String _userName = 'User';
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
-  // ✅ Track the current image URL so we only evict cache when it actually changes
   String? _cachedImageUrl;
+  bool _isSearchVisible = false;
 
   final List<String> _categories = [
-    'All', 'Design', 'Coding', 'Photos',
-    'Data Analysis', 'AI', 'Music', 'Drawing',
+    'All',
+    'Design',
+    'Coding',
+    'Photos',
+    'Data Analysis',
+    'AI',
+    'Music',
+    'Drawing',
   ];
 
   Stream<DocumentSnapshot?> get _myListingStream {
@@ -115,31 +124,47 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 
   Stream<List<SwapListing>> get _swapsStream {
     Query query = _db.collection('swapListings');
+
+    // Category filter
     if (_selectedCategory != 0) {
-      query = query.where('Category',
-          isEqualTo: _categories[_selectedCategory]);
+      query = query.where(
+        'Category',
+        isEqualTo: _categories[_selectedCategory],
+      );
     }
-    return query.snapshots().map(
-          (snap) => snap.docs
+
+    return query.snapshots().map((snap) {
+      final allSwaps = snap.docs
           .map(SwapListing.fromDoc)
           .where((s) => s.userId != _auth.currentUser?.uid)
-          .toList(),
-    );
-  }
+          .toList();
 
-  String get _userName {
-    final user = _auth.currentUser;
-    if (user == null) return 'User';
-    if (user.displayName != null && user.displayName!.isNotEmpty) {
-      return user.displayName!;
-    }
-    return user.email?.split('@').first ?? 'User';
+      // SEARCH FILTER
+      if (_searchQuery.isEmpty) {
+        return allSwaps;
+      }
+
+      return allSwaps.where((swap) {
+        final query = _searchQuery.trim().toLowerCase();
+
+        final name = swap.name.toLowerCase();
+        final offering = swap.offering.toLowerCase();
+        final wanting = swap.wanting.toLowerCase();
+        final category = swap.category.toLowerCase();
+        final description = swap.description.toLowerCase();
+
+        return name.contains(query) ||
+            offering.contains(query) ||
+            wanting.contains(query) ||
+            category.contains(query) ||
+            description.contains(query);
+      }).toList();
+    });
   }
 
   String get _initials {
     final parts = _userName.trim().split(' ');
-    if (parts.length >= 2)
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     return parts[0][0].toUpperCase();
   }
 
@@ -174,14 +199,10 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     if (snap.docs.isNotEmpty) {
       final mySwap = SwapListing.fromDoc(snap.docs.first);
 
-
       final result = await Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => EditProfileScreen(swap: mySwap),
-        ),
+        MaterialPageRoute(builder: (_) => EditProfileScreen(swap: mySwap)),
       );
-
 
       if (result == true) {
         setState(() {});
@@ -195,8 +216,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       );
     }
   }
-  /// ✅ Only evict the OLD url from cache when a genuinely new URL arrives.
-  /// Never evict the new URL — we want Flutter to cache and display it.
+
   void _handleImageUrlChange(String? newUrl) {
     if (newUrl != null && newUrl != _cachedImageUrl) {
       // Evict only the previous (stale) URL
@@ -205,6 +225,17 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       }
       _cachedImageUrl = newUrl;
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -284,8 +315,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             child: const Icon(Icons.add, color: Colors.white, size: 30),
           ),
         ),
-        floatingActionButtonLocation:
-        FloatingActionButtonLocation.centerDocked,
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       ),
     );
   }
@@ -310,8 +340,11 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   String liveInitials = _initials;
 
                   if (snapshot.hasData && snapshot.data != null) {
-                    final data =
-                    snapshot.data!.data() as Map<String, dynamic>?;
+                    final data = snapshot.data!.data() as Map<String, dynamic>?;
+                    _userName =
+                        (data?['name'] as String?) ??
+                        _auth.currentUser?.email?.split('@').first ??
+                        'User';
                     liveImageUrl = data?['imageUrl'] as String?;
 
                     // ✅ Evict only the stale old URL, keep the new one cached
@@ -322,96 +355,113 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     liveInitials = parts.length >= 2
                         ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
                         : (parts[0].isNotEmpty
-                        ? parts[0][0].toUpperCase()
-                        : '?');
+                              ? parts[0][0].toUpperCase()
+                              : '?');
                   }
 
-                  return _buildHeader(
-                      screenHeight, liveImageUrl, liveInitials);
+                  return _buildHeader(screenHeight, liveImageUrl, liveInitials);
                 },
               ),
               Expanded(
                 child: StreamBuilder<List<SwapListing>>(
                   stream: _swapsStream,
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState ==
-                        ConnectionState.waiting) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
                         child: CircularProgressIndicator(
-                            color: Color(0xFF00C2FF)),
+                          color: Color(0xFF00C2FF),
+                        ),
                       );
                     }
+
                     if (snapshot.hasError) {
                       return Center(
-                        child: Text('Error: ${snapshot.error}',
-                            style: const TextStyle(
-                                color: Colors.white54)),
+                        child: Text(
+                          'Error: ${snapshot.error}',
+                          style: const TextStyle(color: Colors.white54),
+                        ),
                       );
                     }
 
                     final swaps = snapshot.data ?? [];
-                    final liveSessions =
-                    swaps.where((s) => s.isLive).toList();
-
-                    if (swaps.isEmpty) return _buildEmptyHomeState();
+                    final liveSessions = swaps.where((s) => s.isLive).toList();
 
                     return SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 22),
+
+                          // SEARCH BAR
                           _buildSearchBar(),
                           const SizedBox(height: 20),
+
+                          // CATEGORY CHIPS
                           _buildCategoryChips(),
+
                           const SizedBox(height: 26),
-                          Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
-                            children: [
-                              const _SectionTitle(
-                                  title: 'Featured Swaps'),
-                              GestureDetector(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                      const SeeAllScreen()),
-                                ),
-                                child: const Text('See all',
+
+                          // FEATURED SWAPS
+                          if (swaps.isNotEmpty) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const _SectionTitle(title: 'Featured Swaps'),
+
+                                GestureDetector(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const SeeAllScreen(),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'See all',
                                     style: TextStyle(
-                                        color: Color(0xFF00C2FF),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics:
-                            const NeverScrollableScrollPhysics(),
-                            itemCount:
-                            swaps.length > 3 ? 3 : swaps.length,
-                            separatorBuilder: (_, __) =>
+                                      color: Color(0xFF00C2FF),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
                             const SizedBox(height: 14),
-                            itemBuilder: (_, i) =>
-                                _SwapCard(swap: swaps[i]),
-                          ),
-                          const SizedBox(height: 30),
-                          const _SectionTitle(
-                              title: 'Active Swap Sessions'),
-                          const SizedBox(height: 14),
-                          if (liveSessions.isNotEmpty)
-                            ...liveSessions.map((s) => Padding(
-                              padding: const EdgeInsets.only(
-                                  bottom: 12),
-                              child: _LiveSessionCard(swap: s),
-                            ))
-                          else
-                            _buildEmptySessions(),
+
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: swaps.length > 3 ? 3 : swaps.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 14),
+                              itemBuilder: (_, i) => _SwapCard(swap: swaps[i]),
+                            ),
+
+                            const SizedBox(height: 30),
+
+                            // ACTIVE SESSIONS
+                            const _SectionTitle(title: 'Active Swap Sessions'),
+
+                            const SizedBox(height: 14),
+
+                            if (liveSessions.isNotEmpty)
+                              ...liveSessions.map(
+                                (s) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: _LiveSessionCard(swap: s),
+                                ),
+                              )
+                            else
+                              _buildEmptySessions(),
+                          ] else ...[
+                            const SizedBox(height: 40),
+
+                            _buildEmptyHomeState(),
+                          ],
+
                           const SizedBox(height: 100),
                         ],
                       ),
@@ -430,24 +480,31 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.search_off_rounded,
-              color: Color(0xFF00C2FF), size: 64),
+          const Icon(
+            Icons.search_off_rounded,
+            color: Color(0xFF00C2FF),
+            size: 64,
+          ),
           const SizedBox(height: 16),
-          const Text('No swaps available',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold)),
+          const Text(
+            'No swaps available',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text('Check back later or offer a skill yourself!',
-              style: TextStyle(color: Colors.white38, fontSize: 14)),
+          const Text(
+            'Check back later or offer a skill yourself!',
+            style: TextStyle(color: Colors.white38, fontSize: 14),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(
-      double screenHeight, String? imageUrl, String initials) {
+  Widget _buildHeader(double screenHeight, String? imageUrl, String initials) {
     return Container(
       width: double.infinity,
       height: screenHeight * 0.16,
@@ -480,58 +537,57 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               ),
               child: imageUrl == null || imageUrl.isEmpty
                   ? Center(
-                child: Text(
-                  initials,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-              )
-                  : ClipOval(
-                child: Image.network(
-                  imageUrl,
-                  key: ValueKey(imageUrl),
-
-                  width: 48,
-                  height: 48,
-                  fit: BoxFit.cover,
-
-                  // ✅ PREVENT CACHE ISSUE
-                  cacheWidth: 300,
-                  cacheHeight: 300,
-
-                  loadingBuilder:
-                      (context, child, loadingProgress) {
-                    if (loadingProgress == null) {
-                      return child;
-                    }
-
-                    return const Center(
-                      child: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                      child: Text(
+                        initials,
+                        style: const TextStyle(
                           color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
                         ),
                       ),
-                    );
-                  },
+                    )
+                  : ClipOval(
+                      child: Image.network(
+                        imageUrl,
+                        key: ValueKey(imageUrl),
 
-                  errorBuilder: (_, __, ___) => Center(
-                    child: Text(
-                      initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+
+                        // ✅ PREVENT CACHE ISSUE
+                        cacheWidth: 300,
+                        cacheHeight: 300,
+
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) {
+                            return child;
+                          }
+
+                          return const Center(
+                            child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            ),
+                          );
+                        },
+
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Text(
+                            initials,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -541,7 +597,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Good $_greeting, $_userName',
+                  '$_greeting, $_userName',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 17,
@@ -552,8 +608,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                 ),
                 const Text(
                   'Keep growing every day!',
-                  style:
-                  TextStyle(color: Colors.white70, fontSize: 12),
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
@@ -562,8 +617,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen()),
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
             },
             child: Stack(
@@ -575,8 +629,11 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     color: Colors.white.withAlpha(51),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.notifications_outlined,
-                      color: Colors.white, size: 22),
+                  child: const Icon(
+                    Icons.notifications_outlined,
+                    color: Colors.white,
+                    size: 22,
+                  ),
                 ),
                 Positioned(
                   top: 4,
@@ -588,25 +645,13 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                       color: const Color(0xFFEF4444),
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: const Color(0xFF0F172A), width: 2),
+                        color: const Color(0xFF0F172A),
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: _signOut,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.logout_rounded,
-                  color: Colors.white, size: 20),
             ),
           ),
         ],
@@ -620,18 +665,43 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-            color: const Color(0xFF00C2FF).withOpacity(0.2)),
+        border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.2)),
       ),
-      child: const TextField(
-        style: TextStyle(color: Colors.white, fontSize: 14),
+      child: TextField(
+        controller: _searchController,
+
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value.trim();
+          });
+        },
+
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+
         decoration: InputDecoration(
           hintText: 'Search skills or topic...',
-          hintStyle: TextStyle(color: Colors.white38, fontSize: 14),
-          suffixIcon: Icon(Icons.search, color: Color(0xFF00C2FF)),
+          hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
+
+          prefixIcon: const Icon(Icons.search, color: Color(0xFF00C2FF)),
+
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white54),
+                  onPressed: () {
+                    _searchController.clear();
+
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                )
+              : null,
+
           border: InputBorder.none,
-          contentPadding:
-          EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 14,
+          ),
         ),
       ),
     );
@@ -650,18 +720,14 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             onTap: () => setState(() => _selectedCategory = index),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 18, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
                 gradient: selected
                     ? const LinearGradient(
-                  colors: [
-                    Color(0xFF00C2FF),
-                    Color(0xFF6B8AFF)
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
+                        colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
                     : null,
                 color: selected ? null : const Color(0xFF1E293B),
                 borderRadius: BorderRadius.circular(20),
@@ -676,9 +742,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                 style: TextStyle(
                   color: selected ? Colors.white : Colors.white54,
                   fontSize: 13,
-                  fontWeight: selected
-                      ? FontWeight.w600
-                      : FontWeight.normal,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
             ),
@@ -695,8 +759,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(
-            color: const Color(0xFF00C2FF).withOpacity(0.15)),
+        border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.15)),
       ),
       child: Column(
         children: [
@@ -712,13 +775,17 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                 ],
               ),
             ),
-            child: const Icon(Icons.downloading_outlined,
-                color: Color(0xFF6B8AFF), size: 26),
+            child: const Icon(
+              Icons.downloading_outlined,
+              color: Color(0xFF6B8AFF),
+              size: 26,
+            ),
           ),
           const SizedBox(height: 12),
-          const Text('Nothing live yet',
-              style:
-              TextStyle(color: Colors.white38, fontSize: 13)),
+          const Text(
+            'Nothing live yet',
+            style: TextStyle(color: Colors.white38, fontSize: 13),
+          ),
         ],
       ),
     );
@@ -738,8 +805,7 @@ class _SwapCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(16),
-        border:
-        Border.all(color: const Color(0xFF00C2FF).withAlpha(38)),
+        border: Border.all(color: const Color(0xFF00C2FF).withAlpha(38)),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF00C2FF).withAlpha(13),
@@ -752,8 +818,7 @@ class _SwapCard extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-                builder: (_) => ProfileScreen(swap: swap)),
+            MaterialPageRoute(builder: (_) => ProfileScreen(swap: swap)),
           );
         },
         borderRadius: BorderRadius.circular(16),
@@ -766,34 +831,38 @@ class _SwapCard extends StatelessWidget {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: swap.imageUrl == null
-                      ? swap.avatarColor
-                      : null,
+                  color: swap.imageUrl == null ? swap.avatarColor : null,
                   shape: BoxShape.circle,
                 ),
                 child: swap.imageUrl != null
                     ? ClipOval(
-                  child: Image.network(
-                    swap.imageUrl!,
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Center(
-                      child: Text(swap.initials,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16)),
-                    ),
-                  ),
-                )
+                        child: Image.network(
+                          swap.imageUrl!,
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(
+                            child: Text(
+                              swap.initials,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
                     : Center(
-                  child: Text(swap.initials,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16)),
-                ),
+                        child: Text(
+                          swap.initials,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -803,38 +872,56 @@ class _SwapCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(swap.name,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15),
-                              overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            swap.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        const Icon(Icons.star_rounded,
-                            color: Color(0xFFFBBF24), size: 16),
+                        const Icon(
+                          Icons.star_rounded,
+                          color: Color(0xFFFBBF24),
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
-                        Text(swap.rating.toStringAsFixed(1),
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold)),
+                        Text(
+                          swap.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(width: 4),
-                        Text('(${swap.reviews} Swaps)',
-                            style: const TextStyle(
-                                color: Colors.white38,
-                                fontSize: 11)),
+                        Text(
+                          '(${swap.reviews} Swaps)',
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(_getCategoryIcon(swap.category),
-                            color: Colors.white38, size: 14),
+                        Icon(
+                          _getCategoryIcon(swap.category),
+                          color: Colors.white38,
+                          size: 14,
+                        ),
                         const SizedBox(width: 6),
-                        Text(swap.category,
-                            style: const TextStyle(
-                                color: Colors.white38,
-                                fontSize: 12)),
+                        Text(
+                          swap.category,
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 12,
+                          ),
+                        ),
                         if (swap.isLive) ...[
                           const SizedBox(width: 8),
                           _LiveBadge(),
@@ -845,9 +932,10 @@ class _SwapCard extends StatelessWidget {
                     Text(
                       swap.offering,
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -859,13 +947,13 @@ class _SwapCard extends StatelessWidget {
                           const TextSpan(
                             text: 'Looking for: ',
                             style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600),
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           TextSpan(
                             text: swap.wanting,
-                            style: const TextStyle(
-                                color: Colors.white54),
+                            style: const TextStyle(color: Colors.white54),
                           ),
                         ],
                       ),
@@ -884,14 +972,22 @@ class _SwapCard extends StatelessWidget {
 
   IconData _getCategoryIcon(String category) {
     switch (category.toLowerCase()) {
-      case 'design':        return Icons.brush_rounded;
-      case 'coding':        return Icons.code_rounded;
-      case 'ai':            return Icons.auto_awesome_rounded;
-      case 'music':         return Icons.music_note_rounded;
-      case 'drawing':       return Icons.draw_rounded;
-      case 'photos':        return Icons.camera_alt_rounded;
-      case 'data analysis': return Icons.analytics_rounded;
-      default:              return Icons.category_rounded;
+      case 'design':
+        return Icons.brush_rounded;
+      case 'coding':
+        return Icons.code_rounded;
+      case 'ai':
+        return Icons.auto_awesome_rounded;
+      case 'music':
+        return Icons.music_note_rounded;
+      case 'drawing':
+        return Icons.draw_rounded;
+      case 'photos':
+        return Icons.camera_alt_rounded;
+      case 'data analysis':
+        return Icons.analytics_rounded;
+      default:
+        return Icons.category_rounded;
     }
   }
 }
@@ -909,35 +1005,36 @@ class _LiveSessionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-            color: const Color(0xFF00C2FF).withOpacity(0.25)),
+        border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.25)),
       ),
       child: InkWell(
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-                builder: (_) => ProfileScreen(swap: swap)),
+            MaterialPageRoute(builder: (_) => ProfileScreen(swap: swap)),
           );
         },
         borderRadius: BorderRadius.circular(18),
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
               Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                    color: swap.avatarColor,
-                    shape: BoxShape.circle),
+                  color: swap.avatarColor,
+                  shape: BoxShape.circle,
+                ),
                 child: Center(
-                  child: Text(swap.initials,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14)),
+                  child: Text(
+                    swap.initials,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -945,15 +1042,22 @@ class _LiveSessionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(swap.name,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13)),
+                    Text(
+                      swap.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text('${swap.offering} ↔ ${swap.wanting}',
-                        style: const TextStyle(
-                            color: Colors.white54, fontSize: 11)),
+                    Text(
+                      '${swap.offering} ↔ ${swap.wanting}',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -963,8 +1067,8 @@ class _LiveSessionCard extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) =>
-                            ProfileScreen(swap: swap)),
+                      builder: (_) => ProfileScreen(swap: swap),
+                    ),
                   );
                 },
               ),
@@ -983,13 +1087,11 @@ class _LiveBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: const Color(0xFF00C2FF).withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: const Color(0xFF00C2FF).withOpacity(0.4)),
+        border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -998,14 +1100,19 @@ class _LiveBadge extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: const BoxDecoration(
-                color: Color(0xFF00C2FF), shape: BoxShape.circle),
+              color: Color(0xFF00C2FF),
+              shape: BoxShape.circle,
+            ),
           ),
           const SizedBox(width: 4),
-          const Text('Live',
-              style: TextStyle(
-                  color: Color(0xFF00C2FF),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600)),
+          const Text(
+            'Live',
+            style: TextStyle(
+              color: Color(0xFF00C2FF),
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -1031,16 +1138,18 @@ class _GradientButton extends StatelessWidget {
       child: TextButton(
         onPressed: onTap,
         style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        child: Text(label,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.bold)),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
@@ -1070,11 +1179,14 @@ class _SectionTitle extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Text(title,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold)),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
@@ -1108,22 +1220,18 @@ class _NavItem extends StatelessWidget {
         children: [
           Icon(
             selected ? activeIcon : icon,
-            color: selected
-                ? const Color(0xFF00C2FF)
-                : Colors.white38,
+            color: selected ? const Color(0xFF00C2FF) : Colors.white38,
             size: 24,
           ),
           const SizedBox(height: 3),
-          Text(label,
-              style: TextStyle(
-                color: selected
-                    ? const Color(0xFF00C2FF)
-                    : Colors.white38,
-                fontSize: 10,
-                fontWeight: selected
-                    ? FontWeight.w600
-                    : FontWeight.normal,
-              )),
+          Text(
+            label,
+            style: TextStyle(
+              color: selected ? const Color(0xFF00C2FF) : Colors.white38,
+              fontSize: 10,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
         ],
       ),
     );

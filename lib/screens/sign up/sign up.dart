@@ -10,7 +10,6 @@ class SignUpScreen extends StatefulWidget {
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
-
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
@@ -19,13 +18,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isPasswordHidden = true;
   Future<void> signUpUser() async {
     try {
-      UserCredential userCredential =
-      await _auth.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Account Created Successfully")),
@@ -35,13 +35,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         context,
         MaterialPageRoute(builder: (context) => SkillsScreen()),
       );
-
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? "Signup Failed")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message ?? "Signup Failed")));
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final double screenHeight = MediaQuery.of(context).size.height;
@@ -102,7 +102,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                 // 2. DARK FORM SECTION (The "Sliding Up" Layer)
                 Padding(
-                  padding: EdgeInsets.only(top: screenHeight * 0.28), // This creates the perfect overlap
+                  padding: EdgeInsets.only(
+                    top: screenHeight * 0.28,
+                  ), // This creates the perfect overlap
                   child: Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
@@ -113,7 +115,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 30),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 25.0,
+                        vertical: 30,
+                      ),
                       child: Column(
                         children: [
                           const SizedBox(height: 10),
@@ -127,7 +132,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                           const Text(
                             "Create an account here",
-                            style: TextStyle(color: Colors.white54, fontSize: 14),
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 14,
+                            ),
                           ),
                           const SizedBox(height: 40),
 
@@ -159,12 +167,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           UiHelper.CustomTextField(
                             controller: _passwordController,
                             text: "Passwords",
-                            tohide: true,
+                            tohide: _isPasswordHidden,
                             textinputtype: TextInputType.text,
                             prefixIcon: Icons.lock_outline,
-                            suffixIcon: const Icon(Icons.visibility_outlined, color: Colors.white60),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isPasswordHidden
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: Colors.white60,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isPasswordHidden = !_isPasswordHidden;
+                                });
+                              },
+                            ),
                           ),
-
                           const SizedBox(height: 40),
 
                           // Proceed Button
@@ -183,7 +202,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                               child: const Text(
                                 "Proceed",
-                                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -194,12 +217,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text("Already a member? ", style: TextStyle(color: Colors.white70)),
+                              const Text(
+                                "Already a member? ",
+                                style: TextStyle(color: Colors.white70),
+                              ),
                               GestureDetector(
                                 onTap: () => Navigator.pop(context),
                                 child: const Text(
                                   "Sign in",
-                                  style: TextStyle(color: Color(0xFF00C2FF), fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: Color(0xFF00C2FF),
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
@@ -218,7 +247,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                 // 3. THE GIRL (Layered on top of everything)
                 Positioned(
-                  top: screenHeight * 0.08, // Higher up to overlap the blue and dark sections
+                  top:
+                      screenHeight *
+                      0.08, // Higher up to overlap the blue and dark sections
                   right: -10, // Slightly off-screen for that natural look
                   bottom: 630,
                   child: SizedBox(
