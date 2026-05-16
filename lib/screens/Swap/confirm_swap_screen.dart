@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 
 
@@ -25,7 +27,7 @@ class ConfirmSwapScreen extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.arrow_back_ios_new_rounded,
@@ -79,7 +81,7 @@ class ConfirmSwapScreen extends StatelessWidget {
                       color: const Color(0xFF1E293B),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                          color: const Color(0xFF00C2FF).withOpacity(0.15)),
+                          color: const Color(0xFF00C2FF).withValues(alpha: 0.15)),
                     ),
                     child: Row(
                       children: [
@@ -91,7 +93,7 @@ class ConfirmSwapScreen extends StatelessWidget {
                             color: swap.avatarColor,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: const Color(0xFF00C2FF).withOpacity(0.4),
+                              color: const Color(0xFF00C2FF).withValues(alpha: 0.4),
                               width: 2,
                             ),
                           ),
@@ -154,7 +156,7 @@ class ConfirmSwapScreen extends StatelessWidget {
                       color: const Color(0xFF1E293B),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                          color: const Color(0xFF00C2FF).withOpacity(0.1)),
+                          color: const Color(0xFF00C2FF).withValues(alpha: 0.1)),
                     ),
                     child: Row(
                       children: [
@@ -170,7 +172,7 @@ class ConfirmSwapScreen extends StatelessWidget {
                           height: 32,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(0xFF00C2FF).withOpacity(0.1),
+                            color: const Color(0xFF00C2FF).withValues(alpha: 0.1),
                           ),
                           child: const Icon(
                             Icons.swap_horiz_rounded,
@@ -206,12 +208,12 @@ class ConfirmSwapScreen extends StatelessWidget {
                       onPressed: () {},
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(
-                            color: const Color(0xFF00C2FF).withOpacity(0.4)),
+                            color: const Color(0xFF00C2FF).withValues(alpha: 0.4)),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         backgroundColor:
-                        const Color(0xFF1E293B).withOpacity(0.5),
+                        const Color(0xFF1E293B).withValues(alpha: 0.5),
                       ),
                       child: const Text(
                         'Message',
@@ -238,6 +240,23 @@ class ConfirmSwapScreen extends StatelessWidget {
                       ),
                       child: ElevatedButton(
                         onPressed: () {
+                          final uid = FirebaseAuth.instance.currentUser?.uid;
+                          if (uid != null) {
+                            FirebaseFirestore.instance.collection('swaps').add({
+                              'mentorId': swap.userId ?? swap.id,
+                              'learnerId': uid,
+                              'mentorName': swap.name,
+                              'learnerName': FirebaseAuth.instance.currentUser?.displayName ?? 'Learner',
+                              'skillName': swap.offering,
+                              'status': 'ongoing',
+                              'progress': 0.1,
+                              'conversationId': '', // To be updated when chat starts
+                              'completedSessions': 0,
+                              'totalSessions': 8,
+                              'participants': [uid, swap.userId ?? swap.id],
+                              'createdAt': FieldValue.serverTimestamp(),
+                            });
+                          }
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content:
@@ -287,9 +306,9 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         label,
