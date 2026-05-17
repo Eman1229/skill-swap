@@ -98,7 +98,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   String _searchQuery = '';
 
   String? _cachedImageUrl;
-  bool _isSearchVisible = false;
+
+  // ── FIX: store the raw (unfiltered) list from Firestore here ──
+  List<SwapListing> _allSwaps = [];
 
   final List<String> _categories = [
     'All',
@@ -111,6 +113,35 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     'Drawing',
   ];
 
+  // ── FIX: single stable stream for the current category ──
+  // Rebuilt only when the category actually changes.
+  late Stream<List<SwapListing>> _categoryStream;
+  int _lastBuiltCategory = -1; // sentinel so initState triggers a build
+
+  Stream<List<SwapListing>> _buildCategoryStream(int categoryIndex) {
+    Query query = _db.collection('swapListings');
+    if (categoryIndex != 0) {
+      query = query.where('Category', isEqualTo: _categories[categoryIndex]);
+    }
+    return query.snapshots().map((snap) => snap.docs
+        .map(SwapListing.fromDoc)
+        .where((s) => s.userId != _auth.currentUser?.uid)
+        .toList());
+  }
+
+  // ── FIX: apply search + category filter purely in-memory ──
+  List<SwapListing> get _filteredSwaps {
+    if (_searchQuery.isEmpty) return _allSwaps;
+    final q = _searchQuery.trim().toLowerCase();
+    return _allSwaps.where((swap) {
+      return swap.name.toLowerCase().contains(q) ||
+          swap.offering.toLowerCase().contains(q) ||
+          swap.wanting.toLowerCase().contains(q) ||
+          swap.category.toLowerCase().contains(q) ||
+          swap.description.toLowerCase().contains(q);
+    }).toList();
+  }
+
   Stream<DocumentSnapshot?> get _myListingStream {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return const Stream.empty();
@@ -120,46 +151,6 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         .limit(1)
         .snapshots()
         .map((snap) => snap.docs.isNotEmpty ? snap.docs.first : null);
-  }
-
-  Stream<List<SwapListing>> get _swapsStream {
-    Query query = _db.collection('swapListings');
-
-    // Category filter
-    if (_selectedCategory != 0) {
-      query = query.where(
-        'Category',
-        isEqualTo: _categories[_selectedCategory],
-      );
-    }
-
-    return query.snapshots().map((snap) {
-      final allSwaps = snap.docs
-          .map(SwapListing.fromDoc)
-          .where((s) => s.userId != _auth.currentUser?.uid)
-          .toList();
-
-      // SEARCH FILTER
-      if (_searchQuery.isEmpty) {
-        return allSwaps;
-      }
-
-      return allSwaps.where((swap) {
-        final query = _searchQuery.trim().toLowerCase();
-
-        final name = swap.name.toLowerCase();
-        final offering = swap.offering.toLowerCase();
-        final wanting = swap.wanting.toLowerCase();
-        final category = swap.category.toLowerCase();
-        final description = swap.description.toLowerCase();
-
-        return name.contains(query) ||
-            offering.contains(query) ||
-            wanting.contains(query) ||
-            category.contains(query) ||
-            description.contains(query);
-      }).toList();
-    });
   }
 
   String get _initials {
@@ -173,6 +164,25 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     if (hour < 12) return 'Morning';
     if (hour < 17) return 'Afternoon';
     return 'Evening';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshCategoryStream(); // build stream for initial category (0)
+  }
+
+  /// Call this whenever _selectedCategory changes.
+  void _refreshCategoryStream() {
+    if (_lastBuiltCategory == _selectedCategory) return;
+    _lastBuiltCategory = _selectedCategory;
+    _categoryStream = _buildCategoryStream(_selectedCategory);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _signOut() async {
@@ -198,15 +208,11 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 
     if (snap.docs.isNotEmpty) {
       final mySwap = SwapListing.fromDoc(snap.docs.first);
-
       final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => EditProfileScreen(swap: mySwap)),
       );
-
-      if (result == true) {
-        setState(() {});
-      }
+      if (result == true) setState(() {});
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -219,23 +225,11 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 
   void _handleImageUrlChange(String? newUrl) {
     if (newUrl != null && newUrl != _cachedImageUrl) {
-      // Evict only the previous (stale) URL
       if (_cachedImageUrl != null) {
         NetworkImage(_cachedImageUrl!).evict();
       }
       _cachedImageUrl = newUrl;
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   @override
@@ -333,6 +327,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         return SafeArea(
           child: Column(
             children: [
+              // ── Header (profile stream) ──────────────────────────────
               StreamBuilder<DocumentSnapshot?>(
                 stream: _myListingStream,
                 builder: (context, snapshot) {
@@ -340,14 +335,12 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   String liveInitials = _initials;
 
                   if (snapshot.hasData && snapshot.data != null) {
-                    final data = snapshot.data!.data() as Map<String, dynamic>?;
-                    _userName =
-                        (data?['name'] as String?) ??
+                    final data =
+                    snapshot.data!.data() as Map<String, dynamic>?;
+                    _userName = (data?['name'] as String?) ??
                         _auth.currentUser?.email?.split('@').first ??
                         'User';
                     liveImageUrl = data?['imageUrl'] as String?;
-
-                    // ✅ Evict only the stale old URL, keep the new one cached
                     _handleImageUrlChange(liveImageUrl);
 
                     final name = (data?['name'] as String?) ?? _userName;
@@ -355,16 +348,20 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     liveInitials = parts.length >= 2
                         ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
                         : (parts[0].isNotEmpty
-                              ? parts[0][0].toUpperCase()
-                              : '?');
+                        ? parts[0][0].toUpperCase()
+                        : '?');
                   }
 
                   return _buildHeader(screenHeight, liveImageUrl, liveInitials);
                 },
               ),
+
+              // ── Swaps list (stable stream) ───────────────────────────
               Expanded(
                 child: StreamBuilder<List<SwapListing>>(
-                  stream: _swapsStream,
+                  // FIX: use the stable cached stream; it never changes
+                  // unless the category changes, so no flicker on search.
+                  stream: _categoryStream,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
@@ -383,8 +380,13 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                       );
                     }
 
-                    final swaps = snapshot.data ?? [];
-                    final liveSessions = swaps.where((s) => s.isLive).toList();
+                    // FIX: cache the raw list; _filteredSwaps filters it
+                    // reactively whenever _searchQuery or _allSwaps changes.
+                    _allSwaps = snapshot.data ?? [];
+
+                    final swaps = _filteredSwaps;
+                    final liveSessions =
+                    swaps.where((s) => s.isLive).toList();
 
                     return SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
@@ -403,13 +405,12 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 
                           const SizedBox(height: 26),
 
-                          // FEATURED SWAPS
                           if (swaps.isNotEmpty) ...[
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
                               children: [
                                 const _SectionTitle(title: 'Featured Swaps'),
-
                                 GestureDetector(
                                   onTap: () => Navigator.push(
                                     context,
@@ -428,29 +429,26 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 14),
-
                             ListView.separated(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              itemCount: swaps.length > 3 ? 3 : swaps.length,
+                              itemCount:
+                              swaps.length > 3 ? 3 : swaps.length,
                               separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 14),
-                              itemBuilder: (_, i) => _SwapCard(swap: swaps[i]),
+                              const SizedBox(height: 14),
+                              itemBuilder: (_, i) =>
+                                  _SwapCard(swap: swaps[i]),
                             ),
-
                             const SizedBox(height: 30),
-
-                            // ACTIVE SESSIONS
-                            const _SectionTitle(title: 'Active Swap Sessions'),
-
+                            const _SectionTitle(
+                                title: 'Active Swap Sessions'),
                             const SizedBox(height: 14),
-
                             if (liveSessions.isNotEmpty)
                               ...liveSessions.map(
-                                (s) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
+                                    (s) => Padding(
+                                  padding:
+                                  const EdgeInsets.only(bottom: 12),
                                   child: _LiveSessionCard(swap: s),
                                 ),
                               )
@@ -458,7 +456,6 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                               _buildEmptySessions(),
                           ] else ...[
                             const SizedBox(height: 40),
-
                             _buildEmptyHomeState(),
                           ],
 
@@ -504,7 +501,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     );
   }
 
-  Widget _buildHeader(double screenHeight, String? imageUrl, String initials) {
+  Widget _buildHeader(
+      double screenHeight, String? imageUrl, String initials) {
     return Container(
       width: double.infinity,
       height: screenHeight * 0.16,
@@ -537,57 +535,49 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               ),
               child: imageUrl == null || imageUrl.isEmpty
                   ? Center(
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
+                child: Text(
+                  initials,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              )
+                  : ClipOval(
+                child: Image.network(
+                  imageUrl,
+                  key: ValueKey(imageUrl),
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.cover,
+                  cacheWidth: 300,
+                  cacheHeight: 300,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
                           color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
                         ),
                       ),
-                    )
-                  : ClipOval(
-                      child: Image.network(
-                        imageUrl,
-                        key: ValueKey(imageUrl),
-
-                        width: 48,
-                        height: 48,
-                        fit: BoxFit.cover,
-
-                        // ✅ PREVENT CACHE ISSUE
-                        cacheWidth: 300,
-                        cacheHeight: 300,
-
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) {
-                            return child;
-                          }
-
-                          return const Center(
-                            child: SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            ),
-                          );
-                        },
-
-                        errorBuilder: (_, __, ___) => Center(
-                          child: Text(
-                            initials,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
+                    );
+                  },
+                  errorBuilder: (_, __, ___) => Center(
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
                     ),
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -617,7 +607,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const NotificationsScreen()),
               );
             },
             child: Stack(
@@ -665,38 +656,30 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.2)),
+        border:
+        Border.all(color: const Color(0xFF00C2FF).withOpacity(0.2)),
       ),
       child: TextField(
         controller: _searchController,
-
-        onChanged: (value) {
-          setState(() {
-            _searchQuery = value.trim();
-          });
-        },
-
+        // FIX: setState updates _searchQuery → _filteredSwaps recomputes
+        // inside the already-active StreamBuilder without touching the stream.
+        onChanged: (value) => setState(() => _searchQuery = value.trim()),
         style: const TextStyle(color: Colors.white, fontSize: 14),
-
         decoration: InputDecoration(
           hintText: 'Search skills or topic...',
           hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
-
-          prefixIcon: const Icon(Icons.search, color: Color(0xFF00C2FF)),
-
+          prefixIcon:
+          const Icon(Icons.search, color: Color(0xFF00C2FF)),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white54),
-                  onPressed: () {
-                    _searchController.clear();
-
-                    setState(() {
-                      _searchQuery = '';
-                    });
-                  },
-                )
+            icon:
+            const Icon(Icons.close, color: Colors.white54),
+            onPressed: () {
+              _searchController.clear();
+              setState(() => _searchQuery = '');
+            },
+          )
               : null,
-
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 18,
@@ -717,17 +700,24 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         itemBuilder: (context, index) {
           final selected = _selectedCategory == index;
           return GestureDetector(
-            onTap: () => setState(() => _selectedCategory = index),
+            onTap: () {
+              if (_selectedCategory == index) return; // no-op if same
+              setState(() {
+                _selectedCategory = index;
+                _refreshCategoryStream(); // rebuild stream for new category
+              });
+            },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
                 gradient: selected
                     ? const LinearGradient(
-                        colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
+                  colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
                     : null,
                 color: selected ? null : const Color(0xFF1E293B),
                 borderRadius: BorderRadius.circular(20),
@@ -742,7 +732,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                 style: TextStyle(
                   color: selected ? Colors.white : Colors.white54,
                   fontSize: 13,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight:
+                  selected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
             ),
@@ -759,7 +750,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.15)),
+        border: Border.all(
+            color: const Color(0xFF00C2FF).withOpacity(0.15)),
       ),
       child: Column(
         children: [
@@ -836,33 +828,33 @@ class _SwapCard extends StatelessWidget {
                 ),
                 child: swap.imageUrl != null
                     ? ClipOval(
-                        child: Image.network(
-                          swap.imageUrl!,
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Center(
-                            child: Text(
-                              swap.initials,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                    : Center(
-                        child: Text(
-                          swap.initials,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                  child: Image.network(
+                    swap.imageUrl!,
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Center(
+                      child: Text(
+                        swap.initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
+                    ),
+                  ),
+                )
+                    : Center(
+                  child: Text(
+                    swap.initials,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -953,7 +945,8 @@ class _SwapCard extends StatelessWidget {
                           ),
                           TextSpan(
                             text: swap.wanting,
-                            style: const TextStyle(color: Colors.white54),
+                            style:
+                            const TextStyle(color: Colors.white54),
                           ),
                         ],
                       ),
@@ -1005,7 +998,8 @@ class _LiveSessionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.25)),
+        border:
+        Border.all(color: const Color(0xFF00C2FF).withOpacity(0.25)),
       ),
       child: InkWell(
         onTap: () {
@@ -1016,7 +1010,8 @@ class _LiveSessionCard extends StatelessWidget {
         },
         borderRadius: BorderRadius.circular(18),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
               Container(
@@ -1091,7 +1086,8 @@ class _LiveBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF00C2FF).withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.4)),
+        border:
+        Border.all(color: const Color(0xFF00C2FF).withOpacity(0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1138,7 +1134,8 @@ class _GradientButton extends StatelessWidget {
       child: TextButton(
         onPressed: onTap,
         style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
@@ -1220,16 +1217,19 @@ class _NavItem extends StatelessWidget {
         children: [
           Icon(
             selected ? activeIcon : icon,
-            color: selected ? const Color(0xFF00C2FF) : Colors.white38,
+            color:
+            selected ? const Color(0xFF00C2FF) : Colors.white38,
             size: 24,
           ),
           const SizedBox(height: 3),
           Text(
             label,
             style: TextStyle(
-              color: selected ? const Color(0xFF00C2FF) : Colors.white38,
+              color:
+              selected ? const Color(0xFF00C2FF) : Colors.white38,
               fontSize: 10,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              fontWeight:
+              selected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
         ],

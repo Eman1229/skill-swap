@@ -85,7 +85,6 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
                       ),
                     ),
                   ),
-
                 ],
               ),
             ),
@@ -293,14 +292,66 @@ class _SwapListTile extends StatelessWidget {
             // ── Row 1: Avatar + Name + Category + Rating ──
             Row(
               children: [
+
+                // ── UPDATED: show profile picture if available ──
                 Container(
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    color: swap.avatarColor,
+                    color: swap.imageUrl == null || swap.imageUrl!.isEmpty
+                        ? swap.avatarColor
+                        : null,
                     shape: BoxShape.circle,
                   ),
-                  child: Center(
+                  child: swap.imageUrl != null && swap.imageUrl!.isNotEmpty
+                      ? ClipOval(
+                    child: Image.network(
+                      swap.imageUrl!,
+                      width: 46,
+                      height: 46,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: swap.avatarColor,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: swap.avatarColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            swap.initials,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                      : Center(
                     child: Text(
                       swap.initials,
                       style: const TextStyle(
@@ -311,6 +362,8 @@ class _SwapListTile extends StatelessWidget {
                     ),
                   ),
                 ),
+                // ── END UPDATED ──
+
                 const SizedBox(width: 12),
 
                 Expanded(
