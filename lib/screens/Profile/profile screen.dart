@@ -499,7 +499,7 @@ class ProfileScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ✅ Centered Profile Header
+
                       Center(
                         child: Column(
                           children: [

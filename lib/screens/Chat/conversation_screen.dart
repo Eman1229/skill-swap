@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
-import 'package:skill_swap/screens/Chat/chat_screen.dart';
 
 class ConversationScreen extends StatefulWidget {
   final SwapListing swap;
-
   const ConversationScreen({Key? key, required this.swap}) : super(key: key);
 
   @override
@@ -21,9 +19,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   String? _conversationId;
 
-  // ── Real-time online status listener ─────────────────────────────
   Stream<bool> get _onlineStream {
-    final otherId = widget.swap.userId ?? widget.swap.id;
+    final otherId = widget.swap.userId ?? '';
+    if (otherId.isEmpty) return Stream.value(false);
     return _db
         .collection('users')
         .doc(otherId)
@@ -37,63 +35,95 @@ class _ConversationScreenState extends State<ConversationScreen> {
     _initConversation();
   }
 
-  // ── Create or fetch existing conversation doc ────────────────────
+  // FIXED: Always check participants pair first to prevent duplicate
+  // conversations when the same user has multiple skill listings.
   Future<void> _initConversation() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    final otherId = widget.swap.userId ?? widget.swap.id;
+    final otherId = widget.swap.userId ?? '';
 
-    final query = await _db
-        .collection('conversations')
-        .where('participants', arrayContains: uid)
-        .get();
+    // Step 1: Always search by participants pair first.
+    // This guarantees two users always share one single conversation,
+    // regardless of which skill listing was clicked.
+    if (otherId.isNotEmpty) {
+      final query = await _db
+          .collection('conversations')
+          .where('participants', arrayContains: uid)
+          .get();
 
-    for (final doc in query.docs) {
-      final participants =
-      List<String>.from(doc.data()['participants'] ?? []);
-      if (participants.contains(otherId)) {
-        setState(() => _conversationId = doc.id);
-        return;
+      for (final doc in query.docs) {
+        final participants =
+        List<String>.from(doc.data()['participants'] ?? []);
+        if (participants.contains(otherId)) {
+          // Found existing conversation → reuse it
+          setState(() => _conversationId = doc.id);
+          return;
+        }
       }
     }
 
-    // If no existing conversation found, set to empty string to stop loading spinner
+    // Step 2: Only fall back to swap.id if it looks like a real conversation
+    // doc. Validate that BOTH uids are in that document's participants.
+    if (widget.swap.id.isNotEmpty && otherId.isNotEmpty) {
+      final directDoc = await _db
+          .collection('conversations')
+          .doc(widget.swap.id)
+          .get();
+      if (directDoc.exists) {
+        final participants =
+        List<String>.from(directDoc.data()?['participants'] ?? []);
+        if (participants.contains(uid) && participants.contains(otherId)) {
+          setState(() => _conversationId = directDoc.id);
+          return;
+        }
+      }
+    }
+
+    // Step 3: No existing conversation → will be created on first message
     setState(() => _conversationId = '');
   }
 
-  // ── Send a message ───────────────────────────────────────────────
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
     final uid = _auth.currentUser?.uid ?? '';
     final otherId = widget.swap.userId ?? widget.swap.id;
 
     if (_conversationId == null || _conversationId!.isEmpty) {
+      final senderName =
+      _auth.currentUser?.displayName?.trim().isNotEmpty == true
+          ? _auth.currentUser!.displayName!
+          : _auth.currentUser?.email?.split('@').first ?? 'User';
+
       final ref = await _db.collection('conversations').add({
         'participants': [uid, otherId],
+        'otherUserId': otherId,
+        'senderName': senderName,
         'otherName': widget.swap.name,
         'skill': widget.swap.offering,
+        'wanting': widget.swap.wanting,
         'lastMessage': text.trim(),
         'lastMessageAt': FieldValue.serverTimestamp(),
         'unreadCount': 0,
       });
-
       setState(() => _conversationId = ref.id);
     }
 
-    final msgRef = _db
+    await _db
         .collection('conversations')
         .doc(_conversationId)
-        .collection('messages');
-
-    await msgRef.add({
+        .collection('messages')
+        .add({
       'senderId': uid,
       'text': text.trim(),
       'timestamp': FieldValue.serverTimestamp(),
       'type': 'text',
     });
 
-    await _db.collection('conversations').doc(_conversationId).update({
+    await _db
+        .collection('conversations')
+        .doc(_conversationId)
+        .update({
       'lastMessage': text.trim(),
       'lastMessageAt': FieldValue.serverTimestamp(),
     });
@@ -114,15 +144,13 @@ class _ConversationScreenState extends State<ConversationScreen> {
     });
   }
 
-  // ── Confirm Swap and create SwapModel ────────────────────────────
-  Future<void> _confirmSwap(String offering, String wanting, String senderId) async {
+  Future<void> _confirmSwap(
+      String offering, String wanting, String senderId) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null || _conversationId == null) return;
 
     try {
-      // 1. Create the swap doc
-      final swapRef = _db.collection('swaps').doc();
-      await swapRef.set({
+      await _db.collection('swaps').doc().set({
         'mentorId': senderId,
         'learnerId': uid,
         'mentorName': widget.swap.name,
@@ -137,7 +165,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // 2. If there's a return skill, create the second swap doc
       if (wanting.isNotEmpty) {
         await _db.collection('swaps').add({
           'mentorId': uid,
@@ -155,8 +182,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
         });
       }
 
-      // 3. Send confirmation message
-      await _db.collection('conversations').doc(_conversationId).collection('messages').add({
+      await _db
+          .collection('conversations')
+          .doc(_conversationId)
+          .collection('messages')
+          .add({
         'senderId': uid,
         'text': 'I have confirmed the Skill Swap! Let\'s start learning. 🚀',
         'timestamp': FieldValue.serverTimestamp(),
@@ -165,25 +195,27 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Swap Relationship Created!'), backgroundColor: Color(0xFF00C2FF)),
+          const SnackBar(
+              content: Text('Swap Relationship Created!'),
+              backgroundColor: Color(0xFF00C2FF)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+              content: Text('Error: $e'),
+              backgroundColor: Colors.redAccent),
         );
       }
     }
   }
 
-  // ── Accept Session Invitation ────────────────────────────────────
   Future<void> _acceptSession(String sessionId, String swapId) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null || _conversationId == null) return;
 
     try {
-      // 1. Update session status
       await _db
           .collection('swaps')
           .doc(swapId)
@@ -191,8 +223,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
           .doc(sessionId)
           .update({'status': 'accepted'});
 
-      // 2. Send acceptance message
-      await _db.collection('conversations').doc(_conversationId).collection('messages').add({
+      await _db
+          .collection('conversations')
+          .doc(_conversationId)
+          .collection('messages')
+          .add({
         'senderId': uid,
         'text': 'I\'ve accepted the session invitation! See you then. 👋',
         'timestamp': FieldValue.serverTimestamp(),
@@ -201,19 +236,22 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Session accepted!'), backgroundColor: Color(0xFF00C2FF)),
+          const SnackBar(
+              content: Text('Session accepted!'),
+              backgroundColor: Color(0xFF00C2FF)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+              content: Text('Error: $e'),
+              backgroundColor: Colors.redAccent),
         );
       }
     }
   }
 
-  // ── Send Skill Swap Proposal card ────────────────────────────────
   Future<void> _sendSwapProposal() async {
     if (_conversationId == null || _conversationId!.isEmpty) return;
     final uid = _auth.currentUser?.uid ?? '';
@@ -241,16 +279,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     _scrollToBottom();
   }
 
-  // ── Navigate back to chat list ────────────────────────────────────
-  void _navigateBackToChat() {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const ChatScreen(),
-      ),
-          (route) => false,
-    );
-  }
+  void _navigateBack() => Navigator.pop(context);
 
   @override
   void dispose() {
@@ -268,7 +297,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header with real-time online status ────────────────
             StreamBuilder<bool>(
               stream: _onlineStream,
               builder: (context, snap) {
@@ -276,14 +304,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 return _buildHeader(isOnline);
               },
             ),
-
-            // ── Messages ───────────────────────────────────────────
             Expanded(
               child: _conversationId == null
                   ? const Center(
                   child: CircularProgressIndicator(
                       color: Color(0xFF00C2FF)))
-                  : (_conversationId!.isEmpty
+                  : _conversationId!.isEmpty
                   ? _buildEmptyChat()
                   : StreamBuilder<QuerySnapshot>(
                 stream: _db
@@ -291,10 +317,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     .doc(_conversationId)
                     .collection('messages')
                     .orderBy('timestamp', descending: false)
-                    .snapshots(includeMetadataChanges: true),
+                    .snapshots(
+                    includeMetadataChanges: true),
                 builder: (context, snap) {
                   if (snap.connectionState ==
-                      ConnectionState.waiting && !snap.hasData) {
+                      ConnectionState.waiting &&
+                      !snap.hasData) {
                     return const Center(
                         child: CircularProgressIndicator(
                             color: Color(0xFF00C2FF)));
@@ -306,7 +334,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   }
 
                   WidgetsBinding.instance
-                      .addPostFrameCallback((_) => _scrollToBottom());
+                      .addPostFrameCallback(
+                          (_) => _scrollToBottom());
 
                   return ListView.builder(
                     controller: _scrollController,
@@ -314,46 +343,60 @@ class _ConversationScreenState extends State<ConversationScreen> {
                         horizontal: 16, vertical: 12),
                     itemCount: docs.length + 1,
                     itemBuilder: (_, i) {
-                      if (i == 0) return _DateChip(label: 'TODAY');
+                      if (i == 0) {
+                        return const _DateChip(
+                            label: 'TODAY');
+                      }
                       final d = docs[i - 1].data()
                       as Map<String, dynamic>;
-                      final isMine = d['senderId'] == uid;
-                      final type = d['type'] as String? ?? 'text';
+                      final isMine =
+                          d['senderId'] == uid;
+                      final type =
+                          d['type'] as String? ?? 'text';
 
                       if (type == 'swap_proposal') {
                         return _SwapProposalCard(
-                          offering: d['offering'] ?? '',
+                          offering:
+                          d['offering'] ?? '',
                           wanting: d['wanting'] ?? '',
                           senderName: widget.swap.name,
-                          senderId: d['senderId'] ?? '',
-                          onConfirm: (offering, wanting, senderId) => _confirmSwap(offering, wanting, senderId),
+                          senderId:
+                          d['senderId'] ?? '',
+                          onConfirm: (o, w, s) =>
+                              _confirmSwap(o, w, s),
                         );
                       }
 
                       if (type == 'session_invite') {
                         return _SessionInviteCard(
-                          sessionId: d['sessionId'] ?? '',
+                          sessionId:
+                          d['sessionId'] ?? '',
                           swapId: d['swapId'] ?? '',
                           title: d['title'] ?? '',
-                          date: d['date'] as Timestamp?,
-                          duration: d['duration'] ?? '',
-                          senderId: d['senderId'] ?? '',
-                          onAccept: (sessionId, swapId) => _acceptSession(sessionId, swapId),
+                          date:
+                          d['date'] as Timestamp?,
+                          duration:
+                          d['duration'] ?? '',
+                          senderId:
+                          d['senderId'] ?? '',
+                          onAccept: (sid, swid) =>
+                              _acceptSession(
+                                  sid, swid),
                         );
                       }
 
                       return _MessageBubble(
-                        text: d['text'] as String? ?? '',
+                        text: d['text'] as String? ??
+                            '',
                         isMine: isMine,
-                        timestamp: d['timestamp'] as Timestamp?,
+                        timestamp: d['timestamp']
+                        as Timestamp?,
                       );
                     },
                   );
                 },
-              )),
+              ),
             ),
-
-            // ── Input bar ──────────────────────────────────────────
             _buildInputBar(),
           ],
         ),
@@ -363,7 +406,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   Widget _buildHeader(bool isOnline) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding:
+      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFF0F172A),
         border: Border(
@@ -373,9 +417,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ),
       child: Row(
         children: [
-          // Back button — pops to ChatScreen to show updated list
           GestureDetector(
-            onTap: _navigateBackToChat,
+            onTap: _navigateBack,
             child: Container(
               width: 36,
               height: 36,
@@ -388,18 +431,34 @@ class _ConversationScreenState extends State<ConversationScreen> {
             ),
           ),
           const SizedBox(width: 12),
-
-          // Avatar + online dot
           Stack(
             children: [
               Container(
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: widget.swap.avatarColor,
+                  color: widget.swap.imageUrl == null
+                      ? widget.swap.avatarColor
+                      : null,
                   shape: BoxShape.circle,
                 ),
-                child: Center(
+                child: widget.swap.imageUrl != null
+                    ? ClipOval(
+                  child: Image.network(
+                    widget.swap.imageUrl!,
+                    width: 42,
+                    height: 42,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Center(
+                      child: Text(widget.swap.initials,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16)),
+                    ),
+                  ),
+                )
+                    : Center(
                   child: Text(widget.swap.initials,
                       style: const TextStyle(
                           color: Colors.white,
@@ -418,14 +477,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
                       color: const Color(0xFF22C55E),
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: const Color(0xFF0F172A), width: 2),
+                          color: const Color(0xFF0F172A),
+                          width: 2),
                     ),
                   ),
                 ),
             ],
           ),
           const SizedBox(width: 12),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -474,8 +533,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
               ],
             ),
           ),
-
-          // Call + Video icons
           IconButton(
             icon: const Icon(Icons.call_rounded,
                 color: Color(0xFF00C2FF), size: 22),
@@ -511,7 +568,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
           const SizedBox(height: 14),
           Text(
             'Start chatting with ${widget.swap.name}',
-            style: const TextStyle(color: Colors.white54, fontSize: 13),
+            style: const TextStyle(
+                color: Colors.white54, fontSize: 13),
           ),
         ],
       ),
@@ -530,7 +588,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ),
       child: Row(
         children: [
-          // Swap proposal button
           GestureDetector(
             onTap: _sendSwapProposal,
             child: Container(
@@ -540,31 +597,31 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 color: const Color(0xFF1E293B),
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: const Color(0xFF00C2FF).withOpacity(0.2)),
+                    color:
+                    const Color(0xFF00C2FF).withOpacity(0.2)),
               ),
               child: const Icon(Icons.add_rounded,
                   color: Color(0xFF00C2FF), size: 20),
             ),
           ),
           const SizedBox(width: 10),
-
-          // Text field
           Expanded(
             child: Container(
               decoration: BoxDecoration(
                 color: const Color(0xFF1E293B),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                    color: const Color(0xFF00C2FF).withOpacity(0.2)),
+                    color:
+                    const Color(0xFF00C2FF).withOpacity(0.2)),
               ),
               child: TextField(
                 controller: _msgController,
-                style:
-                const TextStyle(color: Colors.white, fontSize: 14),
+                style: const TextStyle(
+                    color: Colors.white, fontSize: 14),
                 decoration: const InputDecoration(
                   hintText: 'Type a message...',
-                  hintStyle:
-                  TextStyle(color: Colors.white38, fontSize: 13),
+                  hintStyle: TextStyle(
+                      color: Colors.white38, fontSize: 13),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(
                       horizontal: 16, vertical: 10),
@@ -574,8 +631,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
             ),
           ),
           const SizedBox(width: 10),
-
-          // Send button
           GestureDetector(
             onTap: () => _sendMessage(_msgController.text),
             child: Container(
@@ -642,25 +697,31 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final timeStr = timestamp != null ? _fmt(timestamp!.toDate()) : '';
+    final timeStr =
+    timestamp != null ? _fmt(timestamp!.toDate()) : '';
 
     return Align(
       alignment:
       isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
-        crossAxisAlignment:
-        isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isMine
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Container(
             constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.72),
+                maxWidth:
+                MediaQuery.of(context).size.width * 0.72),
             margin: const EdgeInsets.symmetric(vertical: 4),
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 11),
             decoration: BoxDecoration(
               gradient: isMine
                   ? const LinearGradient(
-                colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                colors: [
+                  Color(0xFF00C2FF),
+                  Color(0xFF6B8AFF)
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
@@ -675,8 +736,8 @@ class _MessageBubble extends StatelessWidget {
               border: isMine
                   ? null
                   : Border.all(
-                  color:
-                  const Color(0xFF00C2FF).withOpacity(0.1)),
+                  color: const Color(0xFF00C2FF)
+                      .withOpacity(0.1)),
             ),
             child: Text(
               text,
@@ -688,8 +749,8 @@ class _MessageBubble extends StatelessWidget {
             ),
           ),
           Padding(
-            padding:
-            const EdgeInsets.only(bottom: 6, left: 4, right: 4),
+            padding: const EdgeInsets.only(
+                bottom: 6, left: 4, right: 4),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -716,7 +777,7 @@ class _MessageBubble extends StatelessWidget {
   }
 }
 
-// ── Swap Proposal card (in-chat) ─────────────────────────────────────
+// ── Swap Proposal card ───────────────────────────────────────────────
 class _SwapProposalCard extends StatelessWidget {
   final String offering;
   final String wanting;
@@ -734,21 +795,24 @@ class _SwapProposalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isMine = FirebaseAuth.instance.currentUser?.uid == senderId;
+    final bool isMine =
+        FirebaseAuth.instance.currentUser?.uid == senderId;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      margin: const EdgeInsets.symmetric(
+          vertical: 10, horizontal: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.25)),
+        border: Border.all(
+            color: const Color(0xFF00C2FF).withOpacity(0.25)),
       ),
       child: Column(
         children: [
-          // Header badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
@@ -758,36 +822,34 @@ class _SwapProposalCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: const [
-                Icon(Icons.swap_horiz_rounded, color: Colors.white, size: 14),
+                Icon(Icons.swap_horiz_rounded,
+                    color: Colors.white, size: 14),
                 SizedBox(width: 6),
-                Text(
-                  'SKILL SWAP PROPOSAL',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
-                  ),
-                ),
+                Text('SKILL SWAP PROPOSAL',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8)),
               ],
             ),
           ),
           const SizedBox(height: 14),
-
-          Text(
-            offering,
-            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-          ),
+          Text(offering,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
-          Text(
-            '$senderName\'s expertise',
-            style: const TextStyle(color: Colors.white38, fontSize: 12),
-          ),
-
+          Text('$senderName\'s expertise',
+              style: const TextStyle(
+                  color: Colors.white38, fontSize: 12)),
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: Divider(color: Colors.white.withOpacity(0.08))),
+              Expanded(
+                  child: Divider(
+                      color: Colors.white.withOpacity(0.08))),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
                 child: Text('FOR',
@@ -797,18 +859,18 @@ class _SwapProposalCard extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                         letterSpacing: 1)),
               ),
-              Expanded(child: Divider(color: Colors.white.withOpacity(0.08))),
+              Expanded(
+                  child: Divider(
+                      color: Colors.white.withOpacity(0.08))),
             ],
           ),
           const SizedBox(height: 10),
-
-          Text(
-            wanting,
-            style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-
+          Text(wanting,
+              style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600)),
           const SizedBox(height: 16),
-
           if (!isMine)
             Container(
               width: double.infinity,
@@ -821,36 +883,37 @@ class _SwapProposalCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ElevatedButton(
-                onPressed: () => onConfirm(offering, wanting, senderId),
+                onPressed: () =>
+                    onConfirm(offering, wanting, senderId),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 12),
                 ),
-                child: const Text(
-                  'CONFIRM SWAP DETAILS',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    letterSpacing: 0.5,
-                  ),
-                ),
+                child: const Text('CONFIRM SWAP DETAILS',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        letterSpacing: 0.5)),
               ),
             )
           else
-            const Text(
-              'Waiting for response...',
-              style: TextStyle(color: Colors.white38, fontSize: 12, fontStyle: FontStyle.italic),
-            ),
+            const Text('Waiting for response...',
+                style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic)),
         ],
       ),
     );
   }
 }
 
-// ── Session Invite card (in-chat) ────────────────────────────────────
+// ── Session Invite card ──────────────────────────────────────────────
 class _SessionInviteCard extends StatelessWidget {
   final String sessionId;
   final String swapId;
@@ -872,23 +935,27 @@ class _SessionInviteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isMine = FirebaseAuth.instance.currentUser?.uid == senderId;
+    final bool isMine =
+        FirebaseAuth.instance.currentUser?.uid == senderId;
     final dateStr = date != null
         ? '${date!.toDate().day}/${date!.toDate().month}/${date!.toDate().year} at ${TimeOfDay.fromDateTime(date!.toDate()).format(context)}'
         : 'TBD';
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      margin: const EdgeInsets.symmetric(
+          vertical: 10, horizontal: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.25)),
+        border: Border.all(
+            color: const Color(0xFFA855F7).withOpacity(0.25)),
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
@@ -898,48 +965,46 @@ class _SessionInviteCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: const [
-                Icon(Icons.calendar_today_rounded, color: Colors.white, size: 14),
+                Icon(Icons.calendar_today_rounded,
+                    color: Colors.white, size: 14),
                 SizedBox(width: 6),
-                Text(
-                  'SESSION INVITATION',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
-                  ),
-                ),
+                Text('SESSION INVITATION',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8)),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
+          Text(title,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center),
           const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(Icons.access_time_rounded, color: Color(0xFFA855F7), size: 16),
+              const Icon(Icons.access_time_rounded,
+                  color: Color(0xFFA855F7), size: 16),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  dateStr,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ),
+                  child: Text(dateStr,
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 13))),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.timer_outlined, color: Color(0xFFA855F7), size: 16),
+              const Icon(Icons.timer_outlined,
+                  color: Color(0xFFA855F7), size: 16),
               const SizedBox(width: 8),
-              Text(
-                duration,
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
-              ),
+              Text(duration,
+                  style: const TextStyle(
+                      color: Colors.white70, fontSize: 13)),
             ],
           ),
           const SizedBox(height: 20),
@@ -957,20 +1022,24 @@ class _SessionInviteCard extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 12),
                 ),
-                child: const Text(
-                  'ACCEPT INVITATION',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                ),
+                child: const Text('ACCEPT INVITATION',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13)),
               ),
             )
           else
-            const Text(
-              'Invitation sent',
-              style: TextStyle(color: Colors.white38, fontSize: 12, fontStyle: FontStyle.italic),
-            ),
+            const Text('Invitation sent',
+                style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic)),
         ],
       ),
     );
