@@ -63,20 +63,21 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                         return _buildEmptyState();
                       }
 
+                      final swapsList = docs.map((doc) => SwapModel.fromDoc(doc)).toList();
+
                       return SingleChildScrollView(
                         padding: const EdgeInsets.all(24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            ...docs.map((doc) {
-                              final swap = SwapModel.fromDoc(doc);
+                            ...swapsList.map((swap) {
                               return _TeachingCard(swap: swap);
-                            }).toList(),
+                            }),
                             const SizedBox(height: 32),
                             const Text('Teaching Dashboard',
                                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 16),
-                            _buildTeachingStats(),
+                            _buildTeachingStats(swapsList, uid),
                             const SizedBox(height: 40),
                           ],
                         ),
@@ -132,15 +133,66 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
     );
   }
 
-  Widget _buildTeachingStats() {
-    return Row(
-      children: [
-        Expanded(child: _StatCard(label: 'STUDENTS', value: '14', icon: Icons.people_alt_rounded, color: Colors.blueAccent)),
-        const SizedBox(width: 12),
-        Expanded(child: _StatCard(label: 'HOURS', value: '86', icon: Icons.access_time_filled_rounded, color: Colors.purpleAccent)),
-        const SizedBox(width: 12),
-        Expanded(child: _StatCard(label: 'RATING', value: '4.9', icon: Icons.star_rounded, color: Colors.orangeAccent)),
-      ],
+  Widget _buildTeachingStats(List<SwapModel> swaps, String uid) {
+    // 1. Unique students
+    final uniqueStudents = swaps.map((s) => s.learnerId).toSet().length;
+
+    // 2. Hours: completed sessions * 1.5
+    final totalSessions = swaps.fold<int>(0, (total, s) => total + s.completedSessions);
+    final totalHours = (totalSessions * 1.5).toStringAsFixed(1);
+
+    // 3. Rating: average rating of their swapListings
+    return StreamBuilder<QuerySnapshot>(
+      stream: _db
+          .collection('swapListings')
+          .where('userId', isEqualTo: uid)
+          .snapshots(),
+      builder: (context, listingsSnap) {
+        double avgRating = 4.8;
+        if (listingsSnap.hasData && listingsSnap.data!.docs.isNotEmpty) {
+          double totalR = 0;
+          int count = 0;
+          for (final doc in listingsSnap.data!.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final r = data['Rating'] as num?;
+            if (r != null) {
+              totalR += r.toDouble();
+              count++;
+            }
+          }
+          if (count > 0) {
+            avgRating = totalR / count;
+            if (avgRating == 0.0) {
+              avgRating = 4.8;
+            }
+          }
+        }
+
+        return Row(
+          children: [
+            Expanded(
+                child: _StatCard(
+                    label: 'STUDENTS',
+                    value: '$uniqueStudents',
+                    icon: Icons.people_alt_rounded,
+                    color: Colors.blueAccent)),
+            const SizedBox(width: 12),
+            Expanded(
+                child: _StatCard(
+                    label: 'HOURS',
+                    value: totalHours,
+                    icon: Icons.access_time_filled_rounded,
+                    color: Colors.purpleAccent)),
+            const SizedBox(width: 12),
+            Expanded(
+                child: _StatCard(
+                    label: 'RATING',
+                    value: avgRating.toStringAsFixed(1),
+                    icon: Icons.star_rounded,
+                    color: Colors.orangeAccent)),
+          ],
+        );
+      },
     );
   }
 }
@@ -181,77 +233,100 @@ class _TeachingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFA855F7).withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('swapListings')
+          .where('userId', isEqualTo: swap.learnerId)
+          .limit(1)
+          .snapshots(),
+      builder: (context, learnerSnap) {
+        String? imageUrl;
+        if (learnerSnap.hasData && learnerSnap.data!.docs.isNotEmpty) {
+          imageUrl = (learnerSnap.data!.docs.first.data() as Map<String, dynamic>)['imageUrl'] as String?;
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFA855F7).withValues(alpha: 0.1)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.grey[800],
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.person, color: Colors.white24),
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      shape: BoxShape.circle,
+                    ),
+                    child: imageUrl != null && imageUrl.isNotEmpty
+                        ? ClipOval(
+                            child: Image.network(
+                              imageUrl,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : const Icon(Icons.person, color: Colors.white24),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(swap.learnerName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(swap.skillName.toUpperCase(), style: const TextStyle(color: Colors.white38, fontSize: 11, letterSpacing: 0.5)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFA855F7).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(swap.status.toUpperCase(),
+                        style: const TextStyle(color: Color(0xFFA855F7), fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                ],
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(swap.learnerName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text(swap.skillName.toUpperCase(), style: const TextStyle(color: Colors.white38, fontSize: 11, letterSpacing: 0.5)),
-                  ],
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Progress: ${(swap.progress * 100).toInt()}%', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                  Text('Session ${swap.completedSessions} of ${swap.totalSessions}', style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: swap.progress,
+                  backgroundColor: Colors.white.withValues(alpha: 0.05),
+                  color: const Color(0xFFA855F7),
+                  minHeight: 6,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFA855F7).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 20),
+              _PrimaryBtnSmall(
+                label: 'View Details',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => SkillDetailScreen(swap: swap)),
                 ),
-                child: Text(swap.status.toUpperCase(),
-                    style: const TextStyle(color: Color(0xFFA855F7), fontSize: 10, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-              Text('Progress: ${(swap.progress * 100).toInt()}%', style: const TextStyle(color: Colors.white54, fontSize: 12)),
-              Text('Session ${swap.completedSessions} of ${swap.totalSessions}', style: const TextStyle(color: Colors.white38, fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: swap.progress,
-              backgroundColor: Colors.white.withValues(alpha: 0.05),
-              color: const Color(0xFFA855F7),
-              minHeight: 6,
-            ),
-          ),
-          const SizedBox(height: 20),
-          _PrimaryBtnSmall(
-            label: 'View Details',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => SkillDetailScreen(swap: swap)),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

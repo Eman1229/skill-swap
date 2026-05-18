@@ -159,12 +159,32 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
 
     try {
       final user = _auth.currentUser;
-      final name = (user?.displayName?.isNotEmpty == true)
+      String name = (user?.displayName?.isNotEmpty == true)
           ? user!.displayName!
           : user?.email?.split('@').first ?? 'Anonymous';
+      String? imageUrl = user?.photoURL;
+
+      // Fetch the most up-to-date profile name and picture from their existing listings if available
+      if (user?.uid != null) {
+        final existingListings = await _db
+            .collection('swapListings')
+            .where('userId', isEqualTo: user!.uid)
+            .limit(1)
+            .get();
+        if (existingListings.docs.isNotEmpty) {
+          final data = existingListings.docs.first.data();
+          if (data['name'] != null && (data['name'] as String).isNotEmpty) {
+            name = data['name'] as String;
+          }
+          if (data['imageUrl'] != null && (data['imageUrl'] as String).isNotEmpty) {
+            imageUrl = data['imageUrl'] as String;
+          }
+        }
+      }
 
       await _db.collection('swapListings').add({
         'name': name,
+        'imageUrl': imageUrl,
         'offering': _titleController.text.trim(),
         'wanting': _lookingForController.text.trim(),
         'Category': _mapCategory(_selectedCategory!),

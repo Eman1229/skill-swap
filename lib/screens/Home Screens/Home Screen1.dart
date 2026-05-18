@@ -142,16 +142,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: 2,
                       ),
                     ),
-                    child: Center(
-                      child: Text(
-                        _initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
+                    child: _auth.currentUser?.photoURL != null &&
+                            _auth.currentUser!.photoURL!.isNotEmpty
+                        ? ClipOval(
+                            child: Image.network(
+                              _auth.currentUser!.photoURL!,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Center(
+                            child: Text(
+                              _initials,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

@@ -9,9 +9,10 @@ import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Add%20skill/no_skill_dialog.dart';
 import 'package:skill_swap/screens/Swap/confirm_swap_screen.dart';
 import 'package:skill_swap/screens/Chat/conversation_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ─────────────────────────────────────────────────────────────────────
-// GLOBAL PROFILE IMAGE NOTIFIER
+// GLOBAL PROFILE IMAGE NOTIFIER b
 // (Put this in a shared file, e.g. lib/providers/profile_image_provider.dart)
 // ─────────────────────────────────────────────────────────────────────
 class ProfileImageNotifier extends ValueNotifier<File?> {
@@ -580,16 +581,10 @@ class ProfileScreen extends StatelessWidget {
                             if (swap.portfolioFile.isNotEmpty) ...[
                               _DetailRow(
                                 label: 'Portfolio',
-                                value: swap.portfolioFile,
+                                value: _getPortfolioName(swap.portfolioFile),
                                 isText: false,
                                 isLink: true,
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content: Text(
-                                            'Opening portfolio: ${swap.portfolioFile}')),
-                                  );
-                                },
+                                onTap: () => _openPortfolio(context, swap.portfolioFile),
                               ),
                               _Divider(),
                             ],
@@ -811,6 +806,164 @@ class ProfileScreen extends StatelessWidget {
       case 'photos': return Icons.camera_alt_rounded;
       case 'data analysis': return Icons.bar_chart_rounded;
       default: return Icons.category_rounded;
+    }
+  }
+
+  String _getPortfolioName(String url) {
+    if (url.isEmpty) return '';
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.pathSegments.isEmpty) {
+      return url;
+    }
+    
+    String lastSegment = uri.pathSegments.last;
+    try {
+      lastSegment = Uri.decodeComponent(lastSegment);
+    } catch (_) {}
+
+    if (lastSegment.isEmpty && uri.pathSegments.length > 1) {
+      lastSegment = uri.pathSegments[uri.pathSegments.length - 2];
+      try {
+        lastSegment = Uri.decodeComponent(lastSegment);
+      } catch (_) {}
+    }
+
+    final parts = lastSegment.split('_');
+    if (parts.length > 1 && RegExp(r'^\d+$').hasMatch(parts[0])) {
+      return parts.sublist(1).join('_');
+    }
+
+    if (!lastSegment.contains('.')) {
+      if (uri.host.isNotEmpty) {
+        String hostAndPath = uri.host + uri.path;
+        if (hostAndPath.endsWith('/')) {
+          hostAndPath = hostAndPath.substring(0, hostAndPath.length - 1);
+        }
+        return hostAndPath;
+      }
+    }
+
+    return lastSegment.isNotEmpty ? lastSegment : url;
+  }
+
+  void _viewImage(BuildContext context, String imageUrl, String fileName) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.9),
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: Colors.transparent,
+                  child: InteractiveViewer(
+                    panEnabled: true,
+                    boundaryMargin: const EdgeInsets.all(20),
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF00C2FF),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.broken_image_rounded, color: Colors.white38, size: 64),
+                              SizedBox(height: 12),
+                              Text(
+                                'Failed to load image',
+                                style: TextStyle(color: Colors.white54, fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10,
+                left: 16,
+                right: 16,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        fileName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openPortfolio(BuildContext context, String url) async {
+    if (url.isEmpty) return;
+
+    final fileName = _getPortfolioName(url);
+    final isImage = url.toLowerCase().contains(RegExp(r'\.(jpg|jpeg|png|webp|gif|bmp)'));
+
+    if (isImage) {
+      _viewImage(context, url, fileName);
+      return;
+    }
+
+    final Uri uri = Uri.parse(url);
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Opening $fileName...'),
+          backgroundColor: const Color(0xFF00C2FF),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        throw 'Could not launch URL';
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open document: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
     }
   }
 }

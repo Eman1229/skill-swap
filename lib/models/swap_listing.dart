@@ -62,7 +62,7 @@ class SwapListing {
       skillLevel: (d['skillLevel'] as String?) ?? '',
       description: (d['description'] as String?) ?? '',
       experience: (d['experience'] as String?) ?? '',
-      portfolioFile: (d['portfolioFile'] as String?) ?? '',
+      portfolioFile: (d['portfolio'] as String?) ?? '',
     );
   }
 }

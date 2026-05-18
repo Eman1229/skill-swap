@@ -93,18 +93,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final uploadedUrl = await _uploadImageToSupabase(_newImage!);
 
         if (uploadedUrl != null) {
-
           if (imageUrl != null && imageUrl.isNotEmpty) {
             await NetworkImage(imageUrl).evict();
           }
-
           imageUrl = uploadedUrl;
         }
       }
-      await _db.collection('swapListings').doc(widget.swap.id).update({
-        'name': _nameController.text.trim(),
-        'imageUrl': imageUrl,
-      });
+
+      final uid = _auth.currentUser?.uid;
+      final newName = _nameController.text.trim();
+
+      // Update in Firebase Auth
+      if (_auth.currentUser != null) {
+        await _auth.currentUser!.updateDisplayName(newName);
+        if (imageUrl != null) {
+          await _auth.currentUser!.updatePhotoURL(imageUrl);
+        }
+      }
+
+      // Update all user's listings in swapListings collection
+      if (uid != null) {
+        final listingsQuery = await _db
+            .collection('swapListings')
+            .where('userId', isEqualTo: uid)
+            .get();
+
+        final batch = _db.batch();
+        for (final doc in listingsQuery.docs) {
+          batch.update(doc.reference, {
+            'name': newName,
+            'imageUrl': imageUrl,
+          });
+        }
+        await batch.commit();
+      } else {
+        // Fallback for single document
+        await _db.collection('swapListings').doc(widget.swap.id).update({
+          'name': newName,
+          'imageUrl': imageUrl,
+        });
+      }
 
       await _db
           .collection('swapListings')
