@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Add%20skill/offer%20skill.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class NoSkillDialog extends StatelessWidget {
   const NoSkillDialog({Key? key}) : super(key: key);
@@ -35,10 +36,9 @@ class NoSkillDialog extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // ── Title ──
-            const Text(
-              'No skill Available',
-              style: TextStyle(
+            Text(
+              'no_skill_available'.tr(),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -46,11 +46,10 @@ class NoSkillDialog extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            // ── Subtitle ──
-            const Text(
-              'You need to create a skill before swap.',
+            Text(
+              'need_to_create_skill'.tr(),
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white54,
                 fontSize: 13,
                 height: 1.5,
@@ -72,9 +71,9 @@ class NoSkillDialog extends StatelessWidget {
                           borderRadius: BorderRadius.circular(30)),
                       padding: const EdgeInsets.symmetric(vertical: 13),
                     ),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(color: Colors.white54, fontSize: 14),
+                    child: Text(
+                      'cancel'.tr(),
+                      style: const TextStyle(color: Colors.white54, fontSize: 14),
                     ),
                   ),
                 ),
@@ -106,9 +105,9 @@ class NoSkillDialog extends StatelessWidget {
                         shape: const StadiumBorder(),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
-                      child: const Text(
-                        'Create skill',
-                        style: TextStyle(
+                      child: Text(
+                        'create_skill'.tr(),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,

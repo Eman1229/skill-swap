@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:skill_swap/firebase_options.dart';
 import 'package:skill_swap/screens/splash/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:skill_swap/screens/Setting/app_settings.dart';
 
 void main() async {
   try {
@@ -39,10 +40,24 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(scaffoldBackgroundColor: const Color(0xFF0F172A)),
-      home: SplashScreen(),
+    final settings = AppSettings();
+    return ValueListenableBuilder<String>(
+      valueListenable: settings.currentLanguage,
+      builder: (context, language, _) {
+        final isRtl = language == 'Arabic' || language == 'Urdu';
+        return MaterialApp(
+          key: ValueKey(language), // Rebuild app to apply new language & text direction immediately
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(scaffoldBackgroundColor: const Color(0xFF0F172A)),
+          builder: (context, child) {
+            return Directionality(
+              textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+              child: child!,
+            );
+          },
+          home: SplashScreen(),
+        );
+      },
     );
   }
 }

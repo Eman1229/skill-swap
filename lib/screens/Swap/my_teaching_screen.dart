@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/screens/Swap/skill_detail_screen.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class MyTeachingScreen extends StatefulWidget {
   const MyTeachingScreen({Key? key}) : super(key: key);
@@ -29,8 +30,8 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('My Teaching',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text('my_teaching'.tr(),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
       body: uid == null

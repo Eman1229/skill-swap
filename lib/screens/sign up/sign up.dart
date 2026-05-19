@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/SkillsChoose/Selecting%20Skills.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -28,7 +29,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Account Created Successfully")),
+        SnackBar(content: Text("account_created".tr())),
       );
 
       Navigator.pushReplacement(
@@ -76,9 +77,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           children: [
                             UiHelper.CustomImage(imgurl: "hi.png"),
                             const SizedBox(height: 10),
-                            const Text(
-                              "Welcome\nBack!",
-                              style: TextStyle(
+                            Text(
+                              "welcome_back".tr(),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -122,17 +123,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       child: Column(
                         children: [
                           const SizedBox(height: 10),
-                          const Text(
-                            "Sign up",
-                            style: TextStyle(
+                          Text(
+                            "sign_up".tr(),
+                            style: const TextStyle(
                               color: Color(0xFF00C2FF),
                               fontSize: 30,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const Text(
-                            "Create an account here",
-                            style: TextStyle(
+                          Text(
+                            "create_account_here".tr(),
+                            style: const TextStyle(
                               color: Colors.white54,
                               fontSize: 14,
                             ),
@@ -142,7 +143,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           // TextFields
                           UiHelper.CustomTextField(
                             controller: _nameController,
-                            text: "Name",
+                            text: "name".tr(),
                             tohide: false,
                             textinputtype: TextInputType.name,
                             prefixIcon: Icons.person_outline,
@@ -150,7 +151,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           const SizedBox(height: 20),
                           UiHelper.CustomTextField(
                             controller: _phoneController,
-                            text: "Phone Number",
+                            text: "phone_number".tr(),
                             tohide: false,
                             textinputtype: TextInputType.phone,
                             prefixIcon: Icons.phone_android_outlined,
@@ -158,7 +159,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           const SizedBox(height: 20),
                           UiHelper.CustomTextField(
                             controller: _emailController,
-                            text: "Mail",
+                            text: "mail".tr(),
                             tohide: false,
                             textinputtype: TextInputType.emailAddress,
                             prefixIcon: Icons.mail_outline,
@@ -166,7 +167,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           const SizedBox(height: 20),
                           UiHelper.CustomTextField(
                             controller: _passwordController,
-                            text: "Passwords",
+                            text: "passwords".tr(),
                             tohide: _isPasswordHidden,
                             textinputtype: TextInputType.text,
                             prefixIcon: Icons.lock_outline,
@@ -200,9 +201,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                               ),
-                              child: const Text(
-                                "Proceed",
-                                style: TextStyle(
+                              child: Text(
+                                "proceed".tr(),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -217,15 +218,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                "Already a member? ",
-                                style: TextStyle(color: Colors.white70),
+                              Text(
+                                "already_member".tr(),
+                                style: const TextStyle(color: Colors.white70),
                               ),
                               GestureDetector(
                                 onTap: () => Navigator.pop(context),
-                                child: const Text(
-                                  "Sign in",
-                                  style: TextStyle(
+                                child: Text(
+                                  "sign_in".tr(),
+                                  style: const TextStyle(
                                     color: Color(0xFF00C2FF),
                                     fontWeight: FontWeight.bold,
                                   ),

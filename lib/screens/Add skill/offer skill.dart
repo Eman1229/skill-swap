@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // ✅ Supabase instead of Firebase Storage
 import 'dart:io';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class OfferSkillScreen extends StatefulWidget {
   const OfferSkillScreen({super.key});
@@ -233,7 +234,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel('Title', required: true),
+                      _buildLabel('title_label'.tr(), required: true),
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: _titleController,
@@ -244,7 +245,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      _buildLabel('Category', required: true),
+                      _buildLabel('category_label'.tr(), required: true),
                       const SizedBox(height: 8),
                       _buildDropdown(
                         hint: 'Select a category',
@@ -257,7 +258,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      _buildLabel('Experience level', required: true),
+                      _buildLabel('experience_level'.tr(), required: true),
                       const SizedBox(height: 8),
                       _buildDropdown(
                         hint: 'Your experience level',
@@ -270,7 +271,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      _buildLabel("I'm looking for", required: true),
+                      _buildLabel('looking_for'.tr(), required: true),
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: _lookingForController,
@@ -281,12 +282,12 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      _buildLabel('Portfolio', required: true),
+                      _buildLabel('portfolio'.tr(), required: true),
                       const SizedBox(height: 8),
                       _buildPortfolioField(),
                       const SizedBox(height: 20),
 
-                      _buildLabel('Description'),
+                      _buildLabel('description_label'.tr()),
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: _descriptionController,
@@ -478,8 +479,8 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             ),
           ),
           const SizedBox(width: 14),
-          const Text('Offer New Skill',
-              style: TextStyle(
+          Text('offer_new_skill'.tr(),
+              style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold)),
@@ -615,8 +616,8 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                   borderRadius: BorderRadius.circular(30)),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            child: const Text('Cancel',
-                style: TextStyle(color: Colors.white70, fontSize: 14)),
+            child: Text('cancel'.tr(),
+                style: const TextStyle(color: Colors.white70, fontSize: 14)),
           ),
         ),
         const SizedBox(width: 16),
@@ -644,8 +645,8 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                   height: 20,
                   child: CircularProgressIndicator(
                       color: Colors.white, strokeWidth: 2))
-                  : const Text('Add Skill',
-                  style: TextStyle(
+                  : Text('add_skill'.tr(),
+                  style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 14)),

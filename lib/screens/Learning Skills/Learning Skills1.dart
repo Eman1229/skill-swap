@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
-import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class LearningSkill1 extends StatefulWidget {
   const LearningSkill1({Key? key}) : super(key: key);
@@ -31,10 +31,10 @@ class _LearningSkill1State extends State<LearningSkill1> {
           children: [
             const SizedBox(height: 20),
             // Title
-            const Text(
-              "What do you want to \nLearn?",
+            Text(
+              "choose_learn_skills".tr(),
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Color(0xFF00C2FF), // Sky Blue
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -46,9 +46,9 @@ class _LearningSkill1State extends State<LearningSkill1> {
             TextField(
               controller: _skillController,
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                hintText: "Skill Name",
-                hintStyle: TextStyle(color: Colors.grey),
+              decoration: InputDecoration(
+                hintText: "title_label".tr(),
+                hintStyle: const TextStyle(color: Colors.grey),
                 prefixIcon: Icon(
                   Icons.lightbulb_outline,
                   color: Colors.grey,
@@ -82,9 +82,9 @@ class _LearningSkill1State extends State<LearningSkill1> {
                     borderRadius: BorderRadius.circular(15),
                   ),
                 ),
-                child: const Text(
-                  "Next",
-                  style: TextStyle(
+                child: Text(
+                  "next".tr(),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

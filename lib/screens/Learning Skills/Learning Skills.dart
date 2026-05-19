@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Learning%20Skills/Learning%20Skills1.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class LearningSkillsScreen extends StatefulWidget {
   const LearningSkillsScreen({Key? key}) : super(key: key);
@@ -47,10 +48,10 @@ class _LearningSkillsScreenState extends State<LearningSkillsScreen> {
           child: Column(
             children: [
               const SizedBox(height: 77, width: 335),
-              const Text(
-                "Select a skill you're\ninterested to learn.", // Updated text
+              Text(
+                "choose_learn_skills".tr(), // Updated text
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Color(0XFF00C2FF),
                   fontSize: 30,
                   fontWeight: FontWeight.w600,
@@ -154,9 +155,9 @@ class _LearningSkillsScreenState extends State<LearningSkillsScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    "Next",
-                    style: TextStyle(
+                  child: Text(
+                    "next".tr(),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

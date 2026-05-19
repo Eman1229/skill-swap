@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Swap/my_learning_screen.dart';
 import 'package:skill_swap/screens/Swap/my_teaching_screen.dart';
 import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 
 class MySwapsScreen extends StatefulWidget {
@@ -30,12 +31,12 @@ class _MySwapsScreenState extends State<MySwapsScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('My Swaps',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text('my_swaps_title'.tr(),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
       body: uid == null
-          ? const Center(child: Text('Please login', style: TextStyle(color: Colors.white)))
+          ? Center(child: Text('please_login'.tr(), style: const TextStyle(color: Colors.white)))
           : StreamBuilder<QuerySnapshot>(
               stream: _db
                   .collection('swaps')
@@ -64,7 +65,7 @@ class _MySwapsScreenState extends State<MySwapsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _DashboardCard(
-            title: 'My Learning',
+            title: 'my_learning'.tr(),
             icon: Icons.wifi_tethering_rounded,
             color: const Color(0xFF00C2FF),
             onTap: () => Navigator.push(
@@ -84,7 +85,7 @@ class _MySwapsScreenState extends State<MySwapsScreen> {
           ),
           const SizedBox(height: 20),
           _DashboardCard(
-            title: 'My Teaching',
+            title: 'my_teaching'.tr(),
             icon: Icons.menu_book_rounded,
             color: const Color(0xFFA855F7),
             onTap: () => Navigator.push(
@@ -94,7 +95,7 @@ class _MySwapsScreenState extends State<MySwapsScreen> {
           ),
           const SizedBox(height: 40),
           _PrimaryBtn(
-            label: 'Swap More',
+            label: 'swap_more'.tr(),
             onTap: () {
               Navigator.pushAndRemoveUntil(
                 context,
@@ -148,19 +149,19 @@ class _MySwapsScreenState extends State<MySwapsScreen> {
               ],
             ),
             const SizedBox(height: 32),
-            const Text(
-              'No active swaps yet',
-              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            Text(
+              'no_active_swaps'.tr(),
+              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Start your journey of knowledge exchange by finding a mentor or offering your skills.',
+            Text(
+              'start_journey'.tr(),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 14, height: 1.5),
+              style: const TextStyle(color: Colors.white54, fontSize: 14, height: 1.5),
             ),
             const SizedBox(height: 40),
             _PrimaryBtn(
-              label: 'Explore Now!',
+              label: 'explore_now'.tr(),
               onTap: () {
                 Navigator.pushAndRemoveUntil(
                   context,

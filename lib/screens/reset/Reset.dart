@@ -6,6 +6,7 @@ import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/reset/Reset Password.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 //  STEP 1 — Email Entry Screen
 // ─────────────────────────────────────────────────────────────────────────────
@@ -151,19 +152,19 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      const Text(
-                        'Forgot Password?',
-                        style: TextStyle(
+                      Text(
+                        'forgot_password_title'.tr(),
+                        style: const TextStyle(
                           color: Color(0xFF00C2FF),
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 10),
-                      const Text(
-                        'Enter your registered email address.\nWe will send a 6-digit OTP to verify your identity.',
+                      Text(
+                        'enter_email_otp'.tr(),
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 14,
                           height: 1.5,
@@ -172,7 +173,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                       const SizedBox(height: 36),
                       UiHelper.CustomTextField(
                         controller: emailController,
-                        text: 'Enter your email',
+                        text: 'enter_your_email'.tr(),
                         tohide: false,
                         textinputtype: TextInputType.emailAddress,
                         prefixIcon: Icons.mail_outline,
@@ -200,9 +201,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                               strokeWidth: 2.5,
                             ),
                           )
-                              : const Text(
-                            'Send OTP',
-                            style: TextStyle(
+                              : Text(
+                            'send_otp'.tr(),
+                            style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -472,9 +473,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      const Text(
-                        'Verify OTP',
-                        style: TextStyle(
+                      Text(
+                        'verify_otp_title'.tr(),
+                        style: const TextStyle(
                           color: Color(0xFF00C2FF),
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
@@ -482,7 +483,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Enter the 6-digit OTP sent to\n${widget.email}',
+                        '${'enter_otp_sent'.tr()}\n${widget.email}',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white54,
@@ -511,7 +512,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              _otpVisible ? 'Hide OTP' : 'Show OTP',
+                              _otpVisible ? 'hide_otp'.tr() : 'show_otp'.tr(),
                               style: const TextStyle(
                                   color: Colors.white38, fontSize: 13),
                             ),
@@ -541,9 +542,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               strokeWidth: 2.5,
                             ),
                           )
-                              : const Text(
-                            'Verify OTP',
-                            style: TextStyle(
+                              : Text(
+                            'verify_otp'.tr(),
+                            style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -555,16 +556,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
-                            "Didn't receive OTP?  ",
-                            style:
+                          Text(
+                            "didnt_receive_otp".tr(),
+                            style: const
                             TextStyle(color: Colors.white54, fontSize: 14),
                           ),
                           GestureDetector(
                             onTap: loading ? null : resendOtp,
-                            child: const Text(
-                              'Resend',
-                              style: TextStyle(
+                            child: Text(
+                              'resend'.tr(),
+                              style: const TextStyle(
                                 color: Color(0xFF00C2FF),
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
@@ -14,9 +15,9 @@ class NotificationsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          'Notifications',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          'notifications'.tr(),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         leading: IconButton(
@@ -91,15 +92,15 @@ class NotificationsScreen extends StatelessWidget {
             child: Icon(Icons.notifications_off_outlined, color: const Color(0xFF00C2FF).withAlpha(128), size: 48),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'All caught up!',
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            'all_caught_up'.tr(),
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'When you get notifications, they\'ll show up here.',
+          Text(
+            'notifications_will_show'.tr(),
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white38, fontSize: 14),
+            style: const TextStyle(color: Colors.white38, fontSize: 14),
           ),
         ],
       ),

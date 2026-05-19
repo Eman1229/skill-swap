@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 import '../Add skill/offer skill.dart';
 
@@ -170,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Good $_greeting, $_userName',
+                          '${'Good $_greeting'.tr()}, $_userName',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 17,
@@ -179,9 +179,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
-                        const Text(
-                          'Keep growing every day!',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        Text(
+                          'keep_growing'.tr(),
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ],
                     ),
@@ -258,20 +258,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: const Color(0xFF00C2FF).withOpacity(0.2),
                         ),
                       ),
-                      child: const TextField(
-                        style: TextStyle(color: Colors.white, fontSize: 14),
+                      child: TextField(
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
                         decoration: InputDecoration(
-                          hintText: 'Search skills or topic...',
-                          hintStyle: TextStyle(
+                          hintText: 'search_skills'.tr(),
+                          hintStyle: const TextStyle(
                             color: Colors.white38,
                             fontSize: 14,
                           ),
-                          suffixIcon: Icon(
+                          suffixIcon: const Icon(
                             Icons.search,
                             color: Color(0xFF00C2FF),
                           ),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
+                          contentPadding: const EdgeInsets.symmetric(
                             horizontal: 18,
                             vertical: 14,
                           ),
@@ -342,7 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 26),
 
                     // ── Featured Swaps — Empty State ─────────────────
-                    const _SectionTitle(title: 'Featured Swaps'),
+                    _SectionTitle(title: 'featured_swaps'.tr()),
                     const SizedBox(height: 14),
 
                     Container(
@@ -388,19 +388,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'No Listings Found',
-                            style: TextStyle(
+                          Text(
+                            'no_listings_found'.tr(),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Try adjusting your filters or be the\nfirst to start a new swap!',
+                          Text(
+                            'adjust_filters'.tr(),
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.white38,
                               fontSize: 13,
                               height: 1.6,
@@ -430,9 +430,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   vertical: 14,
                                 ),
                               ),
-                              child: const Text(
-                                'Add a Listing',
-                                style: TextStyle(
+                              child: Text(
+                                'add_listing'.tr(),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
@@ -447,7 +447,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 30),
 
                     // ── Active Swap Sessions — Empty State ───────────
-                    const _SectionTitle(title: 'Active Swap Sessions'),
+                    _SectionTitle(title: 'active_swaps'.tr()),
                     const SizedBox(height: 14),
 
                     Container(
@@ -481,9 +481,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Nothing live yet',
-                            style: TextStyle(
+                          Text(
+                            'nothing_live'.tr(),
+                            style: const TextStyle(
                               color: Colors.white38,
                               fontSize: 13,
                             ),
@@ -534,14 +534,14 @@ class _HomeScreenState extends State<HomeScreen> {
               _NavItem(
                 icon: Icons.home_outlined,
                 activeIcon: Icons.home_rounded,
-                label: 'Home',
+                label: 'home'.tr(),
                 selected: _selectedIndex == 0,
                 onTap: () => setState(() => _selectedIndex = 0),
               ),
               _NavItem(
                 icon: Icons.chat_bubble_outline_rounded,
                 activeIcon: Icons.chat_bubble_rounded,
-                label: 'Chat',
+                label: 'chat'.tr(),
                 selected: _selectedIndex == 1,
                 onTap: () => setState(() => _selectedIndex = 1),
               ),
@@ -549,14 +549,14 @@ class _HomeScreenState extends State<HomeScreen> {
               _NavItem(
                 icon: Icons.swap_vert_rounded,
                 activeIcon: Icons.swap_vert_rounded,
-                label: 'Swaps',
+                label: 'swaps'.tr(),
                 selected: _selectedIndex == 2,
                 onTap: () => setState(() => _selectedIndex = 2),
               ),
               _NavItem(
                 icon: Icons.settings_outlined,
                 activeIcon: Icons.settings_rounded,
-                label: 'Settings',
+                label: 'settings'.tr(),
                 selected: _selectedIndex == 3,
                 onTap: () => setState(() => _selectedIndex = 3),
               ),

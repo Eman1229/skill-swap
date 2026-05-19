@@ -7,6 +7,7 @@ import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/screens/reset/Reset.dart';
 import 'package:skill_swap/screens/sign%20up/sign%20up.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -245,18 +246,18 @@ class _SignInScreenState extends State<SignInScreen> {
                         left: 20,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text(
-                              "Hi!",
-                              style: TextStyle(
+                              "hi".tr(),
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             Text(
-                              "Welcome\nBack!",
-                              style: TextStyle(
+                              "welcome_back".tr(),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -297,10 +298,10 @@ class _SignInScreenState extends State<SignInScreen> {
                         children: [
 
                           // ── TITLE ──
-                          const Center(
+                          Center(
                             child: Text(
-                              "Sign in",
-                              style: TextStyle(
+                              "sign_in".tr(),
+                              style: const TextStyle(
                                 color: Color(0xFF00C2FF),
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
@@ -313,7 +314,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           // ── EMAIL FIELD ──
                           UiHelper.CustomTextField(
                             controller: _emailController,
-                            text: "Email",
+                            text: "email".tr(),
                             tohide: false,
                             textinputtype: TextInputType.emailAddress,
                             prefixIcon: Icons.mail_outline,
@@ -360,7 +361,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           // ── PASSWORD FIELD ──
                           UiHelper.CustomTextField(
                             controller: _passwordController,
-                            text: "Password",
+                            text: "password".tr(),
                             tohide: !isPasswordVisible,
                             textinputtype: TextInputType.text,
                             prefixIcon: Icons.lock_outline,
@@ -457,9 +458,9 @@ class _SignInScreenState extends State<SignInScreen> {
                                 color: Colors.white,
                                 strokeWidth: 2,
                               )
-                                  : const Text(
-                                "Proceed",
-                                style: TextStyle(
+                                  : Text(
+                                "proceed".tr(),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -483,16 +484,16 @@ class _SignInScreenState extends State<SignInScreen> {
                                     ),
                                   );
                                 },
-                                child: const Text(
-                                  "Forgot Password?",
-                                  style: TextStyle(color: Color(0xFF00C2FF)),
+                                child: Text(
+                                  "forgot_password".tr(),
+                                  style: const TextStyle(color: Color(0xFF00C2FF)),
                                 ),
                               ),
                               Row(
                                 children: [
-                                  const Text(
-                                    "New member? ",
-                                    style: TextStyle(color: Colors.white70),
+                                  Text(
+                                    "new_member".tr(),
+                                    style: const TextStyle(color: Colors.white70),
                                   ),
                                   GestureDetector(
                                     onTap: () {
@@ -503,9 +504,9 @@ class _SignInScreenState extends State<SignInScreen> {
                                         ),
                                       );
                                     },
-                                    child: const Text(
-                                      "Sign up",
-                                      style: TextStyle(
+                                    child: Text(
+                                      "sign_up".tr(),
+                                      style: const TextStyle(
                                         color: Color(0xFF00C2FF),
                                         fontWeight: FontWeight.bold,
                                       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Learning%20Skills/Learning%20Skills.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class TeachOthersScreen extends StatefulWidget {
   const TeachOthersScreen({Key? key}) : super(key: key);
@@ -30,10 +31,10 @@ class _TeachOthersScreenState extends State<TeachOthersScreen> {
           children: [
             const SizedBox(height: 20),
             // Title
-            const Text(
-              "What Can You Teach\nOthers?",
+            Text(
+              "choose_teach_skills".tr(),
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Color(0xFF00C2FF), // Sky Blue
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -46,7 +47,7 @@ class _TeachOthersScreenState extends State<TeachOthersScreen> {
               controller: _skillController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: "Skill Name",
+                hintText: "title_label".tr(),
                 hintStyle: const TextStyle(color: Colors.grey),
                 prefixIcon: const Icon(
                   Icons.lightbulb_outline,
@@ -83,9 +84,9 @@ class _TeachOthersScreenState extends State<TeachOthersScreen> {
                     borderRadius: BorderRadius.circular(15),
                   ),
                 ),
-                child: const Text(
-                  "Next",
-                  style: TextStyle(
+                child: Text(
+                  "next".tr(),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

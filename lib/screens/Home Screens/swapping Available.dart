@@ -185,15 +185,6 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     super.dispose();
   }
 
-  Future<void> _signOut() async {
-    await _auth.signOut();
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const SignInScreen()),
-    );
-  }
-
   Future<void> _navigateToMyProfile() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
@@ -321,7 +312,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       case 2:
         return const MySwapsScreen();
       case 3:
-        return const SettingsScreen();
+        return SettingsScreen();
       case 0:
       default:
         return SafeArea(

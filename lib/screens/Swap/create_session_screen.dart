@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class CreateSessionScreen extends StatefulWidget {
   final SwapModel swap;
@@ -65,7 +66,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         final messenger = ScaffoldMessenger.of(context);
         nav.pop();
         messenger.showSnackBar(
-          const SnackBar(content: Text('Session invite sent!'), backgroundColor: Color(0xFF00C2FF)),
+          SnackBar(content: Text('session_invite_sent'.tr()), backgroundColor: const Color(0xFF00C2FF)),
         );
       }
     } catch (e) {
@@ -86,7 +87,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Create Session', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('create_session'.tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -96,21 +97,21 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Session Title', style: TextStyle(color: Colors.white70, fontSize: 14)),
+              Text('session_title'.tr(), style: const TextStyle(color: Colors.white70, fontSize: 14)),
               const SizedBox(height: 8),
-              _buildTextField(_titleController, 'e.g. Introduction to Figma', Icons.title_rounded),
+              _buildTextField(_titleController, 'session_title_hint'.tr(), Icons.title_rounded),
               const SizedBox(height: 24),
-              const Text('Duration', style: TextStyle(color: Colors.white70, fontSize: 14)),
+              Text('duration'.tr(), style: const TextStyle(color: Colors.white70, fontSize: 14)),
               const SizedBox(height: 8),
-              _buildTextField(_durationController, 'e.g. 1 hour', Icons.timer_outlined),
+              _buildTextField(_durationController, 'duration_hint'.tr(), Icons.timer_outlined),
               const SizedBox(height: 24),
-              const Text('Date & Time', style: TextStyle(color: Colors.white70, fontSize: 14)),
+              Text('date_and_time'.tr(), style: const TextStyle(color: Colors.white70, fontSize: 14)),
               const SizedBox(height: 8),
               _buildDateTimePicker(),
               const SizedBox(height: 48),
               _loading 
                 ? const Center(child: CircularProgressIndicator(color: Color(0xFF00C2FF)))
-                : _PrimaryBtn(label: 'Send Invitation', onTap: _createSession),
+                : _PrimaryBtn(label: 'send_invitation'.tr(), onTap: _createSession),
             ],
           ),
         ),
@@ -135,7 +136,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
-        validator: (v) => v == null || v.isEmpty ? 'Required field' : null,
+        validator: (v) => v == null || v.isEmpty ? 'required_field'.tr() : null,
       ),
     );
   }

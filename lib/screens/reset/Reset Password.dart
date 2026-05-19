@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class NewPasswordScreen extends StatefulWidget {
   final String email;
@@ -132,7 +133,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                       ),
                       const SizedBox(height: 28),
                       Text(
-                        isLoggedIn ? 'Create New Password' : 'Identity Verified',
+                        isLoggedIn ? 'create_new_password'.tr() : 'identity_verified'.tr(),
                         style: const TextStyle(
                           color: Color(0xFF00C2FF),
                           fontSize: 28,
@@ -142,8 +143,8 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                       const SizedBox(height: 10),
                       Text(
                         isLoggedIn
-                            ? 'Set your new secure password below.'
-                            : 'OTP verified. For maximum security, we will now send a final reset link to your email.',
+                            ? 'set_new_password'.tr()
+                            : 'otp_verified'.tr(),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white54,
@@ -156,7 +157,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                       if (isLoggedIn) ...[
                         UiHelper.CustomTextField(
                           controller: passwordController,
-                          text: 'New Password',
+                          text: 'new_password'.tr(),
                           tohide: !showPassword,
                           textinputtype: TextInputType.text,
                           prefixIcon: Icons.lock_outline,
@@ -172,7 +173,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                         const SizedBox(height: 22),
                         UiHelper.CustomTextField(
                           controller: confirmController,
-                          text: 'Confirm Password',
+                          text: 'confirm_password'.tr(),
                           tohide: !showConfirm,
                           textinputtype: TextInputType.text,
                           prefixIcon: Icons.lock_outline,
@@ -210,7 +211,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                             ),
                           )
                               : Text(
-                            isLoggedIn ? 'Update Password' : 'Send Security Link',
+                            isLoggedIn ? 'update_password'.tr() : 'send_security_link'.tr(),
                             style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,

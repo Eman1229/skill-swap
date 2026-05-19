@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/models/session_model.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class SessionDetailScreen extends StatelessWidget {
   final SessionModel session;
@@ -37,7 +38,7 @@ class SessionDetailScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Session Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('session_details'.tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -87,17 +88,17 @@ class SessionDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  _DetailRow(icon: Icons.event_rounded, label: 'Date', value: dateStr),
+                  _DetailRow(icon: Icons.event_rounded, label: 'date'.tr(), value: dateStr),
                   const SizedBox(height: 20),
-                  _DetailRow(icon: Icons.access_time_rounded, label: 'Time', value: timeStr),
+                  _DetailRow(icon: Icons.access_time_rounded, label: 'time'.tr(), value: timeStr),
                   const SizedBox(height: 20),
-                  _DetailRow(icon: Icons.timer_outlined, label: 'Duration', value: session.duration),
+                  _DetailRow(icon: Icons.timer_outlined, label: 'duration'.tr(), value: session.duration),
                 ],
               ),
             ),
             const SizedBox(height: 40),
             if (session.status == 'accepted')
-              _PrimaryBtn(label: 'Enter Meeting Room', onTap: () {}),
+              _PrimaryBtn(label: 'enter_meeting_room'.tr(), onTap: () {}),
             const SizedBox(height: 16),
             OutlinedButton(
               onPressed: () => Navigator.pop(context),
@@ -106,7 +107,7 @@ class SessionDetailScreen extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                 minimumSize: const Size(double.infinity, 56),
               ),
-              child: const Text('Go Back', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+              child: Text('go_back'.tr(), style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
             ),
           ],
         ),

@@ -3,12 +3,20 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
-import 'package:skill_swap/screens/Profile/profile%20screen.dart';
 import 'package:skill_swap/screens/Profile/edit_profile_screen.dart';
 import 'package:skill_swap/screens/reset/Reset.dart';
+import 'package:skill_swap/screens/Setting/app_settings.dart';
+import 'package:skill_swap/screens/Setting/notifications_settings_screen.dart';
+import 'package:skill_swap/screens/Setting/privacy_security_screen.dart';
+import 'package:skill_swap/screens/Setting/language_settings_screen.dart';
+import 'package:skill_swap/screens/Setting/help_center_screen.dart';
+import 'package:skill_swap/screens/Setting/about_screen.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+  SettingsScreen({super.key});
+
+  final AppSettings _settings = AppSettings();
 
   @override
   Widget build(BuildContext context) {
@@ -17,17 +25,17 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Settings',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('settings'.tr(),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _buildSection('Account'),
+          _buildSection('account'.tr()),
           _buildSettingTile(
             icon: Icons.person_outline_rounded,
-            title: 'Profile Information',
+            title: 'profile_info'.tr(),
             onTap: () async {
               final uid = FirebaseAuth.instance.currentUser?.uid;
               if (uid == null) return;
@@ -45,29 +53,36 @@ class SettingsScreen extends StatelessWidget {
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('No skill listing found.')),
+                    SnackBar(content: Text('No skill listing found.'.tr())),
                   );
                 }
               }
             },
           ),
-          _buildSettingTile(
-            icon: Icons.notifications_none_rounded,
-            title: 'Notifications',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Notifications settings coming soon')),
+          ValueListenableBuilder<bool>(
+            valueListenable: _settings.notificationsEnabled,
+            builder: (context, enabled, _) {
+              return _buildSettingTile(
+                icon: Icons.notifications_none_rounded,
+                title: 'notifications'.tr(),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NotificationsSettingsScreen()),
+                  );
+                },
+                trailing: Switch(
+                  value: enabled,
+                  onChanged: (v) => _settings.setNotificationsEnabled(v),
+                  activeTrackColor: const Color(0xFF00C2FF),
+                  activeColor: Colors.white,
+                ),
               );
             },
-            trailing: Switch(
-              value: true,
-              onChanged: (v) {},
-              activeTrackColor: const Color(0xFF00C2FF),
-            ),
           ),
           _buildSettingTile(
             icon: Icons.lock_outline_rounded,
-            title: 'Change Password',
+            title: 'change_password'.tr(),
             onTap: () {
               final email = FirebaseAuth.instance.currentUser?.email;
               Navigator.push(
@@ -80,52 +95,69 @@ class SettingsScreen extends StatelessWidget {
           ),
           _buildSettingTile(
             icon: Icons.security_rounded,
-            title: 'Privacy & Security',
+            title: 'privacy_security'.tr(),
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Privacy settings coming soon')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacySecurityScreen()),
               );
             },
           ),
           const SizedBox(height: 24),
-          _buildSection('App Preferences'),
-          _buildSettingTile(
-            icon: Icons.language_rounded,
-            title: 'Language',
-            subtitle: 'English',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Language settings coming soon')),
+          _buildSection('app_preferences'.tr()),
+          ValueListenableBuilder<String>(
+            valueListenable: _settings.currentLanguage,
+            builder: (context, currentLang, _) {
+              return _buildSettingTile(
+                icon: Icons.language_rounded,
+                title: 'language'.tr(),
+                subtitle: currentLang,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LanguageSettingsScreen()),
+                  );
+                },
               );
             },
           ),
-          _buildSettingTile(
-            icon: Icons.dark_mode_outlined,
-            title: 'Dark Mode',
-            onTap: () {},
-            trailing: Switch(
-              value: true,
-              onChanged: (v) {},
-              activeTrackColor: const Color(0xFF00C2FF),
-            ),
+          ValueListenableBuilder<bool>(
+            valueListenable: _settings.isDarkMode,
+            builder: (context, isDark, _) {
+              return _buildSettingTile(
+                icon: Icons.dark_mode_outlined,
+                title: 'dark_mode'.tr(),
+                onTap: () {
+                  _settings.isDarkMode.value = !isDark;
+                },
+                trailing: Switch(
+                  value: isDark,
+                  onChanged: (v) => _settings.isDarkMode.value = v,
+                  activeTrackColor: const Color(0xFF00C2FF),
+                  activeColor: Colors.white,
+                ),
+              );
+            },
           ),
           const SizedBox(height: 24),
-          _buildSection('Support'),
+          _buildSection('support'.tr()),
           _buildSettingTile(
             icon: Icons.help_outline_rounded,
-            title: 'Help Center',
+            title: 'help_center'.tr(),
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Help Center coming soon')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HelpCenterScreen()),
               );
             },
           ),
           _buildSettingTile(
             icon: Icons.info_outline_rounded,
-            title: 'About Skill Swap',
+            title: 'about_skill_swap'.tr(),
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Skill Swap v1.0.0')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AboutScreen()),
               );
             },
           ),
@@ -206,9 +238,9 @@ class _LogoutButton extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
-        child: const Text(
-          'Log Out',
-          style: TextStyle(color: Color(0xFFFF3B3B), fontWeight: FontWeight.bold, fontSize: 15),
+        child: Text(
+          'log_out'.tr(),
+          style: const TextStyle(color: Color(0xFFFF3B3B), fontWeight: FontWeight.bold, fontSize: 15),
         ),
       ),
     );

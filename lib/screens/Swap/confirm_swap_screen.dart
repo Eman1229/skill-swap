@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 
 class ConfirmSwapScreen extends StatelessWidget {
@@ -35,9 +36,9 @@ class ConfirmSwapScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  const Text(
-                    'Confirm Swap',
-                    style: TextStyle(
+                  Text(
+                    'confirm_swap'.tr(),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -54,19 +55,19 @@ class ConfirmSwapScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 28),
               child: Column(
                 children: [
-                  const Text(
-                    'Swap with this person?',
-                    style: TextStyle(
+                  Text(
+                    'swap_with_person'.tr(),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'Review the details before finalizing\nyour swap request.',
+                  Text(
+                    'review_details'.tr(),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white38,
                       fontSize: 13,
                       height: 1.6,
@@ -127,7 +128,7 @@ class ConfirmSwapScreen extends StatelessWidget {
                               Row(
                                 children: [
                                   _InfoChip(
-                                    label: '${swap.reviews} Swaps',
+                                    label: '${swap.reviews} ${'swaps_count'.tr()}',
                                     color: const Color(0xFF00C2FF),
                                   ),
                                   const SizedBox(width: 8),
@@ -162,7 +163,7 @@ class ConfirmSwapScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _SwapDetailItem(
-                            label: 'They offer',
+                            label: 'they_offer'.tr(),
                             value: swap.offering,
                             color: const Color(0xFF00C2FF),
                           ),
@@ -182,7 +183,7 @@ class ConfirmSwapScreen extends StatelessWidget {
                         ),
                         Expanded(
                           child: _SwapDetailItem(
-                            label: 'They want',
+                            label: 'they_want'.tr(),
                             value: swap.wanting,
                             color: const Color(0xFF6B8AFF),
                             alignRight: true,
@@ -215,9 +216,9 @@ class ConfirmSwapScreen extends StatelessWidget {
                         backgroundColor:
                         const Color(0xFF1E293B).withValues(alpha: 0.5),
                       ),
-                      child: const Text(
-                        'Message',
-                        style: TextStyle(
+                      child: Text(
+                        'message'.tr(),
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -260,7 +261,7 @@ class ConfirmSwapScreen extends StatelessWidget {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content:
-                              Text('Swap request sent to ${swap.name}!'),
+                              Text('${'swap_request_sent'.tr()} ${swap.name}!'),
                               backgroundColor: const Color(0xFF00C2FF),
                               behavior: SnackBarBehavior.floating,
                             ),
@@ -273,9 +274,9 @@ class ConfirmSwapScreen extends StatelessWidget {
                           shape: const StadiumBorder(),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text(
-                          'Confirm Swap',
-                          style: TextStyle(
+                        child: Text(
+                          'confirm_swap'.tr(),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
