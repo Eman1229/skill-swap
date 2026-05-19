@@ -117,29 +117,37 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        margin: EdgeInsets.only(bottom: 10),
-        padding: EdgeInsets.all(16),
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withAlpha(13),
-            width: isSelected ? 1.5 : 1.0,
+            color: isSelected ? Theme.of(context).colorScheme.primary : (isDark ? Colors.transparent : Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3)),
+            width: 1.5,
           ),
+          boxShadow: isDark ? null : [
+            BoxShadow(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+              isSelected ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
               color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
               size: 20,
             ),
-            SizedBox(width: 14),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,7 +160,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                       fontSize: 14,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     description,
                     style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12, height: 1.3),
@@ -173,17 +181,25 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      margin: EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withAlpha(13)),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
+        boxShadow: isDark ? null : [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
-          padding: EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(10),
@@ -195,7 +211,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
         ),
         subtitle: Padding(
-          padding: EdgeInsets.only(top: 4),
+          padding: const EdgeInsets.only(top: 4),
           child: Text(
             description,
             style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12, height: 1.3),
@@ -204,8 +220,6 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
         trailing: Switch(
           value: value,
           onChanged: onChanged,
-          activeTrackColor: Theme.of(context).colorScheme.primary,
-          activeColor: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );

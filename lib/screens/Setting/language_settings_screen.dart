@@ -94,12 +94,20 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
   }
 
   Widget _buildSearchBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.15)),
+        boxShadow: isDark ? null : [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: TextField(
         controller: _searchController,
@@ -119,13 +127,14 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         ),
       ),
     );
   }
 
   Widget _buildLanguageTile(Map<String, String> lang, bool isSelected) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -135,25 +144,32 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
           SnackBar(
             content: Text('${'language'.tr()}: ${lang['name']}'),
             backgroundColor: Theme.of(context).colorScheme.primary,
-            duration: Duration(seconds: 1),
+            duration: const Duration(seconds: 1),
           ),
         );
       },
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withAlpha(13),
-            width: isSelected ? 1.5 : 1.0,
+            color: isSelected ? Theme.of(context).colorScheme.primary : (isDark ? Colors.transparent : Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3)),
+            width: 1.5,
           ),
+          boxShadow: isDark ? null : [
+            BoxShadow(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: ListTile(
-          contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
           leading: Text(
             lang['flag']!,
-            style: TextStyle(fontSize: 22),
+            style: const TextStyle(fontSize: 22),
           ),
           title: Text(
             lang['native']!,

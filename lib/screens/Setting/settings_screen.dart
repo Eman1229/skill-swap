@@ -31,8 +31,10 @@ class SettingsScreen extends StatelessWidget {
           style: TextStyle(
             color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
+            fontSize: 18,
           ),
         ),
+        centerTitle: true,
       ),
       body: ListView(
         padding: EdgeInsets.all(20),
@@ -146,7 +148,7 @@ class SettingsScreen extends StatelessWidget {
                 icon: isLight
                     ? Icons.light_mode_rounded
                     : Icons.dark_mode_rounded,
-                title: 'light_mode'.tr(),
+                title: 'Light Mode'.tr(),
                 onTap: () {
                   _settings.setDarkMode(!isLight);
                 },
@@ -214,32 +216,31 @@ class SettingsScreen extends StatelessWidget {
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final tileColor = colorScheme.surface;
     final iconBackground = colorScheme.surfaceContainerHighest;
-    final borderColor = colorScheme.outlineVariant;
     final subtitleColor = colorScheme.onSurfaceVariant;
+
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: tileColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colorScheme.primary.withOpacity(0.1)),
         boxShadow: isDark
             ? null
             : [
                 BoxShadow(
-                  color: colorScheme.primary.withAlpha(20),
-                  blurRadius: 18,
-                  offset: Offset(0, 8),
+                  color: colorScheme.primary.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
       ),
       child: ListTile(
         onTap: onTap,
         leading: Container(
-          padding: EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: iconBackground,
             borderRadius: BorderRadius.circular(10),

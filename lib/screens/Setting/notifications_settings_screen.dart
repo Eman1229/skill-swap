@@ -168,12 +168,22 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
     required Color activeColor,
   }) {
     final bool isEnabled = onChanged != null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      margin: EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(isEnabled ? 1.0 : 0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withAlpha(13)),
+        color: isEnabled
+            ? (isDark ? const Color(0xFF1E293B) : Colors.white)
+            : (isDark ? const Color(0xFF1E293B).withOpacity(0.5) : Colors.white.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
+        boxShadow: isDark ? null : [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),

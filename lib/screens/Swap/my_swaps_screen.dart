@@ -31,7 +31,7 @@ class _MySwapsScreenState extends State<MySwapsScreen> {
           icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('my_swaps_title'.tr(),
+        title: Text('My Swaps',
             style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
@@ -87,7 +87,7 @@ class _MySwapsScreenState extends State<MySwapsScreen> {
           _DashboardCard(
             title: 'my_teaching'.tr(),
             icon: Icons.menu_book_rounded,
-            color: Theme.of(context).colorScheme.secondary,
+            color: const Color(0xFF9D4EDD), // Fixed Purple
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => MyTeachingScreen()),

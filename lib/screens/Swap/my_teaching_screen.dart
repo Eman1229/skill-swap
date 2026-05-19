@@ -108,7 +108,7 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: isSelected ? Theme.of(context).colorScheme.secondary : Theme.of(context).colorScheme.surface,
+                color: isSelected ? const Color(0xFF9D4EDD) : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Center(
@@ -252,7 +252,7 @@ class _TeachingCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1)),
+            border: Border.all(color: const Color(0xFF9D4EDD).withValues(alpha: 0.1)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,11 +290,11 @@ class _TeachingCard extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+                      color: const Color(0xFF9D4EDD).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(swap.status.toUpperCase(),
-                        style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                        style: const TextStyle(color: Color(0xFF9D4EDD), fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -312,7 +312,7 @@ class _TeachingCard extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: swap.progress,
                   backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
-                  color: Theme.of(context).colorScheme.secondary,
+                  color: const Color(0xFF9D4EDD),
                   minHeight: 6,
                 ),
               ),

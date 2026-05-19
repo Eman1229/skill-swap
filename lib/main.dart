@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:skill_swap/screens/Setting/app_settings.dart';
 
 const Color _skillSwapPrimary = Color(0xFF00C2FF); // Cyan Blue
-const Color _skillSwapSecondary = Color(0xFF00C2FF); // Fixed to Cyan Blue (removed purple)
+const Color _skillSwapSecondary = Color(0xFF00C2FF); // Use Cyan for system-wide secondary
 const Color _skillSwapBackground = Color(0xFFF0F4FF);
 const Color _skillSwapText = Color(0xFF0D0D1A);
 const Color _skillSwapSlate = Color(0xFFB0BAD0);
@@ -79,7 +79,7 @@ class MyApp extends StatelessWidget {
       seedColor: _skillSwapPrimary,
       brightness: Brightness.light,
       primary: _skillSwapPrimary,
-      secondary: _skillSwapPrimary,
+      secondary: _skillSwapSecondary,
       surface: Colors.white,
       onSurface: _skillSwapText,
       onSurfaceVariant: const Color(0xFF4B5870),
@@ -121,7 +121,7 @@ class MyApp extends StatelessWidget {
       seedColor: _skillSwapPrimary,
       brightness: Brightness.dark,
       primary: _skillSwapPrimary,
-      secondary: _skillSwapPrimary, // Fixed to Cyan Blue
+      secondary: _skillSwapSecondary,
       tertiary: _skillSwapPrimary,
       surface: const Color(0xFF1E293B),
       onSurface: Colors.white,
@@ -131,7 +131,7 @@ class MyApp extends StatelessWidget {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFF0F172A), // System Dark Navy
+      scaffoldBackgroundColor: const Color(0xFF0F172A),
       fontFamily: 'Schyler',
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -154,7 +154,7 @@ class MyApp extends StatelessWidget {
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return colorScheme.primary; // Use cyan for switch
+          return colorScheme.primary;
         }
         return colorScheme.outlineVariant;
       }),

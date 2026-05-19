@@ -147,12 +147,20 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
   }
 
   Widget _buildFAQTile(String question, String answer) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withAlpha(8)),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
+        boxShadow: isDark ? null : [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: ExpansionTile(
         collapsedIconColor: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
