@@ -4,7 +4,7 @@ import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class LearningSkillsScreen extends StatefulWidget {
-  const LearningSkillsScreen({Key? key}) : super(key: key);
+  LearningSkillsScreen({Key? key}) : super(key: key);
 
   @override
   State<LearningSkillsScreen> createState() => _LearningSkillsScreenState();
@@ -15,15 +15,15 @@ class _LearningSkillsScreenState extends State<LearningSkillsScreen> {
   final Set<String> selectedSkills = {};
 
   final List<Map<String, dynamic>> skills = [
-    {"name": "AI", "icon": Icons.auto_awesome, "color": const Color(0XFFFF6A6B)},
-    {"name": "Coding", "icon": Icons.code, "color": const Color(0XFF9D4EDD)},
-    {"name": "Drawing", "icon": Icons.brush, "color": const Color(0XFFF5CB1A)},
-    {"name": "Data Analysis", "icon": Icons.storage, "color": const Color(0XFF5FD5C7)},
-    {"name": "Digital Marketing", "icon": Icons.campaign, "color": const Color(0XFFF5CB1A)},
-    {"name": "Design", "icon": Icons.design_services, "color": const Color(0XFF5FD5C7)},
-    {"name": "Music", "icon": Icons.music_note, "color": const Color(0XFFFF6A6B)},
-    {"name": "Photos", "icon": Icons.camera_alt, "color": const Color(0XFF9D4EDD)},
-    {"name": "Others", "icon": Icons.more_horiz, "color": const Color(0XFF5FD5C7)},
+    {"name": "AI", "icon": Icons.auto_awesome},
+    {"name": "Coding", "icon": Icons.code},
+    {"name": "Drawing", "icon": Icons.brush},
+    {"name": "Data Analysis", "icon": Icons.storage},
+    {"name": "Digital Marketing", "icon": Icons.campaign},
+    {"name": "Design", "icon": Icons.design_services},
+    {"name": "Music", "icon": Icons.music_note},
+    {"name": "Photos", "icon": Icons.camera_alt},
+    {"name": "Others", "icon": Icons.more_horiz},
   ];
 
   void toggleSkill(String skill) {
@@ -41,27 +41,27 @@ class _LearningSkillsScreenState extends State<LearningSkillsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20),
           child: Column(
             children: [
-              const SizedBox(height: 77, width: 335),
+              SizedBox(height: 77, width: 335),
               Text(
                 "choose_learn_skills".tr(), // Updated text
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0XFF00C2FF),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
                   fontSize: 30,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: 30),
               Expanded(
                 child: GridView.builder(
                   itemCount: skills.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     crossAxisSpacing: 20,
                     mainAxisSpacing: 20,
@@ -70,6 +70,9 @@ class _LearningSkillsScreenState extends State<LearningSkillsScreen> {
                   itemBuilder: (context, index) {
                     final skill = skills[index];
                     final bool isSelected = selectedSkills.contains(skill["name"]);
+                    final skillColor = index.isEven
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.secondary;
 
                     return GestureDetector(
                       onTap: () => toggleSkill(skill["name"]),
@@ -84,41 +87,41 @@ class _LearningSkillsScreenState extends State<LearningSkillsScreen> {
                                 height: 80,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: skill["color"].withOpacity(0.9),
+                                  color: skillColor.withOpacity(0.9),
                                   border: isSelected
-                                      ? Border.all(color: const Color(0XFF9D4EDD), width: 3)
+                                      ? Border.all(color: Theme.of(context).colorScheme.secondary, width: 3)
                                       : null,
                                 ),
                                 child: Center(
                                   child: Icon(
                                     skill["icon"],
-                                    color: Colors.white,
+                                    color: Theme.of(context).colorScheme.onSurface,
                                     size: 40,
                                   ),
                                 ),
                               ),
                               if (isSelected)
-                                const Positioned(
+                                Positioned(
                                   bottom: 0,
                                   right: 0,
                                   child: CircleAvatar(
                                     radius: 12,
-                                    backgroundColor: Color(0XFF9D4EDD),
+                                    backgroundColor: Theme.of(context).colorScheme.secondary,
                                     child: Icon(
                                       Icons.check,
                                       size: 20, // Adjusted size to fit better
-                                      color: Colors.white,
+                                      color: Theme.of(context).colorScheme.onSurface,
                                     ),
                                   ),
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           Text(
                             skill["name"],
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -138,27 +141,27 @@ class _LearningSkillsScreenState extends State<LearningSkillsScreen> {
                     if(selectedSkills.contains('Others')){
                       Navigator.push(context, MaterialPageRoute
                         (builder: (context)
-                      =>const LearningSkill1()),
+                      =>LearningSkill1()),
                       );
                     }else{
                       Navigator.push(context, MaterialPageRoute
                         (builder: (context)=>
-                      const SignInScreen(),)
+                      SignInScreen(),)
                       );
                     }
 
                   }
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0XFF00C2FF),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: Text(
                     "next".tr(),
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),

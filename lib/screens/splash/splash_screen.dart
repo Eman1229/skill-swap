@@ -54,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -65,13 +65,13 @@ class _SplashScreenState extends State<SplashScreen> {
               width: 150,
               height: 150,
               errorBuilder: (context, error, stackTrace) {
-                return Icon(Icons.swap_horiz, size: 100, color: Colors.white);
+                return Icon(Icons.swap_horiz, size: 100, color: Theme.of(context).colorScheme.onSurface);
               },
             ),
             SizedBox(height: 10),
             // Loading indicator
             SizedBox(height: 30),
-            CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+            CircularProgressIndicator(color: Theme.of(context).colorScheme.onSurface, strokeWidth: 2),
           ],
         ),
       ),

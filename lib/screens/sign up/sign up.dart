@@ -7,7 +7,7 @@ import 'package:skill_swap/screens/SkillsChoose/Selecting%20Skills.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({Key? key}) : super(key: key);
+  SignUpScreen({Key? key}) : super(key: key);
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -48,9 +48,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
-        physics: const ClampingScrollPhysics(),
+        physics: ClampingScrollPhysics(),
         child: Column(
           children: [
             Stack(
@@ -60,9 +60,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 Container(
                   height: screenHeight * 0.35,
                   width: double.infinity,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                      colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -76,11 +76,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             UiHelper.CustomImage(imgurl: "hi.png"),
-                            const SizedBox(height: 10),
+                            SizedBox(height: 10),
                             Text(
                               "welcome_back".tr(),
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -108,64 +108,64 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ), // This creates the perfect overlap
                   child: Container(
                     width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF0F172A),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(35),
                         topRight: Radius.circular(35),
                       ),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                         horizontal: 25.0,
                         vertical: 30,
                       ),
                       child: Column(
                         children: [
-                          const SizedBox(height: 10),
+                          SizedBox(height: 10),
                           Text(
                             "sign_up".tr(),
-                            style: const TextStyle(
-                              color: Color(0xFF00C2FF),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
                               fontSize: 30,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
                             "create_account_here".tr(),
-                            style: const TextStyle(
-                              color: Colors.white54,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               fontSize: 14,
                             ),
                           ),
-                          const SizedBox(height: 40),
+                          SizedBox(height: 40),
 
                           // TextFields
-                          UiHelper.CustomTextField(
+                          UiHelper.CustomTextField(context: context,
                             controller: _nameController,
                             text: "name".tr(),
                             tohide: false,
                             textinputtype: TextInputType.name,
                             prefixIcon: Icons.person_outline,
                           ),
-                          const SizedBox(height: 20),
-                          UiHelper.CustomTextField(
+                          SizedBox(height: 20),
+                          UiHelper.CustomTextField(context: context,
                             controller: _phoneController,
                             text: "phone_number".tr(),
                             tohide: false,
                             textinputtype: TextInputType.phone,
                             prefixIcon: Icons.phone_android_outlined,
                           ),
-                          const SizedBox(height: 20),
-                          UiHelper.CustomTextField(
+                          SizedBox(height: 20),
+                          UiHelper.CustomTextField(context: context,
                             controller: _emailController,
                             text: "mail".tr(),
                             tohide: false,
                             textinputtype: TextInputType.emailAddress,
                             prefixIcon: Icons.mail_outline,
                           ),
-                          const SizedBox(height: 20),
-                          UiHelper.CustomTextField(
+                          SizedBox(height: 20),
+                          UiHelper.CustomTextField(context: context,
                             controller: _passwordController,
                             text: "passwords".tr(),
                             tohide: _isPasswordHidden,
@@ -176,7 +176,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 _isPasswordHidden
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined,
-                                color: Colors.white60,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -185,7 +185,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               },
                             ),
                           ),
-                          const SizedBox(height: 40),
+                          SizedBox(height: 40),
 
                           // Proceed Button
                           SizedBox(
@@ -196,15 +196,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 signUpUser();
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00C2FF),
+                                backgroundColor: Theme.of(context).colorScheme.primary,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                               ),
                               child: Text(
                                 "proceed".tr(),
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -212,7 +212,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: 25),
+                          SizedBox(height: 25),
 
                           // Sign In Link
                           Row(
@@ -220,14 +220,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             children: [
                               Text(
                                 "already_member".tr(),
-                                style: const TextStyle(color: Colors.white70),
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                               ),
                               GestureDetector(
                                 onTap: () => Navigator.pop(context),
                                 child: Text(
                                   "sign_in".tr(),
-                                  style: const TextStyle(
-                                    color: Color(0xFF00C2FF),
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.primary,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -235,11 +235,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ],
                           ),
 
-                          const SizedBox(height: 40),
+                          SizedBox(height: 40),
 
                           // THE LOGO (Fixed Visibility)
                           UiHelper.CustomImage(imgurl: "Cl.png"),
-                          const SizedBox(height: 20),
+                          SizedBox(height: 20),
                         ],
                       ),
                     ),

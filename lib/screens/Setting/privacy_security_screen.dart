@@ -3,7 +3,7 @@ import 'package:skill_swap/screens/Setting/app_settings.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class PrivacySecurityScreen extends StatefulWidget {
-  const PrivacySecurityScreen({super.key});
+  PrivacySecurityScreen({super.key});
 
   @override
   State<PrivacySecurityScreen> createState() => _PrivacySecurityScreenState();
@@ -15,24 +15,24 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'privacy_security_title'.tr(),
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         children: [
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _buildSectionTitle('profile_visibility'.tr()),
           ValueListenableBuilder<String>(
             valueListenable: _settings.profileVisibility,
@@ -61,7 +61,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
               );
             },
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _buildSectionTitle('preferences'.tr()),
           ValueListenableBuilder<bool>(
             valueListenable: _settings.showOnlineStatus,
@@ -87,10 +87,10 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
               );
             },
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: 32),
           _buildSectionTitle('danger_zone'.tr()),
           _buildDangerZoneCard(),
-          const SizedBox(height: 40),
+          SizedBox(height: 40),
         ],
       ),
     );
@@ -98,11 +98,11 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      padding: EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
         title,
-        style: const TextStyle(
-          color: Color(0xFF00C2FF),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.primary,
           fontSize: 11,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.2,
@@ -120,14 +120,14 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(16),
+        duration: Duration(milliseconds: 200),
+        margin: EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1E293B) : const Color(0xFF151D30),
+          color: isSelected ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFF00C2FF) : Colors.white.withAlpha(13),
+            color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withAlpha(13),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -136,10 +136,10 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
           children: [
             Icon(
               isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-              color: isSelected ? const Color(0xFF00C2FF) : Colors.white24,
+              color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
               size: 20,
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,15 +147,15 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                   Text(
                     title,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.white70,
+                      color: isSelected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     description,
-                    style: const TextStyle(color: Colors.white38, fontSize: 12, height: 1.3),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12, height: 1.3),
                   ),
                 ],
               ),
@@ -174,38 +174,38 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     required ValueChanged<bool> onChanged,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withAlpha(13)),
+        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withAlpha(13)),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF0F172A),
+            color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: const Color(0xFF00C2FF), size: 20),
+          child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
         ),
         title: Text(
           title,
-          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
         ),
         subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
+          padding: EdgeInsets.only(top: 4),
           child: Text(
             description,
-            style: const TextStyle(color: Colors.white38, fontSize: 12, height: 1.3),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12, height: 1.3),
           ),
         ),
         trailing: Switch(
           value: value,
           onChanged: onChanged,
-          activeTrackColor: const Color(0xFF00C2FF),
-          activeColor: Colors.white,
+          activeTrackColor: Theme.of(context).colorScheme.primary,
+          activeColor: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );
@@ -213,69 +213,69 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
 
   Widget _buildDangerZoneCard() {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1F30), // subtle reddish tint
+        color: Color(0xFF1E1F30), // subtle reddish tint
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFF3B3B).withOpacity(0.3)),
+        border: Border.all(color: Color(0xFFFF3B3B).withOpacity(0.3)),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: const Color(0xFFFF3B3B).withOpacity(0.8), size: 22),
-              const SizedBox(width: 10),
+              Icon(Icons.warning_amber_rounded, color: Color(0xFFFF3B3B).withOpacity(0.8), size: 22),
+              SizedBox(width: 10),
               Text(
                 'high_risk_actions'.tr(),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 14),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('clear_cache'.tr(), style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text('clear_cache_desc'.tr(), style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11)),
+                    Text('clear_cache'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w600)),
+                    SizedBox(height: 2),
+                    Text('clear_cache_desc'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3), fontSize: 11)),
                   ],
                 ),
               ),
               OutlinedButton(
                 onPressed: _showClearCacheDialog,
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.white24),
+                  side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
-                child: Text('clear'.tr(), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                child: Text('clear'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
               ),
             ],
           ),
-          const Divider(color: Colors.white12, height: 24),
+          Divider(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6), height: 24),
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('delete_account'.tr(), style: const TextStyle(color: Color(0xFFFF3B3B), fontSize: 13, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text('delete_account_desc'.tr(), style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11)),
+                    Text('delete_account'.tr(), style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13, fontWeight: FontWeight.w600)),
+                    SizedBox(height: 2),
+                    Text('delete_account_desc'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3), fontSize: 11)),
                   ],
                 ),
               ),
               ElevatedButton(
                 onPressed: _showDeleteAccountDialog,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF3B3B),
+                  backgroundColor: Color(0xFFFF3B3B),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
-                child: Text('delete'.tr(), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                child: Text('delete'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 12, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -289,17 +289,17 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E293B),
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('clear_cache'.tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          title: Text('clear_cache'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
           content: Text(
             'clear_cache_confirm'.tr(),
-            style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14, height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('cancel'.tr(), style: const TextStyle(color: Colors.white38)),
+              child: Text('cancel'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65))),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -307,10 +307,10 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 _showSuccessSnackBar('cache_cleared'.tr());
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00C2FF),
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: Text('clear_now'.tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text('clear_now'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -323,23 +323,23 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E1F30),
+          backgroundColor: Color(0xFF1E1F30),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(
             children: [
-              const Icon(Icons.warning_rounded, color: Color(0xFFFF3B3B)),
-              const SizedBox(width: 10),
-              Text('delete_account'.tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Icon(Icons.warning_rounded, color: Color(0xFFFF3B3B)),
+              SizedBox(width: 10),
+              Text('delete_account'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
             ],
           ),
           content: Text(
             'delete_account_confirm'.tr(),
-            style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14, height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('cancel'.tr(), style: const TextStyle(color: Colors.white38)),
+              child: Text('cancel'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65))),
             ),
             ElevatedButton(
               onPressed: () {
@@ -347,10 +347,10 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 _showSuccessSnackBar('Mock Deletion: Account deleted. Signing out...');
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF3B3B),
+                backgroundColor: Color(0xFFFF3B3B),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: Text('delete_permanently'.tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text('delete_permanently'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -363,12 +363,12 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
-            const SizedBox(width: 10),
-            Expanded(child: Text(text, style: const TextStyle(color: Colors.white))),
+            Icon(Icons.check_circle_outline_rounded, color: Theme.of(context).colorScheme.onSurface),
+            SizedBox(width: 10),
+            Expanded(child: Text(text, style: TextStyle(color: Theme.of(context).colorScheme.onSurface))),
           ],
         ),
-        backgroundColor: const Color(0xFF00C2FF),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),

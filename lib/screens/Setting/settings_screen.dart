@@ -20,20 +20,26 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text('settings'.tr(),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        centerTitle: true,
+        title: Text(
+          'settings'.tr(),
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         children: [
-          _buildSection('account'.tr()),
+          _buildSection(context, 'account'.tr()),
           _buildSettingTile(
+            context: context,
             icon: Icons.person_outline_rounded,
             title: 'profile_info'.tr(),
             onTap: () async {
@@ -49,7 +55,9 @@ class SettingsScreen extends StatelessWidget {
                   final mySwap = SwapListing.fromDoc(snap.docs.first);
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => EditProfileScreen(swap: mySwap)),
+                    MaterialPageRoute(
+                      builder: (_) => EditProfileScreen(swap: mySwap),
+                    ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -63,24 +71,26 @@ class SettingsScreen extends StatelessWidget {
             valueListenable: _settings.notificationsEnabled,
             builder: (context, enabled, _) {
               return _buildSettingTile(
+                context: context,
                 icon: Icons.notifications_none_rounded,
                 title: 'notifications'.tr(),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const NotificationsSettingsScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => NotificationsSettingsScreen(),
+                    ),
                   );
                 },
                 trailing: Switch(
                   value: enabled,
                   onChanged: (v) => _settings.setNotificationsEnabled(v),
-                  activeTrackColor: const Color(0xFF00C2FF),
-                  activeColor: Colors.white,
                 ),
               );
             },
           ),
           _buildSettingTile(
+            context: context,
             icon: Icons.lock_outline_rounded,
             title: 'change_password'.tr(),
             onTap: () {
@@ -94,28 +104,34 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
           _buildSettingTile(
+            context: context,
             icon: Icons.security_rounded,
             title: 'privacy_security'.tr(),
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const PrivacySecurityScreen()),
+                MaterialPageRoute(
+                  builder: (_) => PrivacySecurityScreen(),
+                ),
               );
             },
           ),
-          const SizedBox(height: 24),
-          _buildSection('app_preferences'.tr()),
+          SizedBox(height: 24),
+          _buildSection(context, 'app_preferences'.tr()),
           ValueListenableBuilder<String>(
             valueListenable: _settings.currentLanguage,
             builder: (context, currentLang, _) {
               return _buildSettingTile(
+                context: context,
                 icon: Icons.language_rounded,
                 title: 'language'.tr(),
                 subtitle: currentLang,
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const LanguageSettingsScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => LanguageSettingsScreen(),
+                    ),
                   );
                 },
               );
@@ -124,57 +140,62 @@ class SettingsScreen extends StatelessWidget {
           ValueListenableBuilder<bool>(
             valueListenable: _settings.isDarkMode,
             builder: (context, isDark, _) {
+              final isLight = !isDark;
               return _buildSettingTile(
-                icon: Icons.dark_mode_outlined,
-                title: 'dark_mode'.tr(),
+                context: context,
+                icon: isLight
+                    ? Icons.light_mode_rounded
+                    : Icons.dark_mode_rounded,
+                title: 'light_mode'.tr(),
                 onTap: () {
-                  _settings.isDarkMode.value = !isDark;
+                  _settings.setDarkMode(!isLight);
                 },
                 trailing: Switch(
-                  value: isDark,
-                  onChanged: (v) => _settings.isDarkMode.value = v,
-                  activeTrackColor: const Color(0xFF00C2FF),
-                  activeColor: Colors.white,
+                  value: isLight,
+                  onChanged: (enabled) => _settings.setDarkMode(!enabled),
                 ),
               );
             },
           ),
-          const SizedBox(height: 24),
-          _buildSection('support'.tr()),
+          SizedBox(height: 24),
+          _buildSection(context, 'support'.tr()),
           _buildSettingTile(
+            context: context,
             icon: Icons.help_outline_rounded,
             title: 'help_center'.tr(),
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const HelpCenterScreen()),
+                MaterialPageRoute(builder: (_) => HelpCenterScreen()),
               );
             },
           ),
           _buildSettingTile(
+            context: context,
             icon: Icons.info_outline_rounded,
             title: 'about_skill_swap'.tr(),
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const AboutScreen()),
+                MaterialPageRoute(builder: (_) => AboutScreen()),
               );
             },
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: 40),
           _LogoutButton(),
         ],
       ),
     );
   }
 
-  Widget _buildSection(String title) {
+  Widget _buildSection(BuildContext context, String title) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      padding: EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
-          color: Color(0xFF00C2FF),
+        style: TextStyle(
+          color: colorScheme.secondary,
           fontSize: 11,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.2,
@@ -184,34 +205,63 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Widget _buildSettingTile({
+    required BuildContext context,
     required IconData icon,
     required String title,
     String? subtitle,
     required VoidCallback onTap,
     Widget? trailing,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final tileColor = colorScheme.surface;
+    final iconBackground = colorScheme.surfaceContainerHighest;
+    final borderColor = colorScheme.outlineVariant;
+    final subtitleColor = colorScheme.onSurfaceVariant;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: tileColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withAlpha(13)),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: colorScheme.primary.withAlpha(20),
+                  blurRadius: 18,
+                  offset: Offset(0, 8),
+                ),
+              ],
       ),
       child: ListTile(
         onTap: onTap,
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF0F172A),
+            color: iconBackground,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: const Color(0xFF00C2FF), size: 20),
+          child: Icon(icon, color: colorScheme.secondary, size: 20),
         ),
-        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        title: Text(
+          title,
+          style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
+        ),
         subtitle: subtitle != null
-            ? Text(subtitle, style: const TextStyle(color: Colors.white38, fontSize: 12))
+            ? Text(
+                subtitle,
+                style: TextStyle(color: subtitleColor, fontSize: 12),
+              )
             : null,
-        trailing: trailing ?? const Icon(Icons.chevron_right_rounded, color: Colors.white24),
+        trailing:
+            trailing ??
+            Icon(
+              Icons.chevron_right_rounded,
+              color: colorScheme.onSurfaceVariant,
+            ),
       ),
     );
   }
@@ -220,6 +270,8 @@ class SettingsScreen extends StatelessWidget {
 class _LogoutButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final danger = Theme.of(context).colorScheme.error;
+
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton(
@@ -228,19 +280,25 @@ class _LogoutButton extends StatelessWidget {
           if (context.mounted) {
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (_) => const SignInScreen()),
+              MaterialPageRoute(builder: (_) => SignInScreen()),
               (route) => false,
             );
           }
         },
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Color(0xFFFF3B3B), width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          side: BorderSide(color: danger, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: EdgeInsets.symmetric(vertical: 16),
         ),
         child: Text(
           'log_out'.tr(),
-          style: const TextStyle(color: Color(0xFFFF3B3B), fontWeight: FontWeight.bold, fontSize: 15),
+          style: TextStyle(
+            color: danger,
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
         ),
       ),
     );

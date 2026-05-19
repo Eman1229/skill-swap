@@ -8,18 +8,18 @@ import 'package:skill_swap/Ui_helper/translation_helper.dart';
 class ConfirmSwapScreen extends StatelessWidget {
   final SwapListing swap;
 
-  const ConfirmSwapScreen({Key? key, required this.swap}) : super(key: key);
+  ConfirmSwapScreen({Key? key, required this.swap}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
             // ── Header ──
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Row(
                 children: [
                   GestureDetector(
@@ -28,18 +28,18 @@ class ConfirmSwapScreen extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white, size: 16),
+                      child: Icon(Icons.arrow_back_ios_new_rounded,
+                          color: Theme.of(context).colorScheme.onSurface, size: 16),
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  SizedBox(width: 14),
                   Text(
                     'confirm_swap'.tr(),
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -48,41 +48,41 @@ class ConfirmSwapScreen extends StatelessWidget {
               ),
             ),
 
-            const Spacer(),
+            Spacer(),
 
             // ── Card ──
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
+              padding: EdgeInsets.symmetric(horizontal: 28),
               child: Column(
                 children: [
                   Text(
                     'swap_with_person'.tr(),
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Text(
                     'review_details'.tr(),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white38,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                       fontSize: 13,
                       height: 1.6,
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: 32),
 
                   // ── Person tile ──
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                          color: const Color(0xFF00C2FF).withValues(alpha: 0.15)),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)),
                     ),
                     child: Row(
                       children: [
@@ -94,22 +94,22 @@ class ConfirmSwapScreen extends StatelessWidget {
                             color: swap.avatarColor,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: const Color(0xFF00C2FF).withValues(alpha: 0.4),
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
                               width: 2,
                             ),
                           ),
                           child: Center(
                             child: Text(
                               swap.initials,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 14),
+                        SizedBox(width: 14),
 
                         // Name + badges
                         Expanded(
@@ -118,25 +118,25 @@ class ConfirmSwapScreen extends StatelessWidget {
                             children: [
                               Text(
                                 swap.name,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               Row(
                                 children: [
                                   _InfoChip(
                                     label: '${swap.reviews} ${'swaps_count'.tr()}',
-                                    color: const Color(0xFF00C2FF),
+                                    color: Theme.of(context).colorScheme.primary,
                                   ),
-                                  const SizedBox(width: 8),
+                                  SizedBox(width: 8),
                                   _InfoChip(
                                     label: swap.skillLevel.isNotEmpty
                                         ? swap.skillLevel
                                         : 'Intermediate',
-                                    color: const Color(0xFF6B8AFF),
+                                    color: Color(0xFF6B8AFF),
                                   ),
                                 ],
                               ),
@@ -147,17 +147,17 @@ class ConfirmSwapScreen extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
 
                   // ── Swap detail ──
                   Container(
-                    padding: const EdgeInsets.symmetric(
+                    padding: EdgeInsets.symmetric(
                         horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                          color: const Color(0xFF00C2FF).withValues(alpha: 0.1)),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
                     ),
                     child: Row(
                       children: [
@@ -165,7 +165,7 @@ class ConfirmSwapScreen extends StatelessWidget {
                           child: _SwapDetailItem(
                             label: 'they_offer'.tr(),
                             value: swap.offering,
-                            color: const Color(0xFF00C2FF),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                         Container(
@@ -173,11 +173,11 @@ class ConfirmSwapScreen extends StatelessWidget {
                           height: 32,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(0xFF00C2FF).withValues(alpha: 0.1),
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.swap_horiz_rounded,
-                            color: Color(0xFF00C2FF),
+                            color: Theme.of(context).colorScheme.primary,
                             size: 18,
                           ),
                         ),
@@ -185,7 +185,7 @@ class ConfirmSwapScreen extends StatelessWidget {
                           child: _SwapDetailItem(
                             label: 'they_want'.tr(),
                             value: swap.wanting,
-                            color: const Color(0xFF6B8AFF),
+                            color: Color(0xFF6B8AFF),
                             alignRight: true,
                           ),
                         ),
@@ -196,11 +196,11 @@ class ConfirmSwapScreen extends StatelessWidget {
               ),
             ),
 
-            const Spacer(),
+            Spacer(),
 
             // ── Bottom Buttons ──
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+              padding: EdgeInsets.fromLTRB(24, 0, 24, 32),
               child: Row(
                 children: [
                   // Message
@@ -209,31 +209,31 @@ class ConfirmSwapScreen extends StatelessWidget {
                       onPressed: () {},
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(
-                            color: const Color(0xFF00C2FF).withValues(alpha: 0.4)),
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4)),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: EdgeInsets.symmetric(vertical: 14),
                         backgroundColor:
-                        const Color(0xFF1E293B).withValues(alpha: 0.5),
+                        Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
                       ),
                       child: Text(
                         'message'.tr(),
-                        style: const TextStyle(
-                          color: Colors.white70,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16),
 
                   // Confirm Swap
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                        gradient: LinearGradient(
+                          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                         ),
@@ -262,7 +262,7 @@ class ConfirmSwapScreen extends StatelessWidget {
                             SnackBar(
                               content:
                               Text('${'swap_request_sent'.tr()} ${swap.name}!'),
-                              backgroundColor: const Color(0xFF00C2FF),
+                              backgroundColor: Theme.of(context).colorScheme.primary,
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
@@ -271,13 +271,13 @@ class ConfirmSwapScreen extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          shape: const StadiumBorder(),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: StadiumBorder(),
+                          padding: EdgeInsets.symmetric(vertical: 14),
                         ),
                         child: Text(
                           'confirm_swap'.tr(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
@@ -300,12 +300,12 @@ class ConfirmSwapScreen extends StatelessWidget {
 class _InfoChip extends StatelessWidget {
   final String label;
   final Color color;
-  const _InfoChip({required this.label, required this.color});
+  _InfoChip({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
@@ -325,7 +325,7 @@ class _SwapDetailItem extends StatelessWidget {
   final String value;
   final Color color;
   final bool alignRight;
-  const _SwapDetailItem({
+  _SwapDetailItem({
     required this.label,
     required this.value,
     required this.color,
@@ -340,8 +340,8 @@ class _SwapDetailItem extends StatelessWidget {
       children: [
         Text(label,
             style:
-            const TextStyle(color: Colors.white38, fontSize: 11)),
-        const SizedBox(height: 4),
+            TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 11)),
+        SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(

@@ -3,7 +3,7 @@ import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class LearningSkill1 extends StatefulWidget {
-  const LearningSkill1({Key? key}) : super(key: key);
+  LearningSkill1({Key? key}) : super(key: key);
 
   @override
   State<LearningSkill1> createState() => _LearningSkill1State();
@@ -15,40 +15,40 @@ class _LearningSkill1State extends State<LearningSkill1> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Dark Navy Background
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Dark Navy Background
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        padding: EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             // Title
             Text(
               "choose_learn_skills".tr(),
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF00C2FF), // Sky Blue
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary, // Sky Blue
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 60),
+            SizedBox(height: 60),
 
             // Skill Input Field
             TextField(
               controller: _skillController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               decoration: InputDecoration(
                 hintText: "title_label".tr(),
-                hintStyle: const TextStyle(color: Colors.grey),
+                hintStyle: TextStyle(color: Colors.grey),
                 prefixIcon: Icon(
                   Icons.lightbulb_outline,
                   color: Colors.grey,
@@ -58,12 +58,12 @@ class _LearningSkill1State extends State<LearningSkill1> {
                   borderSide: BorderSide(color: Colors.grey),
                 ),
                 focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF00C2FF)),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                 ),
               ),
             ),
 
-            const SizedBox(height: 40),
+            SizedBox(height: 40),
 
             // Next Button
             SizedBox(
@@ -77,15 +77,15 @@ class _LearningSkill1State extends State<LearningSkill1> {
                   print("Teaching: ${_skillController.text}");
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00C2FF),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
                 ),
                 child: Text(
                   "next".tr(),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),

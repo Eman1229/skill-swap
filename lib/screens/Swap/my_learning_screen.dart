@@ -6,7 +6,7 @@ import 'package:skill_swap/screens/Swap/skill_detail_screen.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class MyLearningScreen extends StatefulWidget {
-  const MyLearningScreen({Key? key}) : super(key: key);
+  MyLearningScreen({Key? key}) : super(key: key);
 
   @override
   State<MyLearningScreen> createState() => _MyLearningScreenState();
@@ -22,20 +22,20 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
     final uid = _auth.currentUser?.uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text('my_learning'.tr(),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
       body: uid == null
-          ? const Center(child: Text('Please login', style: TextStyle(color: Colors.white)))
+          ? Center(child: Text('Please login', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))
           : Column(
               children: [
                 _buildFilters(),
@@ -47,11 +47,11 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator(color: Color(0xFF00C2FF)));
+                        return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
                       }
 
                       var docs = snapshot.data?.docs ?? [];
-                      
+
                       // Filter logic
                       if (_selectedFilter != 'All') {
                         docs = docs.where((doc) {
@@ -67,24 +67,24 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                       final swapsList = docs.map((doc) => SwapModel.fromDoc(doc)).toList();
 
                       return SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
+                        padding: EdgeInsets.all(24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             ...swapsList.map((swap) {
                               return _LearningCard(swap: swap);
                             }).toList(),
-                            const SizedBox(height: 32),
-                            const Text('Performance Insights',
-                                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 32),
+                            Text('Performance Insights',
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                            SizedBox(height: 16),
                             _buildInsights(swapsList, uid),
-                            const SizedBox(height: 32),
-                            const Text('Weekly Engagement',
-                                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 32),
+                            Text('Weekly Engagement',
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                            SizedBox(height: 16),
                             _buildEngagementChart(swapsList),
-                            const SizedBox(height: 40),
+                            SizedBox(height: 40),
                           ],
                         ),
                       );
@@ -100,27 +100,27 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
     final filters = ['All', 'Ongoing', 'Completed', 'Upcoming'];
     return Container(
       height: 40,
-      margin: const EdgeInsets.symmetric(vertical: 16),
+      margin: EdgeInsets.symmetric(vertical: 16),
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: EdgeInsets.symmetric(horizontal: 24),
         scrollDirection: Axis.horizontal,
         itemCount: filters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => SizedBox(width: 12),
         itemBuilder: (context, index) {
           final isSelected = _selectedFilter == filters[index];
           return GestureDetector(
             onTap: () => setState(() => _selectedFilter = filters[index]),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF00C2FF) : const Color(0xFF1E293B),
+                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Center(
                 child: Text(
                   filters[index],
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.white54,
+                    color: isSelected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     fontSize: 13,
                   ),
@@ -134,8 +134,8 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
-      child: Text('No learning swaps found.', style: TextStyle(color: Colors.white54)),
+    return Center(
+      child: Text('No learning swaps found.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
     );
   }
 
@@ -143,13 +143,13 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
     // 1. XP / Skills Learned
     final completedSwaps = swaps.where((s) => s.status.toLowerCase() == 'completed').length;
     final totalCompletedSessions = swaps.fold<int>(0, (total, s) => total + s.completedSessions);
-    
+
     // XP formula: 500 base + 1000 per completed swap + 100 per completed session
     final xp = 500 + (completedSwaps * 1000) + (totalCompletedSessions * 100);
-    
+
     // 2. Total hours: completed sessions * 1.5
     final totalHours = (totalCompletedSessions * 1.5).toStringAsFixed(1);
-    
+
     // 3. Average rating based on user listings
     return StreamBuilder<QuerySnapshot>(
       stream: _db
@@ -178,9 +178,9 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
         }
 
         return Container(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
           ),
           child: Column(
@@ -192,44 +192,44 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('XP / Skills Learned: $completedSwaps',
-                          style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                      const SizedBox(height: 4),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                      SizedBox(height: 4),
                       Row(
                         children: [
                           Text('$xp',
-                              style: const TextStyle(
-                                  color: Colors.white,
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 8),
-                          const Text('+12% this week',
-                              style: TextStyle(color: Color(0xFF00C2FF), fontSize: 10)),
+                          SizedBox(width: 8),
+                          Text('+12% this week',
+                              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10)),
                         ],
                       ),
                     ],
                   ),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00C2FF).withValues(alpha: 0.1),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.workspace_premium_rounded,
-                        color: Color(0xFF00C2FF)),
+                    child: Icon(Icons.workspace_premium_rounded,
+                        color: Theme.of(context).colorScheme.primary),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              const Divider(color: Colors.white10),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
+              Divider(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6)),
+              SizedBox(height: 20),
               Row(
                 children: [
                   _StatItem(
                       label: 'TOTAL HOURS',
                       value: totalHours,
                       icon: Icons.timer_outlined,
-                      color: const Color(0xFF00C2FF)),
-                  const Spacer(),
+                      color: Theme.of(context).colorScheme.primary),
+                  Spacer(),
                   _StatItem(
                       label: 'RATING',
                       value: rating.toStringAsFixed(1),
@@ -247,12 +247,12 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
   Widget _buildEngagementChart(List<SwapModel> swaps) {
     // Count sessions or swaps per day of the week (1 = Monday, 7 = Sunday)
     final Map<int, int> dayCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
-    
+
     for (final s in swaps) {
       final date = s.lastSessionAt ?? s.createdAt;
       dayCounts[date.weekday] = (dayCounts[date.weekday] ?? 0) + 1 + s.completedSessions;
     }
-    
+
     final maxCount = dayCounts.values.fold(0, (max, count) => count > max ? count : max);
     double getHeight(int day) {
       final count = dayCounts[day] ?? 0;
@@ -263,9 +263,9 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
     final currentWeekday = DateTime.now().weekday;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -291,7 +291,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
 
 class _LearningCard extends StatelessWidget {
   final SwapModel swap;
-  const _LearningCard({required this.swap});
+  _LearningCard({required this.swap});
 
   @override
   Widget build(BuildContext context) {
@@ -308,12 +308,12 @@ class _LearningCard extends StatelessWidget {
         }
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(16),
+          margin: EdgeInsets.only(bottom: 16),
+          padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF00C2FF).withValues(alpha: 0.1)),
+            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,58 +337,58 @@ class _LearningCard extends StatelessWidget {
                               fit: BoxFit.cover,
                             ),
                           )
-                        : const Icon(Icons.image, color: Colors.white24),
+                        : Icon(Icons.image, color: Theme.of(context).colorScheme.outlineVariant),
                   ),
-                  const SizedBox(width: 14),
+                  SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(swap.skillName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(swap.mentorName, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                        Text(swap.skillName, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(swap.mentorName, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00C2FF).withValues(alpha: 0.1),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(swap.status.toUpperCase(),
-                        style: const TextStyle(color: Color(0xFF00C2FF), fontSize: 10, fontWeight: FontWeight.bold)),
+                        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Progress', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                  Text('${(swap.progress * 100).toInt()}%', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('Progress', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                  Text('${(swap.progress * 100).toInt()}%', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: LinearProgressIndicator(
                   value: swap.progress,
-                  backgroundColor: Colors.white.withValues(alpha: 0.05),
-                  color: const Color(0xFF00C2FF),
+                  backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                  color: Theme.of(context).colorScheme.primary,
                   minHeight: 6,
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Session ${swap.completedSessions} of ${swap.totalSessions}', style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                  Text('Session ${swap.completedSessions} of ${swap.totalSessions}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12)),
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => SkillDetailScreen(swap: swap)),
                     ),
-                    child: const Text('View Details >', style: TextStyle(color: Color(0xFF00C2FF), fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: Text('View Details >', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -406,19 +406,19 @@ class _StatItem extends StatelessWidget {
   final IconData icon;
   final Color color;
 
-  const _StatItem({required this.label, required this.value, required this.icon, required this.color});
+  _StatItem({required this.label, required this.value, required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Icon(icon, color: color, size: 20),
-        const SizedBox(width: 10),
+        SizedBox(width: 10),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10)),
-            Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 10)),
+            Text(value, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
       ],
@@ -431,7 +431,7 @@ class _Bar extends StatelessWidget {
   final String day;
   final bool active;
 
-  const _Bar({required this.height, required this.day, this.active = false});
+  _Bar({required this.height, required this.day, this.active = false});
 
   @override
   Widget build(BuildContext context) {
@@ -441,12 +441,12 @@ class _Bar extends StatelessWidget {
           width: 24,
           height: height,
           decoration: BoxDecoration(
-            color: active ? const Color(0xFF00C2FF) : const Color(0xFF334155),
+            color: active ? Theme.of(context).colorScheme.primary : Color(0xFF334155),
             borderRadius: BorderRadius.circular(6),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(day, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+        SizedBox(height: 8),
+        Text(day, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 10)),
       ],
     );
   }

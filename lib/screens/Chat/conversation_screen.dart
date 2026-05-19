@@ -5,7 +5,7 @@ import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 
 class ConversationScreen extends StatefulWidget {
   final SwapListing swap;
-  const ConversationScreen({Key? key, required this.swap}) : super(key: key);
+  ConversationScreen({Key? key, required this.swap}) : super(key: key);
 
   @override
   State<ConversationScreen> createState() => _ConversationScreenState();
@@ -137,7 +137,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+          duration: Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
       }
@@ -195,9 +195,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
               content: Text('Swap Relationship Created!'),
-              backgroundColor: Color(0xFF00C2FF)),
+              backgroundColor: Theme.of(context).colorScheme.primary),
         );
       }
     } catch (e) {
@@ -236,9 +236,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
               content: Text('Session accepted!'),
-              backgroundColor: Color(0xFF00C2FF)),
+              backgroundColor: Theme.of(context).colorScheme.primary),
         );
       }
     } catch (e) {
@@ -293,7 +293,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     final uid = _auth.currentUser?.uid ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -306,9 +306,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
             ),
             Expanded(
               child: _conversationId == null
-                  ? const Center(
+                  ? Center(
                   child: CircularProgressIndicator(
-                      color: Color(0xFF00C2FF)))
+                      color: Theme.of(context).colorScheme.primary))
                   : _conversationId!.isEmpty
                   ? _buildEmptyChat()
                   : StreamBuilder<QuerySnapshot>(
@@ -323,9 +323,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   if (snap.connectionState ==
                       ConnectionState.waiting &&
                       !snap.hasData) {
-                    return const Center(
+                    return Center(
                         child: CircularProgressIndicator(
-                            color: Color(0xFF00C2FF)));
+                            color: Theme.of(context).colorScheme.primary));
                   }
 
                   final docs = snap.data?.docs ?? [];
@@ -339,12 +339,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
                   return ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
+                    padding: EdgeInsets.symmetric(
                         horizontal: 16, vertical: 12),
                     itemCount: docs.length + 1,
                     itemBuilder: (_, i) {
                       if (i == 0) {
-                        return const _DateChip(
+                        return _DateChip(
                             label: 'TODAY');
                       }
                       final d = docs[i - 1].data()
@@ -407,12 +407,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
   Widget _buildHeader(bool isOnline) {
     return Container(
       padding:
-      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(
           bottom: BorderSide(
-              color: const Color(0xFF00C2FF).withOpacity(0.1)),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
         ),
       ),
       child: Row(
@@ -423,14 +423,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white, size: 16),
+              child: Icon(Icons.arrow_back_ios_new_rounded,
+                  color: Theme.of(context).colorScheme.onSurface, size: 16),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Stack(
             children: [
               Container(
@@ -451,8 +451,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Center(
                       child: Text(widget.swap.initials,
-                          style: const TextStyle(
-                              color: Colors.white,
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.bold,
                               fontSize: 16)),
                     ),
@@ -460,8 +460,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 )
                     : Center(
                   child: Text(widget.swap.initials,
-                      style: const TextStyle(
-                          color: Colors.white,
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                           fontSize: 16)),
                 ),
@@ -474,25 +474,25 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     width: 12,
                     height: 12,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF22C55E),
+                      color: Color(0xFF22C55E),
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: const Color(0xFF0F172A),
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           width: 2),
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   widget.swap.name,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                   ),
@@ -502,11 +502,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     Container(
                       width: 6,
                       height: 6,
-                      margin: const EdgeInsets.only(right: 5),
+                      margin: EdgeInsets.only(right: 5),
                       decoration: BoxDecoration(
                         color: isOnline
-                            ? const Color(0xFF22C55E)
-                            : Colors.white38,
+                            ? Color(0xFF22C55E)
+                            : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -514,17 +514,17 @@ class _ConversationScreenState extends State<ConversationScreen> {
                       isOnline ? 'Online' : 'Offline',
                       style: TextStyle(
                         color: isOnline
-                            ? const Color(0xFF22C55E)
-                            : Colors.white38,
+                            ? Color(0xFF22C55E)
+                            : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                         fontSize: 11,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         widget.swap.offering,
-                        style: const TextStyle(
-                            color: Colors.white38, fontSize: 11),
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 11),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -534,13 +534,13 @@ class _ConversationScreenState extends State<ConversationScreen> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.call_rounded,
-                color: Color(0xFF00C2FF), size: 22),
+            icon: Icon(Icons.call_rounded,
+                color: Theme.of(context).colorScheme.primary, size: 22),
             onPressed: () {},
           ),
           IconButton(
-            icon: const Icon(Icons.videocam_rounded,
-                color: Color(0xFF00C2FF), size: 22),
+            icon: Icon(Icons.videocam_rounded,
+                color: Theme.of(context).colorScheme.primary, size: 22),
             onPressed: () {},
           ),
         ],
@@ -558,18 +558,18 @@ class _ConversationScreenState extends State<ConversationScreen> {
             height: 70,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF1E293B),
+              color: Theme.of(context).colorScheme.surface,
               border: Border.all(
-                  color: const Color(0xFF00C2FF).withOpacity(0.2)),
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
             ),
-            child: const Icon(Icons.chat_bubble_outline_rounded,
-                color: Color(0xFF00C2FF), size: 30),
+            child: Icon(Icons.chat_bubble_outline_rounded,
+                color: Theme.of(context).colorScheme.primary, size: 30),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Text(
             'Start chatting with ${widget.swap.name}',
-            style: const TextStyle(
-                color: Colors.white54, fontSize: 13),
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
           ),
         ],
       ),
@@ -578,12 +578,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   Widget _buildInputBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+      padding: EdgeInsets.fromLTRB(16, 10, 16, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(
           top: BorderSide(
-              color: const Color(0xFF00C2FF).withOpacity(0.1)),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
         ),
       ),
       child: Row(
@@ -594,34 +594,34 @@ class _ConversationScreenState extends State<ConversationScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: Theme.of(context).colorScheme.surface,
                 shape: BoxShape.circle,
                 border: Border.all(
                     color:
-                    const Color(0xFF00C2FF).withOpacity(0.2)),
+                    Theme.of(context).colorScheme.primary.withOpacity(0.2)),
               ),
-              child: const Icon(Icons.add_rounded,
-                  color: Color(0xFF00C2FF), size: 20),
+              child: Icon(Icons.add_rounded,
+                  color: Theme.of(context).colorScheme.primary, size: 20),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                     color:
-                    const Color(0xFF00C2FF).withOpacity(0.2)),
+                    Theme.of(context).colorScheme.primary.withOpacity(0.2)),
               ),
               child: TextField(
                 controller: _msgController,
-                style: const TextStyle(
-                    color: Colors.white, fontSize: 14),
-                decoration: const InputDecoration(
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
+                decoration: InputDecoration(
                   hintText: 'Type a message...',
                   hintStyle: TextStyle(
-                      color: Colors.white38, fontSize: 13),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(
                       horizontal: 16, vertical: 10),
@@ -630,22 +630,22 @@ class _ConversationScreenState extends State<ConversationScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           GestureDetector(
             onTap: () => _sendMessage(_msgController.text),
             child: Container(
               width: 42,
               height: 42,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                  colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.send_rounded,
-                  color: Colors.white, size: 18),
+              child: Icon(Icons.send_rounded,
+                  color: Theme.of(context).colorScheme.onSurface, size: 18),
             ),
           ),
         ],
@@ -657,24 +657,24 @@ class _ConversationScreenState extends State<ConversationScreen> {
 // ── Date chip ────────────────────────────────────────────────────────
 class _DateChip extends StatelessWidget {
   final String label;
-  const _DateChip({required this.label});
+  _DateChip({required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 12),
+        margin: EdgeInsets.symmetric(vertical: 12),
         padding:
-        const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        EdgeInsets.symmetric(horizontal: 16, vertical: 5),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: const Color(0xFF00C2FF).withOpacity(0.15)),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.15)),
         ),
         child: Text(label,
-            style: const TextStyle(
-                color: Colors.white38,
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5)),
@@ -689,7 +689,7 @@ class _MessageBubble extends StatelessWidget {
   final bool isMine;
   final Timestamp? timestamp;
 
-  const _MessageBubble({
+  _MessageBubble({
     required this.text,
     required this.isMine,
     this.timestamp,
@@ -712,55 +712,55 @@ class _MessageBubble extends StatelessWidget {
             constraints: BoxConstraints(
                 maxWidth:
                 MediaQuery.of(context).size.width * 0.72),
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            padding: const EdgeInsets.symmetric(
+            margin: EdgeInsets.symmetric(vertical: 4),
+            padding: EdgeInsets.symmetric(
                 horizontal: 16, vertical: 11),
             decoration: BoxDecoration(
               gradient: isMine
-                  ? const LinearGradient(
+                  ? LinearGradient(
                 colors: [
-                  Color(0xFF00C2FF),
+                  Theme.of(context).colorScheme.primary,
                   Color(0xFF6B8AFF)
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
                   : null,
-              color: isMine ? null : const Color(0xFF1E293B),
+              color: isMine ? null : Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(18),
-                topRight: const Radius.circular(18),
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
                 bottomLeft: Radius.circular(isMine ? 18 : 4),
                 bottomRight: Radius.circular(isMine ? 4 : 18),
               ),
               border: isMine
                   ? null
                   : Border.all(
-                  color: const Color(0xFF00C2FF)
+                  color: Theme.of(context).colorScheme.primary
                       .withOpacity(0.1)),
             ),
             child: Text(
               text,
               style: TextStyle(
-                color: isMine ? Colors.white : Colors.white70,
+                color: isMine ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 13,
                 height: 1.5,
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(
+            padding: EdgeInsets.only(
                 bottom: 6, left: 4, right: 4),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(timeStr,
-                    style: const TextStyle(
-                        color: Colors.white24, fontSize: 10)),
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.outlineVariant, fontSize: 10)),
                 if (isMine) ...[
-                  const SizedBox(width: 4),
-                  const Icon(Icons.done_all_rounded,
-                      color: Color(0xFF00C2FF), size: 13),
+                  SizedBox(width: 4),
+                  Icon(Icons.done_all_rounded,
+                      color: Theme.of(context).colorScheme.primary, size: 13),
                 ],
               ],
             ),
@@ -785,7 +785,7 @@ class _SwapProposalCard extends StatelessWidget {
   final String senderId;
   final Function(String, String, String) onConfirm;
 
-  const _SwapProposalCard({
+  _SwapProposalCard({
     required this.offering,
     required this.wanting,
     required this.senderName,
@@ -799,84 +799,84 @@ class _SwapProposalCard extends StatelessWidget {
         FirebaseAuth.instance.currentUser?.uid == senderId;
 
     return Container(
-      margin: const EdgeInsets.symmetric(
+      margin: EdgeInsets.symmetric(
           vertical: 10, horizontal: 8),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-            color: const Color(0xFF00C2FF).withOpacity(0.25)),
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.25)),
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(
+            padding: EdgeInsets.symmetric(
                 horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+              gradient: LinearGradient(
+                colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
               ),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children: [
                 Icon(Icons.swap_horiz_rounded,
-                    color: Colors.white, size: 14),
+                    color: Theme.of(context).colorScheme.onSurface, size: 14),
                 SizedBox(width: 6),
                 Text('SKILL SWAP PROPOSAL',
                     style: TextStyle(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.8)),
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Text(offering,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Text('$senderName\'s expertise',
-              style: const TextStyle(
-                  color: Colors.white38, fontSize: 12)),
-          const SizedBox(height: 10),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12)),
+          SizedBox(height: 10),
           Row(
             children: [
               Expanded(
                   child: Divider(
-                      color: Colors.white.withOpacity(0.08))),
-              const Padding(
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08))),
+              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
                 child: Text('FOR',
                     style: TextStyle(
-                        color: Colors.white38,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 1)),
               ),
               Expanded(
                   child: Divider(
-                      color: Colors.white.withOpacity(0.08))),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08))),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Text(wanting,
-              style: const TextStyle(
-                  color: Colors.white70,
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 14,
                   fontWeight: FontWeight.w600)),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           if (!isMine)
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                gradient: LinearGradient(
+                  colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
@@ -890,21 +890,21 @@ class _SwapProposalCard extends StatelessWidget {
                   shadowColor: Colors.transparent,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       vertical: 12),
                 ),
-                child: const Text('CONFIRM SWAP DETAILS',
+                child: Text('CONFIRM SWAP DETAILS',
                     style: TextStyle(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                         letterSpacing: 0.5)),
               ),
             )
           else
-            const Text('Waiting for response...',
+            Text('Waiting for response...',
                 style: TextStyle(
-                    color: Colors.white38,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                     fontSize: 12,
                     fontStyle: FontStyle.italic)),
         ],
@@ -923,7 +923,7 @@ class _SessionInviteCard extends StatelessWidget {
   final String senderId;
   final Function(String, String) onAccept;
 
-  const _SessionInviteCard({
+  _SessionInviteCard({
     required this.sessionId,
     required this.swapId,
     required this.title,
@@ -942,78 +942,78 @@ class _SessionInviteCard extends StatelessWidget {
         : 'TBD';
 
     return Container(
-      margin: const EdgeInsets.symmetric(
+      margin: EdgeInsets.symmetric(
           vertical: 10, horizontal: 8),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-            color: const Color(0xFFA855F7).withOpacity(0.25)),
+            color: Theme.of(context).colorScheme.secondary.withOpacity(0.25)),
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(
+            padding: EdgeInsets.symmetric(
                 horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
+              gradient: LinearGradient(
+                colors: [Theme.of(context).colorScheme.secondary, Color(0xFF7C3AED)],
               ),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children: [
                 Icon(Icons.calendar_today_rounded,
-                    color: Colors.white, size: 14),
+                    color: Theme.of(context).colorScheme.onSurface, size: 14),
                 SizedBox(width: 6),
                 Text('SESSION INVITATION',
                     style: TextStyle(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.8)),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(title,
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.bold),
               textAlign: TextAlign.center),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             children: [
-              const Icon(Icons.access_time_rounded,
-                  color: Color(0xFFA855F7), size: 16),
-              const SizedBox(width: 8),
+              Icon(Icons.access_time_rounded,
+                  color: Theme.of(context).colorScheme.secondary, size: 16),
+              SizedBox(width: 8),
               Expanded(
                   child: Text(dateStr,
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 13))),
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13))),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.timer_outlined,
-                  color: Color(0xFFA855F7), size: 16),
-              const SizedBox(width: 8),
+              Icon(Icons.timer_outlined,
+                  color: Theme.of(context).colorScheme.secondary, size: 16),
+              SizedBox(width: 8),
               Text(duration,
-                  style: const TextStyle(
-                      color: Colors.white70, fontSize: 13)),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           if (!isMine)
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
+                gradient: LinearGradient(
+                  colors: [Theme.of(context).colorScheme.secondary, Color(0xFF7C3AED)],
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -1024,20 +1024,20 @@ class _SessionInviteCard extends StatelessWidget {
                   shadowColor: Colors.transparent,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       vertical: 12),
                 ),
-                child: const Text('ACCEPT INVITATION',
+                child: Text('ACCEPT INVITATION',
                     style: TextStyle(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                         fontSize: 13)),
               ),
             )
           else
-            const Text('Invitation sent',
+            Text('Invitation sent',
                 style: TextStyle(
-                    color: Colors.white38,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                     fontSize: 12,
                     fontStyle: FontStyle.italic)),
         ],

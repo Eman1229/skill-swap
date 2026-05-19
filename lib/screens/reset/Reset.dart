@@ -12,7 +12,7 @@ import 'package:skill_swap/Ui_helper/translation_helper.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 class EmailVerificationScreen extends StatefulWidget {
   final String? email;
-  const EmailVerificationScreen({Key? key, this.email}) : super(key: key);
+  EmailVerificationScreen({Key? key, this.email}) : super(key: key);
 
   @override
   State<EmailVerificationScreen> createState() =>
@@ -80,7 +80,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         'otp': otp,
         'createdAt': FieldValue.serverTimestamp(),
         'expiresAt': Timestamp.fromDate(
-          DateTime.now().add(const Duration(minutes: 10)),
+          DateTime.now().add(Duration(minutes: 10)),
         ),
         'used': false,
       });
@@ -119,17 +119,17 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white70),
+          icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).colorScheme.onSurfaceVariant),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25),
+        padding: EdgeInsets.symmetric(horizontal: 25),
         child: Column(
           children: [
             Expanded(
@@ -142,71 +142,71 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         width: 90,
                         height: 90,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00C2FF).withAlpha(31),
+                          color: Theme.of(context).colorScheme.primary.withAlpha(31),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.lock_reset_rounded,
                           size: 46,
-                          color: Color(0xFF00C2FF),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
-                      const SizedBox(height: 28),
+                      SizedBox(height: 28),
                       Text(
                         'forgot_password_title'.tr(),
-                        style: const TextStyle(
-                          color: Color(0xFF00C2FF),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       Text(
                         'enter_email_otp'.tr(),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white54,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 14,
                           height: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 36),
-                      UiHelper.CustomTextField(
+                      SizedBox(height: 36),
+                      UiHelper.CustomTextField(context: context,
                         controller: emailController,
                         text: 'enter_your_email'.tr(),
                         tohide: false,
                         textinputtype: TextInputType.emailAddress,
                         prefixIcon: Icons.mail_outline,
                       ),
-                      const SizedBox(height: 32),
+                      SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
                         height: 54,
                         child: ElevatedButton(
                           onPressed: loading ? null : sendOtp,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00C2FF),
+                            backgroundColor: Theme.of(context).colorScheme.primary,
                             disabledBackgroundColor:
-                            const Color(0xFF00C2FF).withAlpha(102),
+                            Theme.of(context).colorScheme.primary.withAlpha(102),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           child: loading
-                              ? const SizedBox(
+                              ? SizedBox(
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                               strokeWidth: 2.5,
                             ),
                           )
                               : Text(
                             'send_otp'.tr(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ),
@@ -217,7 +217,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(bottom: 24),
+              padding: EdgeInsets.only(bottom: 24),
               child: SizedBox(
                 height: 45,
                 child: UiHelper.CustomImage(imgurl: 'Cl.png'),
@@ -237,7 +237,7 @@ class OtpVerificationScreen extends StatefulWidget {
   final String email;
   final String otp;
 
-  const OtpVerificationScreen({
+  OtpVerificationScreen({
     Key? key,
     required this.email,
     required this.otp,
@@ -359,7 +359,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         'otp': newOtp,
         'createdAt': FieldValue.serverTimestamp(),
         'expiresAt': Timestamp.fromDate(
-          DateTime.now().add(const Duration(minutes: 10)),
+          DateTime.now().add(Duration(minutes: 10)),
         ),
         'used': false,
       });
@@ -403,26 +403,26 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         keyboardType: TextInputType.number,
         maxLength: 1,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
           fontSize: 22,
           fontWeight: FontWeight.bold,
         ),
         decoration: InputDecoration(
           counterText: '',
           filled: true,
-          fillColor: const Color(0xFF1E293B),
+          fillColor: Theme.of(context).colorScheme.surface,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.white24),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.white24),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF00C2FF), width: 2),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
           ),
         ),
         onChanged: (value) {
@@ -440,17 +440,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white70),
+          icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).colorScheme.onSurfaceVariant),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25),
+        padding: EdgeInsets.symmetric(horizontal: 25),
         child: Column(
           children: [
             Expanded(
@@ -463,40 +463,40 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         width: 90,
                         height: 90,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00C2FF).withAlpha(31),
+                          color: Theme.of(context).colorScheme.primary.withAlpha(31),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.mark_email_read_rounded,
                           size: 46,
-                          color: Color(0xFF00C2FF),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
-                      const SizedBox(height: 28),
+                      SizedBox(height: 28),
                       Text(
                         'verify_otp_title'.tr(),
-                        style: const TextStyle(
-                          color: Color(0xFF00C2FF),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       Text(
                         '${'enter_otp_sent'.tr()}\n${widget.email}',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white54,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 14,
                           height: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 36),
+                      SizedBox(height: 36),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(6, _buildOtpBox),
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       GestureDetector(
                         onTap: () =>
                             setState(() => _otpVisible = !_otpVisible),
@@ -508,65 +508,64 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                   ? Icons.visibility
                                   : Icons.visibility_off,
                               size: 18,
-                              color: Colors.white38,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                             ),
-                            const SizedBox(width: 6),
+                            SizedBox(width: 6),
                             Text(
                               _otpVisible ? 'hide_otp'.tr() : 'show_otp'.tr(),
-                              style: const TextStyle(
-                                  color: Colors.white38, fontSize: 13),
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
                         height: 54,
                         child: ElevatedButton(
                           onPressed: loading ? null : verifyOtp,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00C2FF),
+                            backgroundColor: Theme.of(context).colorScheme.primary,
                             disabledBackgroundColor:
-                            const Color(0xFF00C2FF).withOpacity(0.4),
+                            Theme.of(context).colorScheme.primary.withOpacity(0.4),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           child: loading
-                              ? const SizedBox(
+                              ? SizedBox(
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                               strokeWidth: 2.5,
                             ),
                           )
                               : Text(
                             'verify_otp'.tr(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 22),
+                      SizedBox(height: 22),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             "didnt_receive_otp".tr(),
-                            style: const
-                            TextStyle(color: Colors.white54, fontSize: 14),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
                           ),
                           GestureDetector(
                             onTap: loading ? null : resendOtp,
                             child: Text(
                               'resend'.tr(),
-                              style: const TextStyle(
-                                color: Color(0xFF00C2FF),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -580,7 +579,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(bottom: 24),
+              padding: EdgeInsets.only(bottom: 24),
               child: SizedBox(
                 height: 45,
                 child: UiHelper.CustomImage(imgurl: 'Cl.png'),

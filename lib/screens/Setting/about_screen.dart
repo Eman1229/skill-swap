@@ -2,46 +2,46 @@ import 'package:flutter/material.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class AboutScreen extends StatelessWidget {
-  const AboutScreen({super.key});
+  AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:  Color(0xFF0F172A),
+      backgroundColor:  Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'about_skill_swap_title'.tr(),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         child: Column(
-          crossAxisAlignment: CenterPlayground.crossAxisAlignment,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 20),
-            _buildGlowingLogo(),
-            const SizedBox(height: 16),
-            const Text(
+            SizedBox(height: 20),
+            _buildGlowingLogo(context),
+            SizedBox(height: 16),
+            Text(
               'Skill Swap',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22, letterSpacing: 1.2),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 22, letterSpacing: 1.2),
             ),
-            const SizedBox(height: 6),
-            const Text(
+            SizedBox(height: 6),
+            Text(
               'Version 1.0.0 (Build 12)',
-              style: TextStyle(color: Color(0xFF00C2FF), fontSize: 13, fontWeight: FontWeight.w600),
+              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 13, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 32),
-            _buildAboutCard(),
-            const SizedBox(height: 32),
-            _buildSectionTitle('legal_agreements'.tr()),
+            SizedBox(height: 32),
+            _buildAboutCard(context),
+            SizedBox(height: 32),
+            _buildSectionTitle(context, 'legal_agreements'.tr()),
             _buildLegalTile(
               context: context,
               icon: Icons.article_outlined,
@@ -60,73 +60,73 @@ class AboutScreen extends StatelessWidget {
               title: 'open_source_licenses'.tr(),
               content: _licensesText,
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildGlowingLogo() {
+  Widget _buildGlowingLogo(BuildContext context) {
     return Center(
       child: Container(
         width: 100,
         height: 100,
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: Theme.of(context).colorScheme.surface,
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.8), width: 2),
+          border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.8), width: 2),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF00C2FF).withOpacity(0.25),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.25),
               blurRadius: 20,
               spreadRadius: 2,
             ),
           ],
         ),
-        child: const Icon(
+        child: Icon(
           Icons.swap_horizontal_circle_outlined,
-          color: Color(0xFF00C2FF),
+          color: Theme.of(context).colorScheme.primary,
           size: 56,
         ),
       ),
     );
   }
 
-  Widget _buildAboutCard() {
+  Widget _buildAboutCard(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withAlpha(10)),
+        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withAlpha(10)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'democratizing_education'.tr(),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 15),
           ),
           SizedBox(height: 10),
           Text(
             'Skill Swap is an innovative peer-to-peer knowledge barter platform designed to bring learners and mentors together. We believe that everyone is an expert in something and a student in another.\n\nOur mission is to bypass financial barriers in career growth, hobbies, and educational pursuits by establishing a direct value exchange—helping you teach what you love to learn what you need.',
-            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.5),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(BuildContext context, String title) {
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 12),
+        padding: EdgeInsets.only(left: 4, bottom: 12),
         child: Text(
           title,
-          style: const TextStyle(
-            color: Color(0xFF00C2FF),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
             fontSize: 11,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
@@ -143,20 +143,20 @@ class AboutScreen extends StatelessWidget {
     required String content,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF151D30),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withAlpha(8)),
+        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withAlpha(8)),
       ),
       child: ListTile(
         onTap: () => _showLegalBottomSheet(context, title, content),
-        leading: Icon(icon, color: const Color(0xFF00C2FF), size: 20),
+        leading: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
         title: Text(
           title,
-          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
         ),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
+        trailing: Icon(Icons.arrow_forward_ios_rounded, color: Theme.of(context).colorScheme.outlineVariant, size: 16),
       ),
     );
   }
@@ -165,8 +165,8 @@ class AboutScreen extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E293B),
-      shape: const RoundedRectangleBorder(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
@@ -174,7 +174,7 @@ class AboutScreen extends StatelessWidget {
       ),
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           height: MediaQuery.of(context).size.height * 0.75,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,21 +184,21 @@ class AboutScreen extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.white54),
+                    icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const Divider(color: Colors.white12, height: 20),
+              Divider(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6), height: 20),
               Expanded(
                 child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
+                  physics: BouncingScrollPhysics(),
                   child: Text(
                     content,
-                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.6),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.6),
                   ),
                 ),
               ),
@@ -209,7 +209,7 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  static const String _termsText = '''
+  static String _termsText = '''
 Welcome to Skill Swap! These Terms of Service ("Terms") govern your use of the Skill Swap mobile application and related platform.
 
 1. ACCEPTANCE OF TERMS
@@ -234,7 +234,7 @@ Skill Swap and its developers shall not be liable for any direct or indirect dam
 We reserve the right to modify these Terms at any time. Your continued use of the platform constitutes your agreement to such modifications.
 ''';
 
-  static const String _privacyText = '''
+  static String _privacyText = '''
 Your privacy is extremely important to us. This Privacy Policy describes how Skill Swap collects, protects, and handles your information.
 
 1. INFORMATION WE COLLECT
@@ -258,7 +258,7 @@ We utilize third-party SDKs including Google Firebase (Authentication, Storage, 
 We apply industry-standard cloud protection policies to protect your data. However, no database transmission is 100% secure. Please choose strong, unique credentials.
 ''';
 
-  static const String _licensesText = '''
+  static String _licensesText = '''
 Skill Swap is made possible by the incredible open-source community! Below are primary frameworks and libraries used:
 
 ■ Flutter SDK
@@ -285,8 +285,4 @@ Licensed under the BSD-style License.
 Copyright 2020 The Flutter Authors. All rights reserved.
 Licensed under the MIT License.
 ''';
-}
-
-class CenterPlayground {
-  static const CrossAxisAlignment crossAxisAlignment = CrossAxisAlignment.center;
 }

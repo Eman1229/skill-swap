@@ -5,7 +5,7 @@ import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Chat/conversation_screen.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({Key? key}) : super(key: key);
+  ChatScreen({Key? key}) : super(key: key);
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -91,25 +91,25 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: StreamBuilder<List<Map<String, dynamic>>>(
           stream: _conversationsStream,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting &&
                 !snap.hasData) {
-              return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF00C2FF)),
+              return Center(
+                child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
               );
             }
             if (snap.hasError) {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.all(24),
                   child: Text(
                     'Error: ${snap.error}',
-                    style: const TextStyle(
-                        color: Colors.white38, fontSize: 12),
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -144,10 +144,10 @@ class _ChatScreenState extends State<ChatScreen> {
             _buildHeader(showSearch: false),
             Expanded(
               child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
+                physics: BouncingScrollPhysics(),
                 child: Column(
                   children: [
-                    const SizedBox(height: 40),
+                    SizedBox(height: 40),
 
                     // Icon area
                     Stack(
@@ -158,9 +158,9 @@ class _ChatScreenState extends State<ChatScreen> {
                           height: 110,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(0xFF1E293B),
+                            color: Theme.of(context).colorScheme.surface,
                             border: Border.all(
-                                color: const Color(0xFF00C2FF)
+                                color: Theme.of(context).colorScheme.primary
                                     .withOpacity(0.15)),
                           ),
                         ),
@@ -171,16 +171,16 @@ class _ChatScreenState extends State<ChatScreen> {
                             shape: BoxShape.circle,
                             gradient: LinearGradient(
                               colors: [
-                                const Color(0xFF1E293B),
-                                const Color(0xFF0F172A).withOpacity(0.8),
+                                Theme.of(context).colorScheme.surface,
+                                Theme.of(context).scaffoldBackgroundColor.withOpacity(0.8),
                               ],
                             ),
                             border: Border.all(
-                                color: const Color(0xFF00C2FF)
+                                color: Theme.of(context).colorScheme.primary
                                     .withOpacity(0.3)),
                           ),
-                          child: const Icon(Icons.chat_bubble_rounded,
-                              color: Color(0xFF00C2FF), size: 32),
+                          child: Icon(Icons.chat_bubble_rounded,
+                              color: Theme.of(context).colorScheme.primary, size: 32),
                         ),
                         Positioned(
                           top: 8,
@@ -188,7 +188,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           child: Container(
                             width: 36,
                             height: 36,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
                                 colors: [
@@ -197,25 +197,25 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ],
                               ),
                             ),
-                            child: const Icon(Icons.auto_awesome_rounded,
-                                color: Colors.white, size: 18),
+                            child: Icon(Icons.auto_awesome_rounded,
+                                color: Theme.of(context).colorScheme.onSurface, size: 18),
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
 
                     // Badge
                     Container(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                           horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                             color:
-                            const Color(0xFF00C2FF).withOpacity(0.3)),
+                            Theme.of(context).colorScheme.primary.withOpacity(0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -223,16 +223,16 @@ class _ChatScreenState extends State<ChatScreen> {
                           Container(
                             width: 7,
                             height: 7,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF00C2FF),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          const Text(
+                          SizedBox(width: 6),
+                          Text(
                             'WAITING FOR SPARK',
                             style: TextStyle(
-                              color: Color(0xFF00C2FF),
+                              color: Theme.of(context).colorScheme.primary,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.8,
@@ -242,36 +242,36 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 28),
-                    const Text(
+                    SizedBox(height: 28),
+                    Text(
                       'No conversations yet',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    const Padding(
+                    SizedBox(height: 10),
+                    Padding(
                       padding: EdgeInsets.symmetric(horizontal: 48),
                       child: Text(
                         'When you find a skill you\'d like to swap,\nyou can start a chat with a mentor.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.white38,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                           fontSize: 13,
                           height: 1.6,
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 28),
+                    SizedBox(height: 28),
 
                     // Explore Now button
                     Container(
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                        gradient: LinearGradient(
+                          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                         ),
@@ -281,20 +281,20 @@ class _ChatScreenState extends State<ChatScreen> {
                         onPressed: () => Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const SwappingAvailable()),
+                              builder: (_) => SwappingAvailable()),
                               (route) => false,
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          shape: const StadiumBorder(),
-                          padding: const EdgeInsets.symmetric(
+                          shape: StadiumBorder(),
+                          padding: EdgeInsets.symmetric(
                               horizontal: 40, vertical: 14),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Explore Now!',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),
@@ -302,20 +302,20 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 40),
+                    SizedBox(height: 40),
 
                     // Suggested Mentors header
                     Padding(
                       padding:
-                      const EdgeInsets.symmetric(horizontal: 20),
+                      EdgeInsets.symmetric(horizontal: 20),
                       child: Row(
                         mainAxisAlignment:
                         MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Suggested Mentors',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -325,8 +325,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                     () => _showAllMentors = !_showAllMentors),
                             child: Text(
                               _showAllMentors ? 'Show Less' : 'See All',
-                              style: const TextStyle(
-                                color: Color(0xFF00C2FF),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -336,17 +336,17 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
 
                     // Mentor list — 4 or all
                     if (displayMentors.isEmpty)
-                      const SizedBox(height: 60)
+                      SizedBox(height: 60)
                     else
                       ListView.builder(
                         shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
+                        physics: NeverScrollableScrollPhysics(),
                         padding:
-                        const EdgeInsets.symmetric(horizontal: 20),
+                        EdgeInsets.symmetric(horizontal: 20),
                         itemCount: displayMentors.length,
                         itemBuilder: (_, i) => _SuggestedMentorTile(
                           swap: displayMentors[i],
@@ -355,7 +355,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
 
-                    const SizedBox(height: 100),
+                    SizedBox(height: 100),
                   ],
                 ),
               ),
@@ -379,17 +379,17 @@ class _ChatScreenState extends State<ChatScreen> {
     return Column(
       children: [
         _buildHeader(showSearch: true),
-        const SizedBox(height: 14),
+        SizedBox(height: 14),
         _buildRecentMentorsRow(conversations, currentUid),
         Expanded(
           child: filtered.isEmpty
-              ? const Center(
+              ? Center(
             child: Text('No conversations found',
                 style: TextStyle(
-                    color: Colors.white38, fontSize: 13)),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13)),
           )
               : ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: 20),
             itemCount: filtered.length,
             itemBuilder: (_, i) {
               final c = filtered[i];
@@ -413,7 +413,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 userId: otherUserId,
                 name: name,
                 initials: initials,
-                avatarColor: const Color(0xFF6B8AFF),
+                avatarColor: Color(0xFF6B8AFF),
                 offering: skill,
                 wanting: wanting,
                 rating: 0.0,
@@ -438,17 +438,17 @@ class _ChatScreenState extends State<ChatScreen> {
   // ── Recent mentors row ────────────────────────────────────────────
   Widget _buildRecentMentorsRow(
       List<Map<String, dynamic>> conversations, String currentUid) {
-    if (conversations.isEmpty) return const SizedBox.shrink();
+    if (conversations.isEmpty) return SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(left: 20, bottom: 12),
           child: Text(
             'Recent Mentors',
             style: TextStyle(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 15,
               fontWeight: FontWeight.bold,
             ),
@@ -458,7 +458,7 @@ class _ChatScreenState extends State<ChatScreen> {
           height: 90,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: 20),
             itemCount: conversations.length,
             itemBuilder: (_, i) {
               final c = conversations[i];
@@ -476,7 +476,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 userId: otherUserId,
                 name: name,
                 initials: initials,
-                avatarColor: const Color(0xFF6B8AFF),
+                avatarColor: Color(0xFF6B8AFF),
                 offering: c['skill'] as String? ?? '',
                 wanting: c['wanting'] as String? ?? '',
                 rating: 0.0,
@@ -492,7 +492,7 @@ class _ChatScreenState extends State<ChatScreen> {
             },
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
       ],
     );
   }
@@ -500,7 +500,7 @@ class _ChatScreenState extends State<ChatScreen> {
   // ── Header ───────────────────────────────────────────────────────
   Widget _buildHeader({required bool showSearch}) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Column(
         children: [
           Row(
@@ -508,21 +508,21 @@ class _ChatScreenState extends State<ChatScreen> {
               Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                    colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                   ),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.person_rounded,
-                    color: Colors.white, size: 22),
+                child: Icon(Icons.person_rounded,
+                    color: Theme.of(context).colorScheme.onSurface, size: 22),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
+              SizedBox(width: 12),
+              Expanded(
                 child: Text(
                   'Messages',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -532,26 +532,26 @@ class _ChatScreenState extends State<ChatScreen> {
             ],
           ),
           if (showSearch) ...[
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             Container(
               height: 46,
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                    color: const Color(0xFF00C2FF).withOpacity(0.15)),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.15)),
               ),
               child: TextField(
                 controller: _searchController,
                 onChanged: (v) => setState(() => _searchQuery = v),
-                style: const TextStyle(
-                    color: Colors.white, fontSize: 14),
-                decoration: const InputDecoration(
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
+                decoration: InputDecoration(
                   hintText: 'Search conversations...',
                   hintStyle:
-                  TextStyle(color: Colors.white38, fontSize: 13),
+                  TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13),
                   suffixIcon: Icon(Icons.search_rounded,
-                      color: Colors.white38, size: 20),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), size: 20),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(
                       horizontal: 16, vertical: 14),
@@ -570,11 +570,11 @@ class _ThreeDotMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      color: const Color(0xFF1E293B),
+      color: Theme.of(context).colorScheme.surface,
       shape:
       RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      icon: const Icon(Icons.more_vert_rounded,
-          color: Colors.white54, size: 22),
+      icon: Icon(Icons.more_vert_rounded,
+          color: Theme.of(context).colorScheme.onSurfaceVariant, size: 22),
       onSelected: (value) {},
       itemBuilder: (_) => [
         PopupMenuItem(
@@ -582,23 +582,23 @@ class _ThreeDotMenu extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Mute Notifications',
-                  style: TextStyle(color: Colors.white, fontSize: 13)),
+              Text('Mute Notifications',
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13)),
               Switch(
                 value: false,
                 onChanged: (_) {},
-                activeColor: const Color(0xFF00C2FF),
+                activeColor: Theme.of(context).colorScheme.primary,
               ),
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'mark',
           child: Text('Mark all as read',
-              style: TextStyle(color: Colors.white, fontSize: 13)),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13)),
         ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
+        PopupMenuDivider(),
+        PopupMenuItem(
           value: 'clear',
           child: Text('Clear all chats',
               style:
@@ -613,7 +613,7 @@ class _ThreeDotMenu extends StatelessWidget {
 class _SuggestedMentorTile extends StatelessWidget {
   final SwapListing swap;
   final VoidCallback onTap;
-  const _SuggestedMentorTile(
+  _SuggestedMentorTile(
       {required this.swap, required this.onTap});
 
   @override
@@ -621,14 +621,14 @@ class _SuggestedMentorTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(
+        margin: EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.symmetric(
             horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: const Color(0xFF00C2FF).withOpacity(0.1)),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
         ),
         child: Row(
           children: [
@@ -640,31 +640,31 @@ class _SuggestedMentorTile extends StatelessWidget {
                   shape: BoxShape.circle),
               child: Center(
                 child: Text(swap.initials,
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                         fontSize: 16)),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(swap.name,
-                      style: const TextStyle(
-                          color: Colors.white,
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                           fontSize: 14)),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(swap.offering,
-                      style: const TextStyle(
-                          color: Colors.white38, fontSize: 12)),
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12)),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                color: Colors.white24, size: 14),
+            Icon(Icons.arrow_forward_ios_rounded,
+                color: Theme.of(context).colorScheme.outlineVariant, size: 14),
           ],
         ),
       ),
@@ -677,7 +677,7 @@ class _RecentMentorAvatar extends StatelessWidget {
   final SwapListing swap;
   final String otherUserId;
   final VoidCallback onTap;
-  const _RecentMentorAvatar({
+  _RecentMentorAvatar({
     required this.swap,
     required this.otherUserId,
     required this.onTap,
@@ -688,7 +688,7 @@ class _RecentMentorAvatar extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(right: 16),
+        margin: EdgeInsets.only(right: 16),
         child: Column(
           children: [
             Stack(
@@ -700,14 +700,14 @@ class _RecentMentorAvatar extends StatelessWidget {
                     color: swap.avatarColor,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF00C2FF),
+                      color: Theme.of(context).colorScheme.primary,
                       width: 2.5,
                     ),
                   ),
                   child: Center(
                     child: Text(swap.initials,
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.bold,
                             fontSize: 18)),
                   ),
@@ -723,7 +723,7 @@ class _RecentMentorAvatar extends StatelessWidget {
                       as Map<String, dynamic>?;
                       final isOnline =
                           userData?['isOnline'] as bool? ?? false;
-                      if (!isOnline) return const SizedBox.shrink();
+                      if (!isOnline) return SizedBox.shrink();
                       return Positioned(
                         bottom: 2,
                         right: 2,
@@ -731,10 +731,10 @@ class _RecentMentorAvatar extends StatelessWidget {
                           width: 13,
                           height: 13,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF22C55E),
+                            color: Color(0xFF22C55E),
                             shape: BoxShape.circle,
                             border: Border.all(
-                                color: const Color(0xFF0F172A),
+                                color: Theme.of(context).scaffoldBackgroundColor,
                                 width: 2),
                           ),
                         ),
@@ -743,11 +743,11 @@ class _RecentMentorAvatar extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               swap.name.split(' ').first,
-              style: const TextStyle(
-                  color: Colors.white54, fontSize: 11),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11),
             ),
           ],
         ),
@@ -764,7 +764,7 @@ class _ConversationTile extends StatelessWidget {
   final String resolvedName;
   final VoidCallback onTap;
 
-  const _ConversationTile({
+  _ConversationTile({
     required this.data,
     required this.currentUid,
     required this.otherUserId,
@@ -790,13 +790,13 @@ class _ConversationTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        margin: EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: const Color(0xFF00C2FF).withOpacity(0.08)),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.08)),
         ),
         child: Row(
           children: [
@@ -805,14 +805,14 @@ class _ConversationTile extends StatelessWidget {
                 Container(
                   width: 50,
                   height: 50,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: Color(0xFF6B8AFF),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: Text(initials,
-                        style: const TextStyle(
-                            color: Colors.white,
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.bold,
                             fontSize: 16)),
                   ),
@@ -828,7 +828,7 @@ class _ConversationTile extends StatelessWidget {
                       as Map<String, dynamic>?;
                       final isOnline =
                           userData?['isOnline'] as bool? ?? false;
-                      if (!isOnline) return const SizedBox.shrink();
+                      if (!isOnline) return SizedBox.shrink();
                       return Positioned(
                         bottom: 1,
                         right: 1,
@@ -836,10 +836,10 @@ class _ConversationTile extends StatelessWidget {
                           width: 13,
                           height: 13,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF22C55E),
+                            color: Color(0xFF22C55E),
                             shape: BoxShape.circle,
                             border: Border.all(
-                                color: const Color(0xFF0F172A),
+                                color: Theme.of(context).scaffoldBackgroundColor,
                                 width: 2),
                           ),
                         ),
@@ -848,7 +848,7 @@ class _ConversationTile extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -857,25 +857,25 @@ class _ConversationTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(resolvedName,
-                            style: const TextStyle(
-                                color: Colors.white,
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14),
                             overflow: TextOverflow.ellipsis),
                       ),
                       Text(timeStr,
-                          style: const TextStyle(
-                              color: Colors.white38, fontSize: 11)),
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 11)),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Row(
                     children: [
                       Expanded(
                         child: Text(
                           lastMsg,
-                          style: const TextStyle(
-                              color: Colors.white38, fontSize: 12),
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -883,14 +883,14 @@ class _ConversationTile extends StatelessWidget {
                         Container(
                           width: 20,
                           height: 20,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF00C2FF),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
                             shape: BoxShape.circle,
                           ),
                           child: Center(
                             child: Text('$unread',
-                                style: const TextStyle(
-                                    color: Colors.white,
+                                style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold)),
                           ),
@@ -898,10 +898,10 @@ class _ConversationTile extends StatelessWidget {
                     ],
                   ),
                   if (skill.isNotEmpty) ...[
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     _SkillTag(
                         label: 'Skill: $skill',
-                        color: const Color(0xFF00C2FF)),
+                        color: Theme.of(context).colorScheme.primary),
                   ],
                 ],
               ),
@@ -926,12 +926,12 @@ class _ConversationTile extends StatelessWidget {
 class _SkillTag extends StatelessWidget {
   final String label;
   final Color color;
-  const _SkillTag({required this.label, required this.color});
+  _SkillTag({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(8),

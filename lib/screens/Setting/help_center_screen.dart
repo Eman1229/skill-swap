@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class HelpCenterScreen extends StatefulWidget {
-  const HelpCenterScreen({super.key});
+  HelpCenterScreen({super.key});
 
   @override
   State<HelpCenterScreen> createState() => _HelpCenterScreenState();
@@ -63,27 +63,27 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'help_center_title'.tr(),
-          style:  TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style:  TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFF00C2FF),
+          indicatorColor: Theme.of(context).colorScheme.primary,
           indicatorWeight: 3,
-          labelColor: const Color(0xFF00C2FF),
-          unselectedLabelColor: Colors.white38,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          dividerColor: Colors.white.withOpacity(0.05),
+          labelColor: Theme.of(context).colorScheme.primary,
+          unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
+          labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          dividerColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
           tabs: [
             Tab(text: 'faqs'.tr()),
             Tab(text: 'contact_support'.tr()),
@@ -102,22 +102,22 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
 
   Widget _buildFAQsTab() {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       children: [
         _buildSearchBoxMock(),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         Text(
           'frequently_asked'.tr(),
-          style: const TextStyle(
-            color: Color(0xFF00C2FF),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
             fontSize: 11,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
           ),
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 14),
         ..._faqs.map((faq) => _buildFAQTile(faq['q']!, faq['a']!)),
-        const SizedBox(height: 40),
+        SizedBox(height: 40),
       ],
     );
   }
@@ -126,19 +126,19 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.15)),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.15)),
       ),
       child: Row(
         children: [
-          const SizedBox(width: 16),
-          const Icon(Icons.search, color: Color(0xFF00C2FF), size: 20),
-          const SizedBox(width: 12),
+          SizedBox(width: 16),
+          Icon(Icons.search, color: Theme.of(context).colorScheme.primary, size: 20),
+          SizedBox(width: 12),
           Expanded(
             child: Text(
               'search_questions'.tr(),
-              style: const TextStyle(color: Colors.white38, fontSize: 14),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 14),
             ),
           ),
         ],
@@ -148,48 +148,42 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
 
   Widget _buildFAQTile(String question, String answer) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withAlpha(8)),
+        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withAlpha(8)),
       ),
-      child: Theme(
-        data: Theme.of(context).copyWith(
-          dividerColor: Colors.transparent,
-          unselectedWidgetColor: Colors.white38,
+      child: ExpansionTile(
+        collapsedIconColor: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
+        iconColor: Theme.of(context).colorScheme.primary,
+        tilePadding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        childrenPadding: EdgeInsets.only(left: 20, right: 20, bottom: 20),
+        title: Text(
+          question,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
         ),
-        child: ExpansionTile(
-          collapsedIconColor: Colors.white38,
-          iconColor: const Color(0xFF00C2FF),
-          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-          childrenPadding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
-          title: Text(
-            question,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+        children: [
+          Text(
+            answer,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 13,
+              height: 1.5,
             ),
           ),
-          children: [
-            Text(
-              answer,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 13,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildContactTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       child: Form(
         key: _formKey,
         child: Column(
@@ -197,28 +191,28 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
           children: [
             Text(
               'submit_ticket'.tr(),
-              style: const TextStyle(
-                color: Color(0xFF00C2FF),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               'help_desk_reply'.tr(),
-              style: const TextStyle(color: Colors.white38, fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             _buildDropdownField(),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildTextField(
               controller: _subjectController,
               label: 'subject'.tr(),
               hint: 'e.g. Chat is not loading',
               validator: (v) => v == null || v.trim().isEmpty ? 'Subject is required' : null,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildTextField(
               controller: _messageController,
               label: 'message_description'.tr(),
@@ -226,9 +220,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
               maxLines: 5,
               validator: (v) => v == null || v.trim().isEmpty ? 'Please describe your query' : null,
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
             _buildSubmitButton(),
-            const SizedBox(height: 40),
+            SizedBox(height: 40),
           ],
         ),
       ),
@@ -241,22 +235,22 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
       children: [
         Text(
           'issue_category'.tr(),
-          style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.white.withAlpha(15)),
+            border: Border.all(color: Theme.of(context).colorScheme.onSurface.withAlpha(15)),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _selectedCategory,
-              dropdownColor: const Color(0xFF1E293B),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF00C2FF)),
+              dropdownColor: Theme.of(context).colorScheme.surface,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
+              icon: Icon(Icons.keyboard_arrow_down_rounded, color: Theme.of(context).colorScheme.primary),
               isExpanded: true,
               onChanged: (String? newValue) {
                 if (newValue != null) {
@@ -288,36 +282,36 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         TextFormField(
           controller: controller,
           maxLines: maxLines,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
           validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
+            hintStyle: TextStyle(color: Theme.of(context).colorScheme.outlineVariant, fontSize: 14),
             filled: true,
-            fillColor: const Color(0xFF1E293B),
+            fillColor: Theme.of(context).colorScheme.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
-              borderSide: BorderSide(color: Colors.white.withAlpha(15)),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withAlpha(15)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
-              borderSide: BorderSide(color: Colors.white.withAlpha(15)),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withAlpha(15)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
-              borderSide: const BorderSide(color: Color(0xFF00C2FF), width: 1.5),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
-              borderSide: const BorderSide(color: Color(0xFFFF3B3B)),
+              borderSide: BorderSide(color: Color(0xFFFF3B3B)),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           ),
         ),
       ],
@@ -328,17 +322,17 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+        gradient: LinearGradient(
+          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00C2FF).withOpacity(0.3),
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
             blurRadius: 12,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -347,12 +341,12 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
         child: Text(
           'submit_support_ticket'.tr(),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 15),
         ),
       ),
     );
@@ -364,47 +358,47 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
         context: context,
         builder: (context) {
           return AlertDialog(
-            backgroundColor: const Color(0xFF1E293B),
+            backgroundColor: Theme.of(context).colorScheme.surface,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF0F172A),
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check_circle_outline_rounded,
-                    color: Color(0xFF00C2FF),
+                    color: Theme.of(context).colorScheme.primary,
                     size: 48,
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 Text(
                   'ticket_submitted'.tr(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 Text(
                   'Your query has been logged under Reference #${(100000 + (DateTime.now().millisecond * 8)).toString()}.\n\nOur team will contact you at your registered email address shortly.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.4),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context); // Close dialog
                     Navigator.pop(context); // Go back to settings
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00C2FF),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: Text('return_to_settings'.tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: Text('return_to_settings'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),

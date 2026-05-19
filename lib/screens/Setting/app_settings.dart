@@ -7,6 +7,12 @@ class AppSettings {
 
   // Theme Settings
   final ValueNotifier<bool> isDarkMode = ValueNotifier<bool>(true);
+  ThemeMode get themeMode =>
+      isDarkMode.value ? ThemeMode.dark : ThemeMode.light;
+
+  void setDarkMode(bool value) {
+    isDarkMode.value = value;
+  }
 
   // Notification Settings
   final ValueNotifier<bool> notificationsEnabled = ValueNotifier<bool>(true);
@@ -15,10 +21,14 @@ class AppSettings {
   final ValueNotifier<bool> marketingEmailsEnabled = ValueNotifier<bool>(false);
 
   // Language Settings
-  final ValueNotifier<String> currentLanguage = ValueNotifier<String>('English');
+  final ValueNotifier<String> currentLanguage = ValueNotifier<String>(
+    'English',
+  );
 
   // Privacy & Security Settings
-  final ValueNotifier<String> profileVisibility = ValueNotifier<String>('Public');
+  final ValueNotifier<String> profileVisibility = ValueNotifier<String>(
+    'Public',
+  );
   final ValueNotifier<bool> showOnlineStatus = ValueNotifier<bool>(true);
   final ValueNotifier<bool> directMessagesEnabled = ValueNotifier<bool>(true);
 

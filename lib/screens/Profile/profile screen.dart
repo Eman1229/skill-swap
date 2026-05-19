@@ -28,14 +28,14 @@ class ProfileAvatar extends StatefulWidget {
   final SwapListing swap;
   final double size;
   final bool allowEdit;
-  final Color borderColor;
+  final Color? borderColor;
 
-  const ProfileAvatar({
+  ProfileAvatar({
     Key? key,
     required this.swap,
     this.size = 100,
     this.allowEdit = true,
-    this.borderColor = const Color(0xFF0F172A),
+    this.borderColor,
   }) : super(key: key);
 
   @override
@@ -89,7 +89,7 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
                   ? 'Camera access denied. Please allow access in Settings.'
                   : 'Gallery access denied. Please allow access in Settings.',
             ),
-            backgroundColor: const Color(0xFFEF4444),
+            backgroundColor: Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -121,14 +121,15 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
                     color: imageFile == null ? widget.swap.avatarColor : null,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: widget.borderColor,
+                      color:
+                          widget.borderColor ?? Theme.of(context).scaffoldBackgroundColor,
                       width: 4,
                     ),
                     boxShadow: [
                       BoxShadow(
                         color: widget.swap.avatarColor.withOpacity(0.4),
                         blurRadius: 20,
-                        offset: const Offset(0, 8),
+                        offset: Offset(0, 8),
                       ),
                     ],
                     image: imageFile != null
@@ -148,7 +149,7 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
                     child: Text(
                       widget.swap.initials,
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                         fontSize: size * 0.32,
                       ),
@@ -166,27 +167,28 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
                       width: cameraIconSize + 6,
                       height: cameraIconSize + 6,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                        gradient: LinearGradient(
+                          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: widget.borderColor,
+                          color:
+                              widget.borderColor ?? Theme.of(context).scaffoldBackgroundColor,
                           width: 2.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF00C2FF).withOpacity(0.4),
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
                             blurRadius: 8,
-                            offset: const Offset(0, 3),
+                            offset: Offset(0, 3),
                           ),
                         ],
                       ),
                       child: Icon(
                         Icons.camera_alt_rounded,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         size: cameraIconSize,
                       ),
                     ),
@@ -208,7 +210,7 @@ class _ImageSourceSheet extends StatelessWidget {
   final VoidCallback onGallerySelected;
   final VoidCallback? onRemoveSelected;
 
-  const _ImageSourceSheet({
+  _ImageSourceSheet({
     required this.onCameraSelected,
     required this.onGallerySelected,
     this.onRemoveSelected,
@@ -217,12 +219,12 @@ class _ImageSourceSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+      margin: EdgeInsets.fromLTRB(16, 0, 16, 32),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFF00C2FF).withOpacity(0.15),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
         ),
       ),
       child: Column(
@@ -230,42 +232,42 @@ class _ImageSourceSheet extends StatelessWidget {
         children: [
           // ── Handle ──
           Container(
-            margin: const EdgeInsets.only(top: 12, bottom: 4),
+            margin: EdgeInsets.only(top: 12, bottom: 4),
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white24,
+              color: Theme.of(context).colorScheme.outlineVariant,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
 
           // ── Header ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+            padding: EdgeInsets.fromLTRB(24, 16, 24, 8),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                    gradient: LinearGradient(
+                      colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.account_circle_rounded,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     size: 20,
                   ),
                 ),
-                const SizedBox(width: 12),
-                const Column(
+                SizedBox(width: 12),
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Update Profile Photo',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -273,7 +275,7 @@ class _ImageSourceSheet extends StatelessWidget {
                     Text(
                       'Choose how to upload your picture',
                       style: TextStyle(
-                        color: Colors.white38,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                         fontSize: 12,
                       ),
                     ),
@@ -283,23 +285,23 @@ class _ImageSourceSheet extends StatelessWidget {
             ),
           ),
 
-          Divider(color: Colors.white.withOpacity(0.07), height: 24),
+          Divider(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.07), height: 24),
 
           // ── Camera Option ──
           _SheetOption(
             icon: Icons.camera_alt_rounded,
-            iconGradient: const [Color(0xFF00C2FF), Color(0xFF0EA5E9)],
+            iconGradient: [Theme.of(context).colorScheme.primary, Color(0xFF0EA5E9)],
             label: 'Take a Photo',
             subtitle: 'Allow camera access to take a new picture',
             onTap: onCameraSelected,
           ),
 
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
 
           // ── Gallery Option ──
           _SheetOption(
             icon: Icons.photo_library_rounded,
-            iconGradient: const [Color(0xFF6B8AFF), Color(0xFF8B5CF6)],
+            iconGradient: [Color(0xFF6B8AFF), Color(0xFF8B5CF6)],
             label: 'Choose from Gallery',
             subtitle: 'Pick an existing photo from your device',
             onTap: onGallerySelected,
@@ -307,10 +309,10 @@ class _ImageSourceSheet extends StatelessWidget {
 
           // ── Remove Option (only if photo is set) ──
           if (onRemoveSelected != null) ...[
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             _SheetOption(
               icon: Icons.delete_outline_rounded,
-              iconGradient: const [Color(0xFFEF4444), Color(0xFFF97316)],
+              iconGradient: [Color(0xFFEF4444), Color(0xFFF97316)],
               label: 'Remove Photo',
               subtitle: 'Revert back to your initials avatar',
               onTap: onRemoveSelected!,
@@ -318,26 +320,26 @@ class _ImageSourceSheet extends StatelessWidget {
             ),
           ],
 
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           // ── Cancel ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            padding: EdgeInsets.fromLTRB(24, 0, 24, 16),
             child: SizedBox(
               width: double.infinity,
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: Colors.white.withOpacity(0.05),
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Cancel',
                   style: TextStyle(
-                    color: Colors.white54,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -359,7 +361,7 @@ class _SheetOption extends StatelessWidget {
   final VoidCallback onTap;
   final bool isDestructive;
 
-  const _SheetOption({
+  _SheetOption({
     required this.icon,
     required this.iconGradient,
     required this.label,
@@ -371,21 +373,21 @@ class _SheetOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.04),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.04),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isDestructive
-                    ? const Color(0xFFEF4444).withOpacity(0.15)
-                    : Colors.white.withOpacity(0.06),
+                    ? Color(0xFFEF4444).withOpacity(0.15)
+                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.06),
               ),
             ),
             child: Row(
@@ -401,9 +403,9 @@ class _SheetOption extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: Colors.white, size: 22),
+                  child: Icon(icon, color: Theme.of(context).colorScheme.onSurface, size: 22),
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,8 +414,8 @@ class _SheetOption extends StatelessWidget {
                         label,
                         style: TextStyle(
                           color: isDestructive
-                              ? const Color(0xFFEF4444)
-                              : Colors.white,
+                              ? Color(0xFFEF4444)
+                              : Theme.of(context).colorScheme.onSurface,
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
@@ -421,7 +423,7 @@ class _SheetOption extends StatelessWidget {
                       Text(
                         subtitle,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                           fontSize: 12,
                         ),
                       ),
@@ -440,17 +442,17 @@ class _SheetOption extends StatelessWidget {
 class ProfileScreen extends StatelessWidget {
   final SwapListing swap;
 
-  const ProfileScreen({Key? key, required this.swap}) : super(key: key);
+  ProfileScreen({Key? key, required this.swap}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 100),
+            physics: BouncingScrollPhysics(),
+            padding: EdgeInsets.only(bottom: 100),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -459,30 +461,30 @@ class ProfileScreen extends StatelessWidget {
                 Container(
                   width: double.infinity,
                   height: 220,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                      colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                   ),
                   child: SafeArea(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           GestureDetector(
                             onTap: () => Navigator.pop(context),
                             child: Container(
-                              padding: const EdgeInsets.all(8),
+                              padding: EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withAlpha(51), // 0.2 * 255
+                                color: Theme.of(context).colorScheme.onSurface.withAlpha(51), // 0.2 * 255
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.arrow_back,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 size: 22,
                               ),
                             ),
@@ -495,7 +497,7 @@ class ProfileScreen extends StatelessWidget {
 
                 // ── Avatar overlapping gradient ──
                 Transform.translate(
-                  offset: const Offset(0, -60),
+                  offset: Offset(0, -60),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -507,28 +509,28 @@ class ProfileScreen extends StatelessWidget {
                               swap: swap,
                               size: 100,
                               allowEdit: false,
-                              borderColor: const Color(0xFF0F172A),
+                              borderColor: Theme.of(context).scaffoldBackgroundColor,
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             Text(
                               swap.name,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            SizedBox(height: 6),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.star_rounded,
+                                Icon(Icons.star_rounded,
                                     color: Color(0xFFFBBF24), size: 18),
-                                const SizedBox(width: 4),
+                                SizedBox(width: 4),
                                 Text(
                                   '${swap.rating.toStringAsFixed(1)}(${swap.reviews} Swaps)',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -539,10 +541,10 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 28),
+                      SizedBox(height: 28),
 
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: EdgeInsets.symmetric(horizontal: 24),
                         child: Column(
                           children: [
                             _DetailRow(
@@ -591,28 +593,28 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
 
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: EdgeInsets.symmetric(horizontal: 24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Description',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: 8),
                             Text(
                               swap.description.isNotEmpty
                                   ? swap.description
                                   : 'No description provided.',
-                              style: const TextStyle(
-                                color: Colors.white54,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontSize: 13,
                                 height: 1.6,
                               ),
@@ -621,28 +623,28 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
 
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: EdgeInsets.symmetric(horizontal: 24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Experience',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: 8),
                             Text(
                               swap.experience.isNotEmpty
                                   ? swap.experience
                                   : 'No experience details provided.',
-                              style: const TextStyle(
-                                color: Colors.white54,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontSize: 13,
                                 height: 1.6,
                               ),
@@ -651,25 +653,25 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
 
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: EdgeInsets.symmetric(horizontal: 24),
                         child: Row(
                           children: [
                             Container(
                               width: 8,
                               height: 8,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF00C2FF),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
                                 shape: BoxShape.circle,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            const Text(
+                            SizedBox(width: 8),
+                            Text(
                               'the skill available',
                               style: TextStyle(
-                                color: Color(0xFF00C2FF),
+                                color: Theme.of(context).colorScheme.primary,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -691,12 +693,12 @@ class ProfileScreen extends StatelessWidget {
               left: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),
+                padding: EdgeInsets.fromLTRB(24, 16, 24, 30),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
+                  color: Theme.of(context).scaffoldBackgroundColor,
                   border: Border(
                     top: BorderSide(
-                      color: const Color(0xFF00C2FF).withAlpha(26), // 0.1 * 255
+                      color: Theme.of(context).colorScheme.primary.withAlpha(26), // 0.1 * 255
                     ),
                   ),
                 ),
@@ -713,29 +715,29 @@ class ProfileScreen extends StatelessWidget {
                           );
                         },
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                              color: Color(0xFF00C2FF), width: 1.5),
+                          side: BorderSide(
+                              color: Theme.of(context).colorScheme.primary, width: 1.5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Message',
                           style: TextStyle(
-                            color: Color(0xFF00C2FF),
+                            color: Theme.of(context).colorScheme.primary,
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16),
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                          gradient: LinearGradient(
+                            colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                           ),
@@ -758,7 +760,7 @@ class ProfileScreen extends StatelessWidget {
                             if (snap.docs.isEmpty) {
                               showDialog(
                                 context: context,
-                                builder: (_) => const NoSkillDialog(),
+                                builder: (_) => NoSkillDialog(),
                               );
                             } else {
                               Navigator.push(
@@ -772,13 +774,13 @@ class ProfileScreen extends StatelessWidget {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,
-                            shape: const StadiumBorder(),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: StadiumBorder(),
+                            padding: EdgeInsets.symmetric(vertical: 14),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Request Swap',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
@@ -814,7 +816,7 @@ class ProfileScreen extends StatelessWidget {
     if (uri == null || uri.pathSegments.isEmpty) {
       return url;
     }
-    
+
     String lastSegment = uri.pathSegments.last;
     try {
       lastSegment = Uri.decodeComponent(lastSegment);
@@ -864,7 +866,7 @@ class ProfileScreen extends StatelessWidget {
                   color: Colors.transparent,
                   child: InteractiveViewer(
                     panEnabled: true,
-                    boundaryMargin: const EdgeInsets.all(20),
+                    boundaryMargin: EdgeInsets.all(20),
                     minScale: 0.5,
                     maxScale: 4.0,
                     child: Image.network(
@@ -872,22 +874,22 @@ class ProfileScreen extends StatelessWidget {
                       fit: BoxFit.contain,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
-                        return const Center(
+                        return Center(
                           child: CircularProgressIndicator(
-                            color: Color(0xFF00C2FF),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
-                        return const Center(
+                        return Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.broken_image_rounded, color: Colors.white38, size: 64),
+                              Icon(Icons.broken_image_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), size: 64),
                               SizedBox(height: 12),
                               Text(
                                 'Failed to load image',
-                                style: TextStyle(color: Colors.white54, fontSize: 14),
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
                               ),
                             ],
                           ),
@@ -907,17 +909,17 @@ class ProfileScreen extends StatelessWidget {
                     Expanded(
                       child: Text(
                         fileName,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+                      icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface, size: 28),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -946,11 +948,11 @@ class ProfileScreen extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Opening $fileName...'),
-          backgroundColor: const Color(0xFF00C2FF),
-          duration: const Duration(seconds: 2),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          duration: Duration(seconds: 2),
         ),
       );
-      
+
       if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
         throw 'Could not launch URL';
       }
@@ -959,7 +961,7 @@ class ProfileScreen extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Could not open document: $e'),
-            backgroundColor: const Color(0xFFEF4444),
+            backgroundColor: Color(0xFFEF4444),
           ),
         );
       }
@@ -979,7 +981,7 @@ class _DetailRow extends StatelessWidget {
   final bool isLink;
   final VoidCallback? onTap;
 
-  const _DetailRow({
+  _DetailRow({
     required this.label,
     required this.value,
     this.isText = true,
@@ -992,14 +994,14 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           SizedBox(
             width: 110,
             child: Text(
               label,
-              style: const TextStyle(color: Colors.white38, fontSize: 13),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13),
             ),
           ),
           Expanded(
@@ -1007,8 +1009,8 @@ class _DetailRow extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (icon != null) ...[
-                  Icon(icon, color: Colors.white70, size: 14),
-                  const SizedBox(width: 6),
+                  Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 14),
+                  SizedBox(width: 6),
                 ],
                 Flexible(
                   child: GestureDetector(
@@ -1018,10 +1020,10 @@ class _DetailRow extends StatelessWidget {
                       textAlign: TextAlign.right,
                       style: TextStyle(
                         color: isHighlight
-                            ? const Color(0xFF00C2FF)
+                            ? Theme.of(context).colorScheme.primary
                             : isLink
-                            ? const Color(0xFF6B8AFF)
-                            : Colors.white,
+                            ? Color(0xFF6B8AFF)
+                            : Theme.of(context).colorScheme.onSurface,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         decoration: isLink ? TextDecoration.underline : null,
@@ -1042,6 +1044,6 @@ class _DetailRow extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Divider(color: Colors.white.withOpacity(0.07), height: 1);
+    return Divider(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.07), height: 1);
   }
 }

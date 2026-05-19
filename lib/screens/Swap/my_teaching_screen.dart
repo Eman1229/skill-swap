@@ -6,7 +6,7 @@ import 'package:skill_swap/screens/Swap/skill_detail_screen.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class MyTeachingScreen extends StatefulWidget {
-  const MyTeachingScreen({Key? key}) : super(key: key);
+  MyTeachingScreen({Key? key}) : super(key: key);
 
   @override
   State<MyTeachingScreen> createState() => _MyTeachingScreenState();
@@ -22,20 +22,20 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
     final uid = _auth.currentUser?.uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text('my_teaching'.tr(),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
       body: uid == null
-          ? const Center(child: Text('Please login', style: TextStyle(color: Colors.white)))
+          ? Center(child: Text('Please login', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))
           : Column(
               children: [
                 _buildFilters(),
@@ -47,11 +47,11 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator(color: Color(0xFF00C2FF)));
+                        return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
                       }
 
                       var docs = snapshot.data?.docs ?? [];
-                      
+
                       // Filter logic
                       if (_selectedFilter != 'All') {
                         docs = docs.where((doc) {
@@ -67,19 +67,19 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                       final swapsList = docs.map((doc) => SwapModel.fromDoc(doc)).toList();
 
                       return SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
+                        padding: EdgeInsets.all(24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             ...swapsList.map((swap) {
                               return _TeachingCard(swap: swap);
                             }),
-                            const SizedBox(height: 32),
-                            const Text('Teaching Dashboard',
-                                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 32),
+                            Text('Teaching Dashboard',
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                            SizedBox(height: 16),
                             _buildTeachingStats(swapsList, uid),
-                            const SizedBox(height: 40),
+                            SizedBox(height: 40),
                           ],
                         ),
                       );
@@ -95,27 +95,27 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
     final filters = ['All', 'Ongoing', 'Completed', 'Upcoming'];
     return Container(
       height: 40,
-      margin: const EdgeInsets.symmetric(vertical: 16),
+      margin: EdgeInsets.symmetric(vertical: 16),
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: EdgeInsets.symmetric(horizontal: 24),
         scrollDirection: Axis.horizontal,
         itemCount: filters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => SizedBox(width: 12),
         itemBuilder: (context, index) {
           final isSelected = _selectedFilter == filters[index];
           return GestureDetector(
             onTap: () => setState(() => _selectedFilter = filters[index]),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFA855F7) : const Color(0xFF1E293B),
+                color: isSelected ? Theme.of(context).colorScheme.secondary : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Center(
                 child: Text(
                   filters[index],
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.white54,
+                    color: isSelected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     fontSize: 13,
                   ),
@@ -129,8 +129,8 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
-      child: Text('No teaching swaps found.', style: TextStyle(color: Colors.white54)),
+    return Center(
+      child: Text('No teaching swaps found.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
     );
   }
 
@@ -177,14 +177,14 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                     value: '$uniqueStudents',
                     icon: Icons.people_alt_rounded,
                     color: Colors.blueAccent)),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
                 child: _StatCard(
                     label: 'HOURS',
                     value: totalHours,
                     icon: Icons.access_time_filled_rounded,
                     color: Colors.purpleAccent)),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
                 child: _StatCard(
                     label: 'RATING',
@@ -204,24 +204,24 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final Color color;
 
-  const _StatCard({required this.label, required this.value, required this.icon, required this.color});
+  _StatCard({required this.label, required this.value, required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withValues(alpha: 0.1)),
       ),
       child: Column(
         children: [
           Icon(icon, color: color, size: 24),
-          const SizedBox(height: 12),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10, letterSpacing: 0.5)),
+          SizedBox(height: 12),
+          Text(value, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold)),
+          SizedBox(height: 4),
+          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 10, letterSpacing: 0.5)),
         ],
       ),
     );
@@ -230,7 +230,7 @@ class _StatCard extends StatelessWidget {
 
 class _TeachingCard extends StatelessWidget {
   final SwapModel swap;
-  const _TeachingCard({required this.swap});
+  _TeachingCard({required this.swap});
 
   @override
   Widget build(BuildContext context) {
@@ -247,12 +247,12 @@ class _TeachingCard extends StatelessWidget {
         }
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(16),
+          margin: EdgeInsets.only(bottom: 16),
+          padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFA855F7).withValues(alpha: 0.1)),
+            border: Border.all(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,48 +275,48 @@ class _TeachingCard extends StatelessWidget {
                               fit: BoxFit.cover,
                             ),
                           )
-                        : const Icon(Icons.person, color: Colors.white24),
+                        : Icon(Icons.person, color: Theme.of(context).colorScheme.outlineVariant),
                   ),
-                  const SizedBox(width: 14),
+                  SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(swap.learnerName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(swap.skillName.toUpperCase(), style: const TextStyle(color: Colors.white38, fontSize: 11, letterSpacing: 0.5)),
+                        Text(swap.learnerName, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(swap.skillName.toUpperCase(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 11, letterSpacing: 0.5)),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFA855F7).withValues(alpha: 0.1),
+                      color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(swap.status.toUpperCase(),
-                        style: const TextStyle(color: Color(0xFFA855F7), fontSize: 10, fontWeight: FontWeight.bold)),
+                        style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Progress: ${(swap.progress * 100).toInt()}%', style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                  Text('Session ${swap.completedSessions} of ${swap.totalSessions}', style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                  Text('Progress: ${(swap.progress * 100).toInt()}%', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                  Text('Session ${swap.completedSessions} of ${swap.totalSessions}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12)),
                 ],
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: LinearProgressIndicator(
                   value: swap.progress,
-                  backgroundColor: Colors.white.withValues(alpha: 0.05),
-                  color: const Color(0xFFA855F7),
+                  backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                  color: Theme.of(context).colorScheme.secondary,
                   minHeight: 6,
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               _PrimaryBtnSmall(
                 label: 'View Details',
                 onTap: () => Navigator.push(
@@ -336,7 +336,7 @@ class _PrimaryBtnSmall extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _PrimaryBtnSmall({required this.label, required this.onTap});
+  _PrimaryBtnSmall({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -344,16 +344,16 @@ class _PrimaryBtnSmall extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1)),
         ),
         child: Center(
           child: Text(
             label,
-            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ),
       ),

@@ -9,7 +9,7 @@ import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 class EditProfileScreen extends StatefulWidget {
   final SwapListing swap;
 
-  const EditProfileScreen({super.key, required this.swap});
+  EditProfileScreen({super.key, required this.swap});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -61,7 +61,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           .upload(
         fileName,
         imageFile,
-        fileOptions: const FileOptions(upsert: true),
+        fileOptions: FileOptions(upsert: true),
       );
 
       final String publicUrl = _supabase.storage
@@ -74,7 +74,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Image upload failed: $e'),
-            backgroundColor: const Color(0xFFEF4444),
+            backgroundColor: Color(0xFFEF4444),
           ),
         );
       }
@@ -137,7 +137,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await _db
           .collection('swapListings')
           .doc(widget.swap.id)
-          .get(const GetOptions(source: Source.server));
+          .get(GetOptions(source: Source.server));
 
       final currentEmail = _auth.currentUser?.email;
       final newEmail = _emailController.text.trim();
@@ -148,7 +148,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text(
                   'Email update requires recent login. Please sign out and sign in again.',
                 ),
@@ -159,9 +159,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Profile updated successfully ✓'),
-            backgroundColor: Color(0xFF00C2FF),
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
         Navigator.pop(context, true);
@@ -184,40 +184,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Edit Profile',
           style:
-          TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           if (_isSaving)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             )
           else
             TextButton(
               onPressed: _saveChanges,
-              child: const Text(
+              child: Text(
                 'SAVE',
                 style: TextStyle(
-                  color: Color(0xFF00C2FF),
+                  color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -225,7 +225,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           children: [
             // ── Avatar Edit ──
@@ -236,10 +236,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     width: 110,
                     height: 110,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
+                      color: Theme.of(context).colorScheme.surface,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: const Color(0xFF00C2FF).withAlpha(51),
+                        color: Theme.of(context).colorScheme.primary.withAlpha(51),
                         width: 3,
                       ),
                       image: _newImage != null
@@ -261,8 +261,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ? Center(
                       child: Text(
                         widget.swap.initials,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
                         ),
@@ -276,14 +276,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     child: GestureDetector(
                       onTap: _pickImage,
                       child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF00C2FF),
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.camera_alt_rounded,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           size: 20,
                         ),
                       ),
@@ -293,14 +293,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
 
-            const SizedBox(height: 40),
+            SizedBox(height: 40),
 
             _buildEditField(
               label: 'FULL NAME',
               controller: _nameController,
               icon: Icons.person_outline_rounded,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             _buildEditField(
               label: 'EMAIL ADDRESS',
               controller: _emailController,
@@ -308,11 +308,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               keyboardType: TextInputType.emailAddress,
             ),
 
-            const SizedBox(height: 32),
-            const Text(
+            SizedBox(height: 32),
+            Text(
               'Your profile information is visible to other swappers so they can identify and connect with you.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white38, fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12),
             ),
           ],
         ),
@@ -331,29 +331,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF00C2FF),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
             fontSize: 11,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.1,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withAlpha(13)),
+            border: Border.all(color: Theme.of(context).colorScheme.onSurface.withAlpha(13)),
           ),
           child: TextField(
             controller: controller,
             keyboardType: keyboardType,
-            style: const TextStyle(color: Colors.white, fontSize: 15),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 15),
             decoration: InputDecoration(
               prefixIcon:
-              Icon(icon, color: Colors.white38, size: 20),
+              Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), size: 20),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
+              contentPadding: EdgeInsets.symmetric(
                   horizontal: 16, vertical: 14),
             ),
           ),

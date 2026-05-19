@@ -3,7 +3,7 @@ import 'package:skill_swap/screens/Setting/app_settings.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class LanguageSettingsScreen extends StatefulWidget {
-  const LanguageSettingsScreen({super.key});
+  LanguageSettingsScreen({super.key});
 
   @override
   State<LanguageSettingsScreen> createState() => _LanguageSettingsScreenState();
@@ -47,24 +47,24 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'language'.tr(),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20),
             child: _buildSearchBar(),
           ),
           Expanded(
@@ -76,9 +76,9 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                   return _buildEmptyState();
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 20),
                   itemCount: list.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, __) => SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final lang = list[index];
                     final isSelected = currentLang == lang['name'];
@@ -97,21 +97,21 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFF00C2FF).withOpacity(0.2)),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
       ),
       child: TextField(
         controller: _searchController,
         onChanged: (v) => setState(() => _searchQuery = v.trim()),
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
         decoration: InputDecoration(
           hintText: 'search_language'.tr(),
-          hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
-          prefixIcon: const Icon(Icons.search, color: Color(0xFF00C2FF)),
+          hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 14),
+          prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.primary),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white54),
+                  icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   onPressed: () {
                     _searchController.clear();
                     setState(() => _searchQuery = '');
@@ -119,7 +119,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         ),
       ),
     );
@@ -134,41 +134,41 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${'language'.tr()}: ${lang['name']}'),
-            backgroundColor: const Color(0xFF00C2FF),
-            duration: const Duration(seconds: 1),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            duration: Duration(seconds: 1),
           ),
         );
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1E293B) : const Color(0xFF151D30),
+          color: isSelected ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFF00C2FF) : Colors.white.withAlpha(13),
+            color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withAlpha(13),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
         child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+          contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 4),
           leading: Text(
             lang['flag']!,
-            style: const TextStyle(fontSize: 22),
+            style: TextStyle(fontSize: 22),
           ),
           title: Text(
             lang['native']!,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.white70,
+              color: isSelected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
           ),
           subtitle: Text(
             lang['name']!,
-            style: const TextStyle(color: Colors.white38, fontSize: 11),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 11),
           ),
           trailing: isSelected
-              ? const Icon(Icons.check_circle_rounded, color: Color(0xFF00C2FF), size: 22)
+              ? Icon(Icons.check_circle_rounded, color: Theme.of(context).colorScheme.primary, size: 22)
               : null,
         ),
       ),
@@ -180,16 +180,16 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.language_rounded, color: const Color(0xFF00C2FF).withOpacity(0.5), size: 64),
-          const SizedBox(height: 16),
+          Icon(Icons.language_rounded, color: Theme.of(context).colorScheme.primary.withOpacity(0.5), size: 64),
+          SizedBox(height: 16),
           Text(
             'no_language_found'.tr(),
-            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'search_another_language'.tr(),
-            style: const TextStyle(color: Colors.white38, fontSize: 13),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13),
           ),
         ],
       ),

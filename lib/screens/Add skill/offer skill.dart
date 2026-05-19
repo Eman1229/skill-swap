@@ -7,7 +7,7 @@ import 'dart:io';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class OfferSkillScreen extends StatefulWidget {
-  const OfferSkillScreen({super.key});
+  OfferSkillScreen({super.key});
 
   @override
   State<OfferSkillScreen> createState() => _OfferSkillScreenState();
@@ -52,7 +52,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
   ];
 
   String _mapCategory(String label) {
-    const map = {
+    final map = {
       'Creative & Design': 'Design',
       'Tech & Digital': 'Coding',
       'Music & Art': 'Music',
@@ -98,7 +98,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             .uploadBinary(
           fileName,
           file.bytes!,
-          fileOptions: const FileOptions(upsert: true),
+          fileOptions: FileOptions(upsert: true),
         );
       } else if (file.path != null) {
         await _supabase.storage
@@ -106,7 +106,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             .upload(
           fileName,
           File(file.path!),
-          fileOptions: const FileOptions(upsert: true),
+          fileOptions: FileOptions(upsert: true),
         );
       } else {
         throw 'File data not found';
@@ -125,9 +125,9 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('File uploaded successfully ✓'),
-            backgroundColor: Color(0xFF00C2FF),
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
       }
@@ -137,7 +137,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Upload failed: $e'),
-            backgroundColor: const Color(0xFFFF3B3B),
+            backgroundColor: Color(0xFFFF3B3B),
           ),
         );
       }
@@ -208,7 +208,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: const Color(0xFFFF3B3B),
+            backgroundColor: Color(0xFFFF3B3B),
           ),
         );
       }
@@ -219,23 +219,23 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
             _buildHeader(),
             Expanded(
               child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
+                physics: BouncingScrollPhysics(),
                 padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildLabel('title_label'.tr(), required: true),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _buildTextField(
                         controller: _titleController,
                         hint: 'e.g. Web Engineering',
@@ -243,10 +243,10 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                             ? 'Title is required'
                             : null,
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
 
                       _buildLabel('category_label'.tr(), required: true),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _buildDropdown(
                         hint: 'Select a category',
                         value: _selectedCategory,
@@ -256,10 +256,10 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                         validator: (v) =>
                         v == null ? 'Please select a category' : null,
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
 
                       _buildLabel('experience_level'.tr(), required: true),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _buildDropdown(
                         hint: 'Your experience level',
                         value: _selectedExperience,
@@ -269,10 +269,10 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                         validator: (v) =>
                         v == null ? 'Please select a level' : null,
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
 
                       _buildLabel('looking_for'.tr(), required: true),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _buildTextField(
                         controller: _lookingForController,
                         hint: 'Exchange skill preferences',
@@ -280,25 +280,25 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                             ? 'Please enter what you want'
                             : null,
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
 
                       _buildLabel('portfolio'.tr(), required: true),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _buildPortfolioField(),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
 
                       _buildLabel('description_label'.tr()),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _buildTextField(
                         controller: _descriptionController,
                         hint:
                         'Describe your skill, experience level and what you can offer…',
                         maxLines: 4,
                       ),
-                      const SizedBox(height: 36),
+                      SizedBox(height: 36),
 
                       _buildButtons(),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -322,93 +322,93 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
               ? 'Portfolio link or document is required'
               : null,
           style: TextStyle(
-            color: _pickedFile != null ? Colors.white54 : Colors.white,
+            color: _pickedFile != null ? Theme.of(context).colorScheme.onSurfaceVariant : Theme.of(context).colorScheme.onSurface,
             fontSize: 14,
           ),
           decoration: InputDecoration(
             hintText: 'Paste a link or tap to upload a doc',
-            hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+            hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13),
             filled: true,
-            fillColor: const Color(0xFF1E293B),
+            fillColor: Theme.of(context).colorScheme.surface,
             contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             suffixIcon: _isUploading
-                ? const Padding(
+                ? Padding(
               padding: EdgeInsets.all(12),
               child: SizedBox(
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(
-                  color: Color(0xFF00C2FF),
+                  color: Theme.of(context).colorScheme.primary,
                   strokeWidth: 2,
                 ),
               ),
             )
                 : IconButton(
-              icon: const Icon(Icons.attach_file_rounded,
-                  color: Color(0xFF00C2FF), size: 20),
+              icon: Icon(Icons.attach_file_rounded,
+                  color: Theme.of(context).colorScheme.primary, size: 20),
               tooltip: 'Upload portfolio doc',
               onPressed: _pickedFile == null ? _pickAndUploadFile : null,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide:
-              BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
+              BorderSide(color: Theme.of(context).colorScheme.primary.withAlpha(51)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide:
-              BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
+              BorderSide(color: Theme.of(context).colorScheme.primary.withAlpha(51)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide:
-              const BorderSide(color: Color(0xFF00C2FF), width: 1.5),
+              BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFFF3B3B)),
+              borderSide: BorderSide(color: Color(0xFFFF3B3B)),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide:
-              const BorderSide(color: Color(0xFFFF3B3B), width: 1.5),
+              BorderSide(color: Color(0xFFFF3B3B), width: 1.5),
             ),
           ),
         ),
 
         // ── Uploaded file chip ──────────────────────────────────────
         if (_pickedFile != null) ...[
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Container(
             padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                  color: const Color(0xFF00C2FF).withAlpha(77)),
+                  color: Theme.of(context).colorScheme.primary.withAlpha(77)),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00C2FF).withAlpha(31),
+                    color: Theme.of(context).colorScheme.primary.withAlpha(31),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.insert_drive_file_rounded,
-                      color: Color(0xFF00C2FF), size: 18),
+                  child: Icon(Icons.insert_drive_file_rounded,
+                      color: Theme.of(context).colorScheme.primary, size: 18),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         _pickedFile!.name,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -417,38 +417,38 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       if (_pickedFile!.size > 0)
                         Text(
                           '${(_pickedFile!.size / 1024).toStringAsFixed(1)} KB',
-                          style: const TextStyle(
-                              color: Colors.white38, fontSize: 11),
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 11),
                         ),
                     ],
                   ),
                 ),
                 if (_isUploading)
-                  const Text('Uploading…',
+                  Text('Uploading…',
                       style: TextStyle(
-                          color: Color(0xFF00C2FF), fontSize: 11))
+                          color: Theme.of(context).colorScheme.primary, fontSize: 11))
                 else if (_uploadedFileUrl != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(
+                    padding: EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00C2FF).withAlpha(38),
+                      color: Theme.of(context).colorScheme.primary.withAlpha(38),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text('Uploaded ✓',
+                    child: Text('Uploaded ✓',
                         style: TextStyle(
-                            color: Color(0xFF00C2FF), fontSize: 11)),
+                            color: Theme.of(context).colorScheme.primary, fontSize: 11)),
                   ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 GestureDetector(
                   onTap: _clearFile,
                   child: Container(
-                    padding: const EdgeInsets.all(4),
+                    padding: EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF3B3B).withAlpha(31),
+                      color: Color(0xFFFF3B3B).withAlpha(31),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.close_rounded,
+                    child: Icon(Icons.close_rounded,
                         color: Color(0xFFFF3B3B), size: 14),
                   ),
                 ),
@@ -462,7 +462,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
           GestureDetector(
@@ -471,17 +471,17 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: Colors.white.withAlpha(51),
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(51),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white, size: 16),
+              child: Icon(Icons.arrow_back_ios_new_rounded,
+                  color: Theme.of(context).colorScheme.onSurface, size: 16),
             ),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Text('offer_new_skill'.tr(),
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 18,
                   fontWeight: FontWeight.bold)),
         ],
@@ -493,12 +493,12 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
     return Row(
       children: [
         Text(text,
-            style: const TextStyle(
-                color: Colors.white,
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 13,
                 fontWeight: FontWeight.w600)),
         if (required)
-          const Text(' *',
+          Text(' *',
               style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
       ],
     );
@@ -515,37 +515,37 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       controller: controller,
       maxLines: maxLines,
       validator: validator,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
+      style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+        hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13),
         suffixIcon: suffix,
         filled: true,
-        fillColor: const Color(0xFF1E293B),
+        fillColor: Theme.of(context).colorScheme.surface,
         contentPadding:
-        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide:
-          BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
+          BorderSide(color: Theme.of(context).colorScheme.primary.withAlpha(51)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide:
-          BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
+          BorderSide(color: Theme.of(context).colorScheme.primary.withAlpha(51)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF00C2FF), width: 1.5),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFFF3B3B)),
+          borderSide: BorderSide(color: Color(0xFFFF3B3B)),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide:
-          const BorderSide(color: Color(0xFFFF3B3B), width: 1.5),
+          BorderSide(color: Color(0xFFFF3B3B), width: 1.5),
         ),
       ),
     );
@@ -562,42 +562,42 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       value: value,
       onChanged: onChanged,
       validator: validator,
-      dropdownColor: const Color(0xFF1E293B),
-      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-          color: Color(0xFF00C2FF)),
-      style: const TextStyle(color: Colors.white, fontSize: 14),
+      dropdownColor: Theme.of(context).colorScheme.surface,
+      icon: Icon(Icons.keyboard_arrow_down_rounded,
+          color: Theme.of(context).colorScheme.primary),
+      style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+        hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13),
         filled: true,
-        fillColor: const Color(0xFF1E293B),
+        fillColor: Theme.of(context).colorScheme.surface,
         contentPadding:
-        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide:
-          BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
+          BorderSide(color: Theme.of(context).colorScheme.primary.withAlpha(51)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide:
-          BorderSide(color: const Color(0xFF00C2FF).withAlpha(51)),
+          BorderSide(color: Theme.of(context).colorScheme.primary.withAlpha(51)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF00C2FF), width: 1.5),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFFF3B3B)),
+          borderSide: BorderSide(color: Color(0xFFFF3B3B)),
         ),
       ),
       items: items
           .map((e) => DropdownMenuItem(
         value: e,
         child: Text(e,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 14)),
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
       ))
           .toList(),
     );
@@ -611,21 +611,21 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             onPressed: _isLoading ? null : () => Navigator.pop(context),
             style: OutlinedButton.styleFrom(
               side: BorderSide(
-                  color: const Color(0xFF00C2FF).withAlpha(102)),
+                  color: Theme.of(context).colorScheme.primary.withAlpha(102)),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: EdgeInsets.symmetric(vertical: 14),
             ),
             child: Text('cancel'.tr(),
-                style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16),
         Expanded(
           child: Container(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+              gradient: LinearGradient(
+                colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
@@ -636,18 +636,18 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
-                shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: StadiumBorder(),
+                padding: EdgeInsets.symmetric(vertical: 14),
               ),
               child: _isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2))
+                      color: Theme.of(context).colorScheme.onSurface, strokeWidth: 2))
                   : Text('add_skill'.tr(),
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                       fontSize: 14)),
             ),
