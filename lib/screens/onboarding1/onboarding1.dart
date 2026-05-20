@@ -5,24 +5,24 @@ import 'package:skill_swap/screens/SkillsChoose/Selecting Skills.dart';
 import '../../Ui_helper/Ui_helper.dart';
 
 class OnBoardingScreen extends StatelessWidget {
-  const OnBoardingScreen({super.key});
+  OnBoardingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("Welcome to SkillSwapX", style: TextStyle(fontFamily:"Nunito",fontSize: 26, fontWeight: FontWeight.w400,
-                  color: Color(0xFF00C2FF),
+                  color: Theme.of(context).colorScheme.primary,
                 ), textAlign: TextAlign.center,
               ),
               SizedBox(height: 12),
               Text("Trade Skills, Learn cool stuff, No money needed", style: TextStyle(fontFamily:"Inter",fontSize: 14,
-                fontWeight: FontWeight.w500, color: Color(0XFFF8FAFC),
+                fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -35,13 +35,13 @@ class OnBoardingScreen extends StatelessWidget {
                 height: 52,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.push(context, 
+                    Navigator.push(context,
                     MaterialPageRoute(builder: (context)
-                    => const SignInScreen(),),
+                    => SignInScreen(),),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF00C2FF),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 
 class SignInvalidScreen extends StatefulWidget {
-  const SignInvalidScreen({Key? key}) : super(key: key);
+  SignInvalidScreen({Key? key}) : super(key: key);
 
   @override
   State<SignInvalidScreen> createState() => _SignInScreenState();
@@ -15,7 +15,7 @@ class _SignInScreenState extends State<SignInvalidScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Dark blue background
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Dark blue background
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -23,9 +23,9 @@ class _SignInScreenState extends State<SignInvalidScreen> {
             Container(
               height: MediaQuery.of(context).size.height * 0.4,
               width: double.infinity,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                  colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -43,18 +43,18 @@ class _SignInScreenState extends State<SignInvalidScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onSurface,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text("Hi!", style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: Text("Hi!", style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
-                        const SizedBox(height: 10),
-                        const Text(
+                        SizedBox(height: 10),
+                        Text(
                           "Welcome\nBack!",
                           style: TextStyle(
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
                           ),
@@ -82,21 +82,21 @@ class _SignInScreenState extends State<SignInvalidScreen> {
 
             // Bottom Section (Sign In Form)
             Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(24.0),
               child: Column(
                 children: [
-                  const Text(
+                  Text(
                     "Sign in",
                     style: TextStyle(
-                      color: Color(0xFF00C2FF),
+                      color: Theme.of(context).colorScheme.primary,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
 
                   // ERROR MESSAGE FROM SCREENSHOT
-                  const Text(
+                  Text(
                     "Invalid email or password",
                     style: TextStyle(
                       color: Colors.red,
@@ -104,31 +104,31 @@ class _SignInScreenState extends State<SignInvalidScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 40),
+                  SizedBox(height: 40),
 
                   // Email Field (with Red Error Icon)
-                  UiHelper.CustomTextField(
+                  UiHelper.CustomTextField(context: context,
                     controller: _emailController,
                     text: "user@gmail.com",
                     tohide: false,
                     textinputtype: TextInputType.emailAddress,
                     prefixIcon: Icons.email_outlined,
-                    suffixIcon: const Icon(Icons.cancel, color: Colors.red, size: 20),
+                    suffixIcon: Icon(Icons.cancel, color: Colors.red, size: 20),
                   ),
 
-                  const SizedBox(height: 25),
+                  SizedBox(height: 25),
 
                   // Password Field
-                  UiHelper.CustomTextField(
+                  UiHelper.CustomTextField(context: context,
                     controller: _passwordController,
                     text: "Password",
                     tohide: true,
                     textinputtype: TextInputType.text,
                     prefixIcon: Icons.lock_outline,
-                    suffixIcon: const Icon(Icons.visibility_outlined, color: Colors.white24, size: 20),
+                    suffixIcon: Icon(Icons.visibility_outlined, color: Theme.of(context).colorScheme.outlineVariant, size: 20),
                   ),
 
-                  const SizedBox(height: 50),
+                  SizedBox(height: 50),
 
                   // Proceed Button
                   SizedBox(
@@ -137,15 +137,15 @@ class _SignInScreenState extends State<SignInvalidScreen> {
                     child: ElevatedButton(
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00C2FF),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         "Proceed",
                         style: TextStyle(
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 18,
                             fontWeight: FontWeight.bold
                         ),
@@ -153,7 +153,7 @@ class _SignInScreenState extends State<SignInvalidScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
 
                   // Footer Links
                   Row(
@@ -161,20 +161,20 @@ class _SignInScreenState extends State<SignInvalidScreen> {
                     children: [
                       TextButton(
                         onPressed: () {},
-                        child: const Text(
+                        child: Text(
                             "Forgot Password?",
-                            style: TextStyle(color: Color(0xFF00C2FF))
+                            style: TextStyle(color: Theme.of(context).colorScheme.primary)
                         ),
                       ),
                       Row(
                         children: [
-                          const Text("New member? ", style: TextStyle(color: Colors.white70)),
+                          Text("New member? ", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                           GestureDetector(
                             onTap: () {},
-                            child: const Text(
+                            child: Text(
                                 "Sign up",
                                 style: TextStyle(
-                                    color: Color(0xFF00C2FF),
+                                    color: Theme.of(context).colorScheme.primary,
                                     fontWeight: FontWeight.bold
                                 )
                             ),
@@ -183,9 +183,9 @@ class _SignInScreenState extends State<SignInvalidScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 60),
+                  SizedBox(height: 60),
                   UiHelper.CustomImage(imgurl: "Cl.png"),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                 ],
               ),
             ),

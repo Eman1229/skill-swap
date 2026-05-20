@@ -2,14 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 import '../Add skill/offer skill.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  HomeScreen({Key? key}) : super(key: key);
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -48,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _navigating = true;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const SwappingAvailable()),
+          MaterialPageRoute(builder: (_) => SwappingAvailable()),
         );
       }
     });
@@ -64,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _listingsSub?.cancel();
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const OfferSkillScreen()),
+      MaterialPageRoute(builder: (_) => OfferSkillScreen()),
     );
     if (mounted) _startListening();
   }
@@ -98,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const SignInScreen()),
+      MaterialPageRoute(builder: (_) => SignInScreen()),
     );
   }
 
@@ -107,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -115,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               width: double.infinity,
               height: screenHeight * 0.16,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF0B1F3B), Color(0xFF2563EB)],
                   begin: Alignment.topLeft,
@@ -126,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   bottomRight: Radius.circular(28),
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -135,43 +135,53 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.25),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         width: 2,
                       ),
                     ),
-                    child: Center(
-                      child: Text(
-                        _initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
+                    child: _auth.currentUser?.photoURL != null &&
+                            _auth.currentUser!.photoURL!.isNotEmpty
+                        ? ClipOval(
+                            child: Image.network(
+                              _auth.currentUser!.photoURL!,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Center(
+                            child: Text(
+                              _initials,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Good $_greeting, $_userName',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          '${'Good $_greeting'.tr()}, $_userName',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
                           ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
-                        const Text(
-                          'Keep growing every day!',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        Text(
+                          'keep_growing'.tr(),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                         ),
                       ],
                     ),
@@ -183,12 +193,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.notifications_outlined,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           size: 22,
                         ),
                       ),
@@ -198,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Container(
                           width: 10,
                           height: 10,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             color: Color(0xFFFF3B3B),
                             shape: BoxShape.circle,
                           ),
@@ -206,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   // Logout
                   GestureDetector(
                     onTap: _signOut,
@@ -214,12 +224,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.logout_rounded,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         size: 20,
                       ),
                     ),
@@ -231,34 +241,34 @@ class _HomeScreenState extends State<HomeScreen> {
             // ── SCROLLABLE BODY ──────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                physics: BouncingScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 22),
+                    SizedBox(height: 22),
 
                     // ── Search Bar ───────────────────────────────────
                     Container(
                       height: 50,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(15),
                         border: Border.all(
-                          color: const Color(0xFF00C2FF).withOpacity(0.2),
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
                         ),
                       ),
-                      child: const TextField(
-                        style: TextStyle(color: Colors.white, fontSize: 14),
+                      child: TextField(
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
                         decoration: InputDecoration(
-                          hintText: 'Search skills or topic...',
+                          hintText: 'search_skills'.tr(),
                           hintStyle: TextStyle(
-                            color: Colors.white38,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                             fontSize: 14,
                           ),
                           suffixIcon: Icon(
                             Icons.search,
-                            color: Color(0xFF00C2FF),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(
@@ -269,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // ── Category Chips ───────────────────────────────
                     SizedBox(
@@ -277,23 +287,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: _categories.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        separatorBuilder: (_, __) => SizedBox(width: 10),
                         itemBuilder: (context, index) {
                           final selected = _selectedCategory == index;
                           return GestureDetector(
                             onTap: () =>
                                 setState(() => _selectedCategory = index),
                             child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(
+                              duration: Duration(milliseconds: 200),
+                              padding: EdgeInsets.symmetric(
                                 horizontal: 18,
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
                                 gradient: selected
-                                    ? const LinearGradient(
+                                    ? LinearGradient(
                                   colors: [
-                                    Color(0xFF00C2FF),
+                                    Theme.of(context).colorScheme.primary,
                                     Color(0xFF6B8AFF),
                                   ],
                                   begin: Alignment.topLeft,
@@ -302,12 +312,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                     : null,
                                 color: selected
                                     ? null
-                                    : const Color(0xFF1E293B),
+                                    : Theme.of(context).colorScheme.surface,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: selected
                                       ? Colors.transparent
-                                      : const Color(0xFF00C2FF)
+                                      : Theme.of(context).colorScheme.primary
                                       .withOpacity(0.25),
                                 ),
                               ),
@@ -315,8 +325,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 _categories[index],
                                 style: TextStyle(
                                   color: selected
-                                      ? Colors.white
-                                      : Colors.white54,
+                                      ? Theme.of(context).colorScheme.onSurface
+                                      : Theme.of(context).colorScheme.onSurfaceVariant,
                                   fontSize: 13,
                                   fontWeight: selected
                                       ? FontWeight.w600
@@ -329,26 +339,26 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 26),
+                    SizedBox(height: 26),
 
                     // ── Featured Swaps — Empty State ─────────────────
-                    const _SectionTitle(title: 'Featured Swaps'),
-                    const SizedBox(height: 14),
+                    _SectionTitle(title: 'featured_swaps'.tr()),
+                    SizedBox(height: 14),
 
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      padding: EdgeInsets.symmetric(vertical: 40),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(25),
                         border: Border.all(
-                          color: const Color(0xFF00C2FF).withOpacity(0.15),
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF00C2FF).withOpacity(0.06),
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.06),
                             blurRadius: 20,
-                            offset: const Offset(0, 8),
+                            offset: Offset(0, 8),
                           ),
                         ],
                       ),
@@ -362,46 +372,46 @@ class _HomeScreenState extends State<HomeScreen> {
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
                                 colors: [
-                                  const Color(0xFF00C2FF).withOpacity(0.2),
-                                  const Color(0xFF6B8AFF).withOpacity(0.2),
+                                  Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                                  Color(0xFF6B8AFF).withOpacity(0.2),
                                 ],
                               ),
                               border: Border.all(
-                                color: const Color(0xFF00C2FF).withOpacity(0.3),
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
                                 width: 1.5,
                               ),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.person_off_outlined,
-                              color: Color(0xFF00C2FF),
+                              color: Theme.of(context).colorScheme.primary,
                               size: 30,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'No Listings Found',
+                          SizedBox(height: 16),
+                          Text(
+                            'no_listings_found'.tr(),
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Try adjusting your filters or be the\nfirst to start a new swap!',
+                          SizedBox(height: 8),
+                          Text(
+                            'adjust_filters'.tr(),
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: Colors.white38,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                               fontSize: 13,
                               height: 1.6,
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: 24),
                           Container(
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
+                              gradient: LinearGradient(
                                 colors: [
-                                  Color(0xFF00C2FF),
+                                  Theme.of(context).colorScheme.primary,
                                   Color(0xFF6B8AFF),
                                 ],
                                 begin: Alignment.topLeft,
@@ -414,16 +424,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 shadowColor: Colors.transparent,
-                                shape: const StadiumBorder(),
-                                padding: const EdgeInsets.symmetric(
+                                shape: StadiumBorder(),
+                                padding: EdgeInsets.symmetric(
                                   horizontal: 36,
                                   vertical: 14,
                                 ),
                               ),
-                              child: const Text(
-                                'Add a Listing',
+                              child: Text(
+                                'add_listing'.tr(),
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
                                 ),
@@ -434,20 +444,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 30),
+                    SizedBox(height: 30),
 
                     // ── Active Swap Sessions — Empty State ───────────
-                    const _SectionTitle(title: 'Active Swap Sessions'),
-                    const SizedBox(height: 14),
+                    _SectionTitle(title: 'active_swaps'.tr()),
+                    SizedBox(height: 14),
 
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      padding: EdgeInsets.symmetric(vertical: 32),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(25),
                         border: Border.all(
-                          color: const Color(0xFF00C2FF).withOpacity(0.15),
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
                         ),
                       ),
                       child: Column(
@@ -459,22 +469,22 @@ class _HomeScreenState extends State<HomeScreen> {
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
                                 colors: [
-                                  const Color(0xFF00C2FF).withOpacity(0.15),
-                                  const Color(0xFF6B8AFF).withOpacity(0.15),
+                                  Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                                  Color(0xFF6B8AFF).withOpacity(0.15),
                                 ],
                               ),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.downloading_outlined,
                               color: Color(0xFF6B8AFF),
                               size: 26,
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Nothing live yet',
+                          SizedBox(height: 12),
+                          Text(
+                            'nothing_live'.tr(),
                             style: TextStyle(
-                              color: Colors.white38,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                               fontSize: 13,
                             ),
                           ),
@@ -482,7 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 100),
+                    SizedBox(height: 100),
                   ],
                 ),
               ),
@@ -493,9 +503,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // ── Gradient FAB ──────────────────────────────────────────────
       floatingActionButton: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+            colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -505,16 +515,16 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: _openOfferSkill,
           backgroundColor: Colors.transparent,
           elevation: 0,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, color: Colors.white, size: 30),
+          shape: CircleBorder(),
+          child: Icon(Icons.add, color: Theme.of(context).colorScheme.onSurface, size: 30),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       // ── Bottom Nav Bar ────────────────────────────────────────────
       bottomNavigationBar: BottomAppBar(
-        color: const Color(0xFF1E293B),
-        shape: const CircularNotchedRectangle(),
+        color: Theme.of(context).colorScheme.surface,
+        shape: CircularNotchedRectangle(),
         notchMargin: 10,
         child: SizedBox(
           height: 60,
@@ -524,29 +534,29 @@ class _HomeScreenState extends State<HomeScreen> {
               _NavItem(
                 icon: Icons.home_outlined,
                 activeIcon: Icons.home_rounded,
-                label: 'Home',
+                label: 'home'.tr(),
                 selected: _selectedIndex == 0,
                 onTap: () => setState(() => _selectedIndex = 0),
               ),
               _NavItem(
                 icon: Icons.chat_bubble_outline_rounded,
                 activeIcon: Icons.chat_bubble_rounded,
-                label: 'Chat',
+                label: 'chat'.tr(),
                 selected: _selectedIndex == 1,
                 onTap: () => setState(() => _selectedIndex = 1),
               ),
-              const SizedBox(width: 48),
+              SizedBox(width: 48),
               _NavItem(
                 icon: Icons.swap_vert_rounded,
                 activeIcon: Icons.swap_vert_rounded,
-                label: 'Swaps',
+                label: 'swaps'.tr(),
                 selected: _selectedIndex == 2,
                 onTap: () => setState(() => _selectedIndex = 2),
               ),
               _NavItem(
                 icon: Icons.settings_outlined,
                 activeIcon: Icons.settings_rounded,
-                label: 'Settings',
+                label: 'settings'.tr(),
                 selected: _selectedIndex == 3,
                 onTap: () => setState(() => _selectedIndex = 3),
               ),
@@ -561,7 +571,7 @@ class _HomeScreenState extends State<HomeScreen> {
 // ── Section Title ─────────────────────────────────────────────────────
 class _SectionTitle extends StatelessWidget {
   final String title;
-  const _SectionTitle({required this.title});
+  _SectionTitle({required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -571,19 +581,19 @@ class _SectionTitle extends StatelessWidget {
           width: 4,
           height: 18,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+            gradient: LinearGradient(
+              colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: 10),
         Text(
           title,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
@@ -601,7 +611,7 @@ class _NavItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _NavItem({
+  _NavItem({
     required this.icon,
     required this.activeIcon,
     required this.label,
@@ -619,14 +629,14 @@ class _NavItem extends StatelessWidget {
         children: [
           Icon(
             selected ? activeIcon : icon,
-            color: selected ? const Color(0xFF00C2FF) : Colors.white38,
+            color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
             size: 24,
           ),
-          const SizedBox(height: 3),
+          SizedBox(height: 3),
           Text(
             label,
             style: TextStyle(
-              color: selected ? const Color(0xFF00C2FF) : Colors.white38,
+              color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
               fontSize: 10,
               fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
             ),

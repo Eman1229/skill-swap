@@ -17,7 +17,7 @@ import 'package:skill_swap/screens/onboarding1/onboarding1.dart';
            mainAxisAlignment: MainAxisAlignment.center,
            children: [
              UiHelper.CustomImage(imgurl: "nowifi.png"),
-             Text("You are Offline",style:TextStyle(fontFamily: "Nunito",color: Colors.white,fontWeight: FontWeight.w400,fontSize: 32),),
+             Text("You are Offline",style:TextStyle(fontFamily: "Nunito",color: Theme.of(context).colorScheme.onSurface,fontWeight: FontWeight.w400,fontSize: 32),),
              Text("No Internet connection found. Check",style: TextStyle(fontFamily: "Inter",fontSize: 14,color: Color(0XFF888888)),),
              SizedBox(
                height: 4,

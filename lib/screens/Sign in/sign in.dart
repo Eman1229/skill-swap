@@ -7,9 +7,10 @@ import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/screens/reset/Reset.dart';
 import 'package:skill_swap/screens/sign%20up/sign%20up.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key});
+  SignInScreen({super.key});
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -100,8 +101,8 @@ class _SignInScreenState extends State<SignInScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => snapshot.docs.isNotEmpty
-              ? const SwappingAvailable()
-              : const HomeScreen(),
+              ? SwappingAvailable()
+              : HomeScreen(),
         ),
       );
 
@@ -187,9 +188,9 @@ class _SignInScreenState extends State<SignInScreen> {
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
-        physics: const ClampingScrollPhysics(),
+        physics: ClampingScrollPhysics(),
         child: Column(
           children: [
             Stack(
@@ -200,9 +201,9 @@ class _SignInScreenState extends State<SignInScreen> {
                 Container(
                   height: screenHeight * 0.4,
                   width: double.infinity,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                      colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -214,19 +215,19 @@ class _SignInScreenState extends State<SignInScreen> {
                         left: 20,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text(
-                              "Hi!",
+                              "hi".tr(),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             SizedBox(height: 10),
                             Text(
-                              "Welcome\nBack!",
+                              "welcome_back".tr(),
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -251,38 +252,38 @@ class _SignInScreenState extends State<SignInScreen> {
                   padding: EdgeInsets.only(top: screenHeight * 0.32),
                   child: Container(
                     width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF0F172A),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(40),
                         topRight: Radius.circular(40),
                       ),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                           horizontal: 24.0, vertical: 35),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
 
                           // ── TITLE ──
-                          const Center(
+                          Center(
                             child: Text(
-                              "Sign in",
+                              "sign_in".tr(),
                               style: TextStyle(
-                                color: Color(0xFF00C2FF),
+                                color: Theme.of(context).colorScheme.primary,
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
 
-                          const SizedBox(height: 40),
+                          SizedBox(height: 40),
 
                           // ── EMAIL FIELD ──
-                          UiHelper.CustomTextField(
+                          UiHelper.CustomTextField(context: context,
                             controller: _emailController,
-                            text: "Email",
+                            text: "email".tr(),
                             tohide: false,
                             textinputtype: TextInputType.emailAddress,
                             prefixIcon: Icons.mail_outline,
@@ -302,19 +303,19 @@ class _SignInScreenState extends State<SignInScreen> {
                           // ── EMAIL ERROR ──
                           if (_emailError != null)
                             Padding(
-                              padding: const EdgeInsets.only(top: 6, left: 4),
+                              padding: EdgeInsets.only(top: 6, left: 4),
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.error_outline,
                                     color: Colors.redAccent,
                                     size: 14,
                                   ),
-                                  const SizedBox(width: 5),
+                                  SizedBox(width: 5),
                                   Expanded(
                                     child: Text(
                                       _emailError!,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.redAccent,
                                         fontSize: 12,
                                       ),
@@ -324,12 +325,12 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                             ),
 
-                          const SizedBox(height: 20),
+                          SizedBox(height: 20),
 
                           // ── PASSWORD FIELD ──
-                          UiHelper.CustomTextField(
+                          UiHelper.CustomTextField(context: context,
                             controller: _passwordController,
-                            text: "Password",
+                            text: "password".tr(),
                             tohide: !isPasswordVisible,
                             textinputtype: TextInputType.text,
                             prefixIcon: Icons.lock_outline,
@@ -338,7 +339,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                 isPasswordVisible
                                     ? Icons.visibility
                                     : Icons.visibility_off,
-                                color: Colors.white60,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                               onPressed: () => setState(
                                       () => isPasswordVisible = !isPasswordVisible),
@@ -348,19 +349,19 @@ class _SignInScreenState extends State<SignInScreen> {
                           // ── PASSWORD ERROR ──
                           if (_passwordError != null)
                             Padding(
-                              padding: const EdgeInsets.only(top: 6, left: 4),
+                              padding: EdgeInsets.only(top: 6, left: 4),
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.error_outline,
                                     color: Colors.redAccent,
                                     size: 14,
                                   ),
-                                  const SizedBox(width: 5),
+                                  SizedBox(width: 5),
                                   Expanded(
                                     child: Text(
                                       _passwordError!,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.redAccent,
                                         fontSize: 12,
                                       ),
@@ -370,15 +371,15 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                             ),
 
-                          const SizedBox(height: 24),
+                          SizedBox(height: 24),
 
                           // ── GENERAL ERROR BOX ──
                           if (_generalError != null)
                             Container(
                               width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
+                              padding: EdgeInsets.symmetric(
                                   horizontal: 14, vertical: 10),
-                              margin: const EdgeInsets.only(bottom: 12),
+                              margin: EdgeInsets.only(bottom: 12),
                               decoration: BoxDecoration(
                                 // ── FIXED: withOpacity → withValues ──
                                 color: Colors.red.withValues(alpha: 0.08),
@@ -390,16 +391,16 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.warning_amber_rounded,
                                     color: Colors.orangeAccent,
                                     size: 18,
                                   ),
-                                  const SizedBox(width: 8),
+                                  SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       _generalError!,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.orangeAccent,
                                         fontSize: 13,
                                       ),
@@ -416,20 +417,20 @@ class _SignInScreenState extends State<SignInScreen> {
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : signInUser,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00C2FF),
+                                backgroundColor: Theme.of(context).colorScheme.primary,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                               ),
                               child: _isLoading
-                                  ? const CircularProgressIndicator(
-                                color: Colors.white,
+                                  ? CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 strokeWidth: 2,
                               )
-                                  : const Text(
-                                "Proceed",
+                                  : Text(
+                                "proceed".tr(),
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -437,7 +438,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: 25),
+                          SizedBox(height: 25),
 
                           // ── FORGOT PASSWORD + SIGN UP ──
                           Row(
@@ -452,30 +453,30 @@ class _SignInScreenState extends State<SignInScreen> {
                                     ),
                                   );
                                 },
-                                child: const Text(
-                                  "Forgot Password?",
-                                  style: TextStyle(color: Color(0xFF00C2FF)),
+                                child: Text(
+                                  "forgot_password".tr(),
+                                  style: TextStyle(color: Theme.of(context).colorScheme.primary),
                                 ),
                               ),
                               Row(
                                 children: [
-                                  const Text(
-                                    "New member? ",
-                                    style: TextStyle(color: Colors.white70),
+                                  Text(
+                                    "new_member".tr(),
+                                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                                   ),
                                   GestureDetector(
                                     onTap: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => const SignUpScreen(),
+                                          builder: (_) => SignUpScreen(),
                                         ),
                                       );
                                     },
-                                    child: const Text(
-                                      "Sign up",
+                                    child: Text(
+                                      "sign_up".tr(),
                                       style: TextStyle(
-                                        color: Color(0xFF00C2FF),
+                                        color: Theme.of(context).colorScheme.primary,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -485,7 +486,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             ],
                           ),
 
-                          const SizedBox(height: 100),
+                          SizedBox(height: 100),
 
                           Center(
                             child: UiHelper.CustomImage(imgurl: "Cl.png"),

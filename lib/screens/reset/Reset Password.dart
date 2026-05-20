@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class NewPasswordScreen extends StatefulWidget {
   final String email;
 
-  const NewPasswordScreen({Key? key, required this.email}) : super(key: key);
+  NewPasswordScreen({Key? key, required this.email}) : super(key: key);
 
   @override
   State<NewPasswordScreen> createState() => _NewPasswordScreenState();
@@ -44,12 +45,12 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      
+
       // CASE 1: User is logged in -> Update password directly
       if (user != null) {
         await user.updatePassword(password);
         _snack('Password changed successfully!', color: Colors.green);
-        await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(Duration(seconds: 2));
         if (mounted) Navigator.pop(context);
         return;
       }
@@ -61,12 +62,12 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
       _snack('Identity verified! A final secure link is in your inbox.', color: Colors.green);
 
-      await Future.delayed(const Duration(seconds: 3));
+      await Future.delayed(Duration(seconds: 3));
 
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const SignInScreen()),
+        MaterialPageRoute(builder: (context) => SignInScreen()),
         (route) => false,
       );
     } on FirebaseAuthException catch (e) {
@@ -98,17 +99,17 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
     final bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white70),
+          icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).colorScheme.onSurfaceVariant),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25),
+        padding: EdgeInsets.symmetric(horizontal: 25),
         child: Column(
           children: [
             Expanded(
@@ -121,71 +122,71 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                         width: 90,
                         height: 90,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00C2FF).withAlpha(31),
+                          color: Theme.of(context).colorScheme.primary.withAlpha(31),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           isLoggedIn ? Icons.lock_open_rounded : Icons.verified_user_rounded,
                           size: 46,
-                          color: const Color(0xFF00C2FF),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
-                      const SizedBox(height: 28),
+                      SizedBox(height: 28),
                       Text(
-                        isLoggedIn ? 'Create New Password' : 'Identity Verified',
-                        style: const TextStyle(
-                          color: Color(0xFF00C2FF),
+                        isLoggedIn ? 'create_new_password'.tr() : 'identity_verified'.tr(),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       Text(
                         isLoggedIn
-                            ? 'Set your new secure password below.'
-                            : 'OTP verified. For maximum security, we will now send a final reset link to your email.',
+                            ? 'set_new_password'.tr()
+                            : 'otp_verified'.tr(),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white54,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 14,
                           height: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 36),
+                      SizedBox(height: 36),
 
                       if (isLoggedIn) ...[
-                        UiHelper.CustomTextField(
+                        UiHelper.CustomTextField(context: context,
                           controller: passwordController,
-                          text: 'New Password',
+                          text: 'new_password'.tr(),
                           tohide: !showPassword,
                           textinputtype: TextInputType.text,
                           prefixIcon: Icons.lock_outline,
                           suffixIcon: IconButton(
                             icon: Icon(
                               showPassword ? Icons.visibility : Icons.visibility_off,
-                              color: Colors.white54,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               size: 20,
                             ),
                             onPressed: () => setState(() => showPassword = !showPassword),
                           ),
                         ),
-                        const SizedBox(height: 22),
-                        UiHelper.CustomTextField(
+                        SizedBox(height: 22),
+                        UiHelper.CustomTextField(context: context,
                           controller: confirmController,
-                          text: 'Confirm Password',
+                          text: 'confirm_password'.tr(),
                           tohide: !showConfirm,
                           textinputtype: TextInputType.text,
                           prefixIcon: Icons.lock_outline,
                           suffixIcon: IconButton(
                             icon: Icon(
                               showConfirm ? Icons.visibility : Icons.visibility_off,
-                              color: Colors.white54,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               size: 20,
                             ),
                             onPressed: () => setState(() => showConfirm = !showConfirm),
                           ),
                         ),
-                        const SizedBox(height: 36),
+                        SizedBox(height: 36),
                       ],
 
                       SizedBox(
@@ -194,27 +195,27 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                         child: ElevatedButton(
                           onPressed: loading ? null : resetPassword,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00C2FF),
-                            disabledBackgroundColor: const Color(0xFF00C2FF).withAlpha(102),
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            disabledBackgroundColor: Theme.of(context).colorScheme.primary.withAlpha(102),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           child: loading
-                              ? const SizedBox(
+                              ? SizedBox(
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                               strokeWidth: 2.5,
                             ),
                           )
                               : Text(
-                            isLoggedIn ? 'Update Password' : 'Send Security Link',
-                            style: const TextStyle(
+                            isLoggedIn ? 'update_password'.tr() : 'send_security_link'.tr(),
+                            style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ),
@@ -225,7 +226,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(bottom: 24),
+              padding: EdgeInsets.only(bottom: 24),
               child: SizedBox(
                 height: 45,
                 child: UiHelper.CustomImage(imgurl: 'Cl.png'),

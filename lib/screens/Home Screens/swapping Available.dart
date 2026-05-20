@@ -10,7 +10,7 @@ import 'package:skill_swap/screens/Profile/profile%20screen.dart';
 import 'package:skill_swap/screens/Swap/my_swaps_screen.dart';
 import 'package:skill_swap/screens/Setting/settings_screen.dart';
 import 'package:skill_swap/screens/Notifications/notifications_screen.dart';
-import 'package:skill_swap/services/presence_service.dart';
+
 class SwapListing {
   final String id;
   final String name;
@@ -29,7 +29,7 @@ class SwapListing {
   final String experience;
   final String? imageUrl;
 
-  const SwapListing({
+  SwapListing({
     required this.id,
     required this.name,
     required this.initials,
@@ -57,7 +57,7 @@ class SwapListing {
         : (parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?');
     final Color color = d['avatarColor'] != null
         ? Color(d['avatarColor'] as int)
-        : const Color(0xFF6B8AFF);
+        : Color(0xFF6B8AFF);
 
     return SwapListing(
       id: doc.id,
@@ -68,7 +68,7 @@ class SwapListing {
       wanting: (d['wanting'] as String?) ?? '',
       rating: (d['Rating'] as num?)?.toDouble() ?? 0.0,
       reviews: (d['Reviews'] as num?)?.toInt() ?? 0,
-      category: (d['Category'] as String?) ?? (d['category'] as String?) ?? 'All',
+      category: (d['Category'] as String?) ?? 'All',
       isLive: (d['is Live'] as bool?) ?? false,
       skillLevel: (d['experienceLevel'] as String?) ?? '',
       userId: d['userId'] as String?,
@@ -81,14 +81,13 @@ class SwapListing {
 }
 
 class SwappingAvailable extends StatefulWidget {
-  const SwappingAvailable({Key? key}) : super(key: key);
+  SwappingAvailable({Key? key}) : super(key: key);
 
   @override
   State<SwappingAvailable> createState() => _SwappingAvailableState();
 }
 
 class _SwappingAvailableState extends State<SwappingAvailable> {
-  final PresenceService _presenceService = PresenceService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
@@ -114,34 +113,27 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     'Drawing',
   ];
 
-  // ── Single stable stream for all swaps ──
-  late Stream<List<SwapListing>> _swapsStream;
+  // ── FIX: single stable stream for the current category ──
+  // Rebuilt only when the category actually changes.
+  late Stream<List<SwapListing>> _categoryStream;
+  int _lastBuiltCategory = -1; // sentinel so initState triggers a build
 
-  // ── Apply search + category filter purely in-memory ──
+  Stream<List<SwapListing>> _buildCategoryStream(int categoryIndex) {
+    Query query = _db.collection('swapListings');
+    if (categoryIndex != 0) {
+      query = query.where('Category', isEqualTo: _categories[categoryIndex]);
+    }
+    return query.snapshots().map((snap) => snap.docs
+        .map(SwapListing.fromDoc)
+        .where((s) => s.userId != _auth.currentUser?.uid)
+        .toList());
+  }
+
+  // ── FIX: apply search + category filter purely in-memory ──
   List<SwapListing> get _filteredSwaps {
+    if (_searchQuery.isEmpty) return _allSwaps;
+    final q = _searchQuery.trim().toLowerCase();
     return _allSwaps.where((swap) {
-      // 1. Category Filter (Case-insensitive & tolerant of mappings)
-      if (_selectedCategory != 0) {
-        final selectedCat = _categories[_selectedCategory].trim().toLowerCase();
-        final swapCat = swap.category.trim().toLowerCase();
-        
-        // Handle variations (e.g. Design -> Creative & Design, Coding -> Tech & Digital, Music -> Music & Art)
-        if (selectedCat == 'design' && swapCat.contains('design')) {
-          // match
-        } else if (selectedCat == 'coding' && (swapCat.contains('coding') || swapCat.contains('tech') || swapCat.contains('digital'))) {
-          // match
-        } else if (selectedCat == 'music' && (swapCat.contains('music') || swapCat.contains('art'))) {
-          // match
-        } else if (swapCat.contains(selectedCat)) {
-          // generic substring match (e.g. "photos" inside "photos")
-        } else {
-          return false;
-        }
-      }
-
-      // 2. Search Filter
-      if (_searchQuery.isEmpty) return true;
-      final q = _searchQuery.trim().toLowerCase();
       return swap.name.toLowerCase().contains(q) ||
           swap.offering.toLowerCase().contains(q) ||
           swap.wanting.toLowerCase().contains(q) ||
@@ -152,7 +144,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 
   Stream<DocumentSnapshot?> get _myListingStream {
     final uid = _auth.currentUser?.uid;
-    if (uid == null) return const Stream.empty();
+    if (uid == null) return Stream.empty();
     return _db
         .collection('swapListings')
         .where('userId', isEqualTo: uid)
@@ -177,26 +169,20 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   @override
   void initState() {
     super.initState();
-    _swapsStream = _db.collection('swapListings').snapshots().map((snap) => snap.docs
-        .map(SwapListing.fromDoc)
-        .where((s) => s.userId != _auth.currentUser?.uid)
-        .toList());
-    _presenceService.start();
+    _refreshCategoryStream(); // build stream for initial category (0)
+  }
+
+  /// Call this whenever _selectedCategory changes.
+  void _refreshCategoryStream() {
+    if (_lastBuiltCategory == _selectedCategory) return;
+    _lastBuiltCategory = _selectedCategory;
+    _categoryStream = _buildCategoryStream(_selectedCategory);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _signOut() async {
-    await _auth.signOut();
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const SignInScreen()),
-    );
   }
 
   Future<void> _navigateToMyProfile() async {
@@ -220,9 +206,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       if (result == true) setState(() {});
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('No skill listing found for your profile.'),
-          backgroundColor: Color(0xFF00C2FF),
+          backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
     }
@@ -248,19 +234,11 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         if (_selectedIndex != 0) setState(() => _selectedIndex = 0);
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F172A),
-        body: IndexedStack(
-          index: _selectedIndex,
-          children: [
-            _buildHomeTab(screenHeight),
-            const ChatScreen(),
-            const MySwapsScreen(),
-            const SettingsScreen(),
-          ],
-        ),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: _buildBody(screenHeight),
         bottomNavigationBar: BottomAppBar(
-          color: const Color(0xFF1E293B),
-          shape: const CircularNotchedRectangle(),
+          color: Theme.of(context).colorScheme.surface,
+          shape: CircularNotchedRectangle(),
           notchMargin: 10,
           child: SizedBox(
             height: 60,
@@ -281,7 +259,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   selected: _selectedIndex == 1,
                   onTap: () => setState(() => _selectedIndex = 1),
                 ),
-                const SizedBox(width: 48),
+                SizedBox(width: 48),
                 _NavItem(
                   icon: Icons.swap_vert_rounded,
                   activeIcon: Icons.swap_vert_rounded,
@@ -301,9 +279,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           ),
         ),
         floatingActionButton: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+              colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -313,13 +291,13 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const OfferSkillScreen()),
+                MaterialPageRoute(builder: (_) => OfferSkillScreen()),
               );
             },
             backgroundColor: Colors.transparent,
             elevation: 0,
-            shape: const CircleBorder(),
-            child: const Icon(Icons.add, color: Colors.white, size: 30),
+            shape: CircleBorder(),
+            child: Icon(Icons.add, color: Theme.of(context).colorScheme.onSurface, size: 30),
           ),
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -327,150 +305,162 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     );
   }
 
-  Widget _buildHomeTab(double screenHeight) {
-    return SafeArea(
-      child: Column(
-        children: [
-          // ── Header (profile stream) ──────────────────────────────
-          StreamBuilder<DocumentSnapshot?>(
-            stream: _myListingStream,
-            builder: (context, snapshot) {
-              String? liveImageUrl;
-              String liveInitials = _initials;
+  Widget _buildBody(double screenHeight) {
+    switch (_selectedIndex) {
+      case 1:
+        return ChatScreen();
+      case 2:
+        return MySwapsScreen();
+      case 3:
+        return SettingsScreen();
+      case 0:
+      default:
+        return SafeArea(
+          child: Column(
+            children: [
+              // ── Header (profile stream) ──────────────────────────────
+              StreamBuilder<DocumentSnapshot?>(
+                stream: _myListingStream,
+                builder: (context, snapshot) {
+                  String? liveImageUrl;
+                  String liveInitials = _initials;
 
-              if (snapshot.hasData && snapshot.data != null) {
-                final data =
-                snapshot.data!.data() as Map<String, dynamic>?;
-                _userName = (data?['name'] as String?) ??
-                    _auth.currentUser?.email?.split('@').first ??
-                    'User';
-                liveImageUrl = data?['imageUrl'] as String?;
-                _handleImageUrlChange(liveImageUrl);
+                  if (snapshot.hasData && snapshot.data != null) {
+                    final data =
+                    snapshot.data!.data() as Map<String, dynamic>?;
+                    _userName = (data?['name'] as String?) ??
+                        _auth.currentUser?.email?.split('@').first ??
+                        'User';
+                    liveImageUrl = data?['imageUrl'] as String?;
+                    _handleImageUrlChange(liveImageUrl);
 
-                final name = (data?['name'] as String?) ?? _userName;
-                final parts = name.trim().split(' ');
-                liveInitials = parts.length >= 2
-                    ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
-                    : (parts[0].isNotEmpty
-                    ? parts[0][0].toUpperCase()
-                    : '?');
-              }
+                    final name = (data?['name'] as String?) ?? _userName;
+                    final parts = name.trim().split(' ');
+                    liveInitials = parts.length >= 2
+                        ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
+                        : (parts[0].isNotEmpty
+                        ? parts[0][0].toUpperCase()
+                        : '?');
+                  }
 
-              return _buildHeader(screenHeight, liveImageUrl, liveInitials);
-            },
-          ),
+                  return _buildHeader(screenHeight, liveImageUrl, liveInitials);
+                },
+              ),
 
-          // ── Swaps list (stable stream) ───────────────────────────
-          Expanded(
-            child: StreamBuilder<List<SwapListing>>(
-              stream: _swapsStream,
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Error: ${snapshot.error}',
-                      style: const TextStyle(color: Colors.white54),
-                    ),
-                  );
-                }
+              // ── Swaps list (stable stream) ───────────────────────────
+              Expanded(
+                child: StreamBuilder<List<SwapListing>>(
+                  // FIX: use the stable cached stream; it never changes
+                  // unless the category changes, so no flicker on search.
+                  stream: _categoryStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(
+                        child: CircularProgressIndicator(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      );
+                    }
 
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF00C2FF),
-                    ),
-                  );
-                }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Error: ${snapshot.error}',
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        ),
+                      );
+                    }
 
-                // FIX: cache the raw list; _filteredSwaps filters it
-                // reactively whenever _searchQuery or _allSwaps changes.
-                _allSwaps = snapshot.data ?? [];
+                    // FIX: cache the raw list; _filteredSwaps filters it
+                    // reactively whenever _searchQuery or _allSwaps changes.
+                    _allSwaps = snapshot.data ?? [];
 
-                final swaps = _filteredSwaps;
-                final liveSessions =
-                swaps.where((s) => s.isLive).toList();
+                    final swaps = _filteredSwaps;
+                    final liveSessions =
+                    swaps.where((s) => s.isLive).toList();
 
-                return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 22),
+                    return SingleChildScrollView(
+                      physics: BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 22),
 
-                      // SEARCH BAR
-                      _buildSearchBar(),
-                      const SizedBox(height: 20),
+                          // SEARCH BAR
+                          _buildSearchBar(),
+                          SizedBox(height: 20),
 
-                      // CATEGORY CHIPS
-                      _buildCategoryChips(),
+                          // CATEGORY CHIPS
+                          _buildCategoryChips(),
 
-                      const SizedBox(height: 26),
+                          SizedBox(height: 26),
 
-                      if (swaps.isNotEmpty) ...[
-                        Row(
-                          mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
-                          children: [
-                            const _SectionTitle(title: 'Featured Swaps'),
-                            GestureDetector(
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const SeeAllScreen(),
+                          if (swaps.isNotEmpty) ...[
+                            Row(
+                              mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                              children: [
+                                _SectionTitle(title: 'Featured Swaps'),
+                                GestureDetector(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => SeeAllScreen(),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'See all',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              child: const Text(
-                                'See all',
-                                style: TextStyle(
-                                  color: Color(0xFF00C2FF),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
+                              ],
                             ),
+                            SizedBox(height: 14),
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              itemCount:
+                              swaps.length > 3 ? 3 : swaps.length,
+                              separatorBuilder: (_, __) =>
+                              SizedBox(height: 14),
+                              itemBuilder: (_, i) =>
+                                  _SwapCard(swap: swaps[i]),
+                            ),
+                            SizedBox(height: 30),
+                            _SectionTitle(
+                                title: 'Active Swap Sessions'),
+                            SizedBox(height: 14),
+                            if (liveSessions.isNotEmpty)
+                              ...liveSessions.map(
+                                    (s) => Padding(
+                                  padding:
+                                  EdgeInsets.only(bottom: 12),
+                                  child: _LiveSessionCard(swap: s),
+                                ),
+                              )
+                            else
+                              _buildEmptySessions(),
+                          ] else ...[
+                            SizedBox(height: 40),
+                            _buildEmptyHomeState(),
                           ],
-                        ),
-                        const SizedBox(height: 14),
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount:
-                          swaps.length > 3 ? 3 : swaps.length,
-                          separatorBuilder: (_, __) =>
-                          const SizedBox(height: 14),
-                          itemBuilder: (_, i) =>
-                              _SwapCard(swap: swaps[i]),
-                        ),
-                        const SizedBox(height: 30),
-                        const _SectionTitle(
-                            title: 'Active Swap Sessions'),
-                        const SizedBox(height: 14),
-                        if (liveSessions.isNotEmpty)
-                          ...liveSessions.map(
-                                (s) => Padding(
-                              padding:
-                              const EdgeInsets.only(bottom: 12),
-                              child: _LiveSessionCard(swap: s),
-                            ),
-                          )
-                        else
-                          _buildEmptySessions(),
-                      ] else ...[
-                        const SizedBox(height: 40),
-                        _buildEmptyHomeState(),
-                      ],
 
-                      const SizedBox(height: 100),
-                    ],
-                  ),
-                );
-              },
-            ),
+                          SizedBox(height: 100),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
+    }
   }
 
   Widget _buildEmptyHomeState() {
@@ -478,24 +468,24 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.search_off_rounded,
-            color: Color(0xFF00C2FF),
+            color: Theme.of(context).colorScheme.primary,
             size: 64,
           ),
-          const SizedBox(height: 16),
-          const Text(
+          SizedBox(height: 16),
+          Text(
             'No swaps available',
             style: TextStyle(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8),
+          Text(
             'Check back later or offer a skill yourself!',
-            style: TextStyle(color: Colors.white38, fontSize: 14),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 14),
           ),
         ],
       ),
@@ -507,9 +497,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     return Container(
       width: double.infinity,
       height: screenHeight * 0.16,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -518,7 +508,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           bottomRight: Radius.circular(28),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -529,17 +519,17 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               height: 48,
               decoration: BoxDecoration(
                 color: imageUrl == null || imageUrl.isEmpty
-                    ? const Color(0xFF1E293B)
+                    ? Theme.of(context).colorScheme.surface
                     : Colors.transparent,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(color: Theme.of(context).colorScheme.onSurface, width: 2),
               ),
               child: imageUrl == null || imageUrl.isEmpty
                   ? Center(
                 child: Text(
                   initials,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
                   ),
@@ -556,13 +546,13 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   cacheHeight: 300,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
-                    return const Center(
+                    return Center(
                       child: SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     );
@@ -570,8 +560,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   errorBuilder: (_, __, ___) => Center(
                     child: Text(
                       initials,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
@@ -581,7 +571,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -589,17 +579,17 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               children: [
                 Text(
                   '$_greeting, $_userName',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
-                const Text(
+                Text(
                   'Keep growing every day!',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                 ),
               ],
             ),
@@ -609,7 +599,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen()),
+                    builder: (_) => NotificationsScreen()),
               );
             },
             child: Stack(
@@ -618,12 +608,12 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(51),
+                    color: Theme.of(context).colorScheme.onSurface.withAlpha(51),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.notifications_outlined,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     size: 22,
                   ),
                 ),
@@ -634,10 +624,10 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     width: 10,
                     height: 10,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444),
+                      color: Color(0xFFEF4444),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: const Color(0xFF0F172A),
+                        color: Theme.of(context).scaffoldBackgroundColor,
                         width: 2,
                       ),
                     ),
@@ -655,26 +645,26 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(15),
         border:
-        Border.all(color: const Color(0xFF00C2FF).withOpacity(0.2)),
+        Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
       ),
       child: TextField(
         controller: _searchController,
         // FIX: setState updates _searchQuery → _filteredSwaps recomputes
         // inside the already-active StreamBuilder without touching the stream.
         onChanged: (value) => setState(() => _searchQuery = value.trim()),
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
         decoration: InputDecoration(
           hintText: 'Search skills or topic...',
-          hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
+          hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 14),
           prefixIcon:
-          const Icon(Icons.search, color: Color(0xFF00C2FF)),
+          Icon(Icons.search, color: Theme.of(context).colorScheme.primary),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
             icon:
-            const Icon(Icons.close, color: Colors.white54),
+            Icon(Icons.close, color: Theme.of(context).colorScheme.onSurfaceVariant),
             onPressed: () {
               _searchController.clear();
               setState(() => _searchQuery = '');
@@ -682,7 +672,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
+          contentPadding: EdgeInsets.symmetric(
             horizontal: 18,
             vertical: 14,
           ),
@@ -697,7 +687,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, __) => SizedBox(width: 10),
         itemBuilder: (context, index) {
           final selected = _selectedCategory == index;
           return GestureDetector(
@@ -705,32 +695,33 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               if (_selectedCategory == index) return; // no-op if same
               setState(() {
                 _selectedCategory = index;
+                _refreshCategoryStream(); // rebuild stream for new category
               });
             },
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: Duration(milliseconds: 200),
               padding:
-              const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
                 gradient: selected
-                    ? const LinearGradient(
-                  colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+                    ? LinearGradient(
+                  colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
                     : null,
-                color: selected ? null : const Color(0xFF1E293B),
+                color: selected ? null : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: selected
                       ? Colors.transparent
-                      : const Color(0xFF00C2FF).withOpacity(0.25),
+                      : Theme.of(context).colorScheme.primary.withOpacity(0.25),
                 ),
               ),
               child: Text(
                 _categories[index],
                 style: TextStyle(
-                  color: selected ? Colors.white : Colors.white54,
+                  color: selected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 13,
                   fontWeight:
                   selected ? FontWeight.w600 : FontWeight.normal,
@@ -746,12 +737,12 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   Widget _buildEmptySessions() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 32),
+      padding: EdgeInsets.symmetric(vertical: 32),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
-            color: const Color(0xFF00C2FF).withOpacity(0.15)),
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.15)),
       ),
       child: Column(
         children: [
@@ -762,21 +753,21 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF00C2FF).withOpacity(0.15),
-                  const Color(0xFF6B8AFF).withOpacity(0.15),
+                  Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                  Color(0xFF6B8AFF).withOpacity(0.15),
                 ],
               ),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.downloading_outlined,
               color: Color(0xFF6B8AFF),
               size: 26,
             ),
           ),
-          const SizedBox(height: 12),
-          const Text(
+          SizedBox(height: 12),
+          Text(
             'Nothing live yet',
-            style: TextStyle(color: Colors.white38, fontSize: 13),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13),
           ),
         ],
       ),
@@ -789,20 +780,20 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 // ─────────────────────────────────────────────────────────────────────
 class _SwapCard extends StatelessWidget {
   final SwapListing swap;
-  const _SwapCard({required this.swap});
+  _SwapCard({required this.swap});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF00C2FF).withAlpha(38)),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withAlpha(38)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00C2FF).withAlpha(13),
+            color: Theme.of(context).colorScheme.primary.withAlpha(13),
             blurRadius: 16,
-            offset: const Offset(0, 6),
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -815,7 +806,7 @@ class _SwapCard extends StatelessWidget {
         },
         borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -836,8 +827,8 @@ class _SwapCard extends StatelessWidget {
                     errorBuilder: (_, __, ___) => Center(
                       child: Text(
                         swap.initials,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -848,15 +839,15 @@ class _SwapCard extends StatelessWidget {
                     : Center(
                   child: Text(
                     swap.initials,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -866,87 +857,87 @@ class _SwapCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             swap.name,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const Icon(
+                        Icon(
                           Icons.star_rounded,
                           color: Color(0xFFFBBF24),
                           size: 16,
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4),
                         Text(
                           swap.rating.toStringAsFixed(1),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4),
                         Text(
                           '(${swap.reviews} Swaps)',
-                          style: const TextStyle(
-                            color: Colors.white38,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                             fontSize: 11,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Row(
                       children: [
                         Icon(
                           _getCategoryIcon(swap.category),
-                          color: Colors.white38,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                           size: 14,
                         ),
-                        const SizedBox(width: 6),
+                        SizedBox(width: 6),
                         Text(
                           swap.category,
-                          style: const TextStyle(
-                            color: Colors.white38,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
                             fontSize: 12,
                           ),
                         ),
                         if (swap.isLive) ...[
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           _LiveBadge(),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Text(
                       swap.offering,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     RichText(
                       text: TextSpan(
-                        style: const TextStyle(fontSize: 12),
+                        style: TextStyle(fontSize: 12),
                         children: [
-                          const TextSpan(
+                          TextSpan(
                             text: 'Looking for: ',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           TextSpan(
                             text: swap.wanting,
                             style:
-                            const TextStyle(color: Colors.white54),
+                            TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -990,16 +981,16 @@ class _SwapCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────
 class _LiveSessionCard extends StatelessWidget {
   final SwapListing swap;
-  const _LiveSessionCard({required this.swap});
+  _LiveSessionCard({required this.swap});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border:
-        Border.all(color: const Color(0xFF00C2FF).withOpacity(0.25)),
+        Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.25)),
       ),
       child: InkWell(
         onTap: () {
@@ -1011,7 +1002,7 @@ class _LiveSessionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: Padding(
           padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
               Container(
@@ -1024,32 +1015,32 @@ class _LiveSessionCard extends StatelessWidget {
                 child: Center(
                   child: Text(
                     swap.initials,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       swap.name,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       '${swap.offering} ↔ ${swap.wanting}',
-                      style: const TextStyle(
-                        color: Colors.white54,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 11,
                       ),
                     ),
@@ -1082,12 +1073,12 @@ class _LiveBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: const Color(0xFF00C2FF).withOpacity(0.15),
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
         border:
-        Border.all(color: const Color(0xFF00C2FF).withOpacity(0.4)),
+        Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1095,16 +1086,16 @@ class _LiveBadge extends StatelessWidget {
           Container(
             width: 6,
             height: 6,
-            decoration: const BoxDecoration(
-              color: Color(0xFF00C2FF),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 4),
-          const Text(
+          SizedBox(width: 4),
+          Text(
             'Live',
             style: TextStyle(
-              color: Color(0xFF00C2FF),
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 10,
               fontWeight: FontWeight.w600,
             ),
@@ -1118,14 +1109,14 @@ class _LiveBadge extends StatelessWidget {
 class _GradientButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  const _GradientButton({required this.label, required this.onTap});
+  _GradientButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+        gradient: LinearGradient(
+          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
@@ -1135,14 +1126,14 @@ class _GradientButton extends StatelessWidget {
         onPressed: onTap,
         style: TextButton.styleFrom(
           padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 11,
             fontWeight: FontWeight.bold,
           ),
@@ -1157,7 +1148,7 @@ class _GradientButton extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────
 class _SectionTitle extends StatelessWidget {
   final String title;
-  const _SectionTitle({required this.title});
+  _SectionTitle({required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -1167,19 +1158,19 @@ class _SectionTitle extends StatelessWidget {
           width: 4,
           height: 18,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+            gradient: LinearGradient(
+              colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: 10),
         Text(
           title,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
@@ -1199,7 +1190,7 @@ class _NavItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _NavItem({
+  _NavItem({
     required this.icon,
     required this.activeIcon,
     required this.label,
@@ -1218,15 +1209,15 @@ class _NavItem extends StatelessWidget {
           Icon(
             selected ? activeIcon : icon,
             color:
-            selected ? const Color(0xFF00C2FF) : Colors.white38,
+            selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
             size: 24,
           ),
-          const SizedBox(height: 3),
+          SizedBox(height: 3),
           Text(
             label,
             style: TextStyle(
               color:
-              selected ? const Color(0xFF00C2FF) : Colors.white38,
+              selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
               fontSize: 10,
               fontWeight:
               selected ? FontWeight.w600 : FontWeight.normal,

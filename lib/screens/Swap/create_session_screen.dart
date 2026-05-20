@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class CreateSessionScreen extends StatefulWidget {
   final SwapModel swap;
-  const CreateSessionScreen({Key? key, required this.swap}) : super(key: key);
+  CreateSessionScreen({Key? key, required this.swap}) : super(key: key);
 
   @override
   State<CreateSessionScreen> createState() => _CreateSessionScreenState();
@@ -15,10 +16,10 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final _formKey = GlobalKey<FormState>();
-  
+
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _durationController = TextEditingController(text: '1 hour');
-  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  DateTime _selectedDate = DateTime.now().add(Duration(days: 1));
 
   bool _loading = false;
 
@@ -29,7 +30,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
 
     try {
       final uid = _auth.currentUser?.uid;
-      
+
       // 1. Create session doc
       final sessionRef = _db.collection('swaps').doc(widget.swap.id).collection('sessions').doc();
       await sessionRef.set({
@@ -65,7 +66,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         final messenger = ScaffoldMessenger.of(context);
         nav.pop();
         messenger.showSnackBar(
-          const SnackBar(content: Text('Session invite sent!'), backgroundColor: Color(0xFF00C2FF)),
+          SnackBar(content: Text('session_invite_sent'.tr()), backgroundColor: Theme.of(context).colorScheme.primary),
         );
       }
     } catch (e) {
@@ -82,35 +83,35 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Create Session', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('create_session'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Session Title', style: TextStyle(color: Colors.white70, fontSize: 14)),
-              const SizedBox(height: 8),
-              _buildTextField(_titleController, 'e.g. Introduction to Figma', Icons.title_rounded),
-              const SizedBox(height: 24),
-              const Text('Duration', style: TextStyle(color: Colors.white70, fontSize: 14)),
-              const SizedBox(height: 8),
-              _buildTextField(_durationController, 'e.g. 1 hour', Icons.timer_outlined),
-              const SizedBox(height: 24),
-              const Text('Date & Time', style: TextStyle(color: Colors.white70, fontSize: 14)),
-              const SizedBox(height: 8),
+              Text('session_title'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
+              SizedBox(height: 8),
+              _buildTextField(_titleController, 'session_title_hint'.tr(), Icons.title_rounded),
+              SizedBox(height: 24),
+              Text('duration'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
+              SizedBox(height: 8),
+              _buildTextField(_durationController, 'duration_hint'.tr(), Icons.timer_outlined),
+              SizedBox(height: 24),
+              Text('date_and_time'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
+              SizedBox(height: 8),
               _buildDateTimePicker(),
-              const SizedBox(height: 48),
-              _loading 
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF00C2FF)))
-                : _PrimaryBtn(label: 'Send Invitation', onTap: _createSession),
+              SizedBox(height: 48),
+              _loading
+                ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
+                : _PrimaryBtn(label: 'send_invitation'.tr(), onTap: _createSession),
             ],
           ),
         ),
@@ -121,21 +122,21 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   Widget _buildTextField(TextEditingController controller, String hint, IconData icon) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)),
       ),
       child: TextFormField(
         controller: controller,
-        style: const TextStyle(color: Colors.white, fontSize: 15),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
-          prefixIcon: Icon(icon, color: const Color(0xFF00C2FF), size: 20),
+          hintStyle: TextStyle(color: Theme.of(context).colorScheme.outlineVariant, fontSize: 14),
+          prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
-        validator: (v) => v == null || v.isEmpty ? 'Required field' : null,
+        validator: (v) => v == null || v.isEmpty ? 'required_field'.tr() : null,
       ),
     );
   }
@@ -147,7 +148,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           context: context,
           initialDate: _selectedDate,
           firstDate: DateTime.now(),
-          lastDate: DateTime.now().add(const Duration(days: 365)),
+          lastDate: DateTime.now().add(Duration(days: 365)),
         );
         if (date != null) {
           final time = await showTimePicker(
@@ -162,22 +163,22 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         }
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF00C2FF), size: 20),
-            const SizedBox(width: 16),
+            Icon(Icons.calendar_today_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+            SizedBox(width: 16),
             Text(
               '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year} at ${TimeOfDay.fromDateTime(_selectedDate).format(context)}',
-              style: const TextStyle(color: Colors.white, fontSize: 15),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 15),
             ),
-            const Spacer(),
-            const Icon(Icons.edit_calendar_rounded, color: Colors.white24, size: 20),
+            Spacer(),
+            Icon(Icons.edit_calendar_rounded, color: Theme.of(context).colorScheme.outlineVariant, size: 20),
           ],
         ),
       ),
@@ -188,7 +189,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
 class _PrimaryBtn extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  const _PrimaryBtn({required this.label, required this.onTap});
+  _PrimaryBtn({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -196,8 +197,8 @@ class _PrimaryBtn extends StatelessWidget {
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
+        gradient: LinearGradient(
+          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
         ),
         borderRadius: BorderRadius.circular(28),
       ),
@@ -208,7 +209,7 @@ class _PrimaryBtn extends StatelessWidget {
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         ),
-        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        child: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
       ),
     );
   }
