@@ -77,7 +77,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             UiHelper.CustomImage(imgurl: "hi.png"),
                             const SizedBox(height: 10),
                             const Text(
-                              "Welcome\nBack!",
+                              "Welcome!",
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 32,

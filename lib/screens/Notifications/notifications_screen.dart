@@ -2,8 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  late final Stream<QuerySnapshot>? _notificationsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      _notificationsStream = FirebaseFirestore.instance
+          .collection('notifications')
+          .where('recipientId', isEqualTo: uid)
+          .orderBy('timestamp', descending: true)
+          .snapshots();
+    } else {
+      _notificationsStream = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,16 +52,12 @@ class NotificationsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: uid == null
+      body: uid == null || _notificationsStream == null
           ? _buildEmptyState()
           : StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('notifications')
-                  .where('recipientId', isEqualTo: uid)
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
+              stream: _notificationsStream,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator(color: Color(0xFF00C2FF)));
                 }
 

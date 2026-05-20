@@ -10,7 +10,7 @@ import 'package:skill_swap/screens/Profile/profile%20screen.dart';
 import 'package:skill_swap/screens/Swap/my_swaps_screen.dart';
 import 'package:skill_swap/screens/Setting/settings_screen.dart';
 import 'package:skill_swap/screens/Notifications/notifications_screen.dart';
-
+import 'package:skill_swap/services/presence_service.dart';
 class SwapListing {
   final String id;
   final String name;
@@ -68,7 +68,7 @@ class SwapListing {
       wanting: (d['wanting'] as String?) ?? '',
       rating: (d['Rating'] as num?)?.toDouble() ?? 0.0,
       reviews: (d['Reviews'] as num?)?.toInt() ?? 0,
-      category: (d['Category'] as String?) ?? 'All',
+      category: (d['Category'] as String?) ?? (d['category'] as String?) ?? 'All',
       isLive: (d['is Live'] as bool?) ?? false,
       skillLevel: (d['experienceLevel'] as String?) ?? '',
       userId: d['userId'] as String?,
@@ -88,6 +88,7 @@ class SwappingAvailable extends StatefulWidget {
 }
 
 class _SwappingAvailableState extends State<SwappingAvailable> {
+  final PresenceService _presenceService = PresenceService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
@@ -113,27 +114,34 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     'Drawing',
   ];
 
-  // ── FIX: single stable stream for the current category ──
-  // Rebuilt only when the category actually changes.
-  late Stream<List<SwapListing>> _categoryStream;
-  int _lastBuiltCategory = -1; // sentinel so initState triggers a build
+  // ── Single stable stream for all swaps ──
+  late Stream<List<SwapListing>> _swapsStream;
 
-  Stream<List<SwapListing>> _buildCategoryStream(int categoryIndex) {
-    Query query = _db.collection('swapListings');
-    if (categoryIndex != 0) {
-      query = query.where('Category', isEqualTo: _categories[categoryIndex]);
-    }
-    return query.snapshots().map((snap) => snap.docs
-        .map(SwapListing.fromDoc)
-        .where((s) => s.userId != _auth.currentUser?.uid)
-        .toList());
-  }
-
-  // ── FIX: apply search + category filter purely in-memory ──
+  // ── Apply search + category filter purely in-memory ──
   List<SwapListing> get _filteredSwaps {
-    if (_searchQuery.isEmpty) return _allSwaps;
-    final q = _searchQuery.trim().toLowerCase();
     return _allSwaps.where((swap) {
+      // 1. Category Filter (Case-insensitive & tolerant of mappings)
+      if (_selectedCategory != 0) {
+        final selectedCat = _categories[_selectedCategory].trim().toLowerCase();
+        final swapCat = swap.category.trim().toLowerCase();
+        
+        // Handle variations (e.g. Design -> Creative & Design, Coding -> Tech & Digital, Music -> Music & Art)
+        if (selectedCat == 'design' && swapCat.contains('design')) {
+          // match
+        } else if (selectedCat == 'coding' && (swapCat.contains('coding') || swapCat.contains('tech') || swapCat.contains('digital'))) {
+          // match
+        } else if (selectedCat == 'music' && (swapCat.contains('music') || swapCat.contains('art'))) {
+          // match
+        } else if (swapCat.contains(selectedCat)) {
+          // generic substring match (e.g. "photos" inside "photos")
+        } else {
+          return false;
+        }
+      }
+
+      // 2. Search Filter
+      if (_searchQuery.isEmpty) return true;
+      final q = _searchQuery.trim().toLowerCase();
       return swap.name.toLowerCase().contains(q) ||
           swap.offering.toLowerCase().contains(q) ||
           swap.wanting.toLowerCase().contains(q) ||
@@ -169,14 +177,11 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   @override
   void initState() {
     super.initState();
-    _refreshCategoryStream(); // build stream for initial category (0)
-  }
-
-  /// Call this whenever _selectedCategory changes.
-  void _refreshCategoryStream() {
-    if (_lastBuiltCategory == _selectedCategory) return;
-    _lastBuiltCategory = _selectedCategory;
-    _categoryStream = _buildCategoryStream(_selectedCategory);
+    _swapsStream = _db.collection('swapListings').snapshots().map((snap) => snap.docs
+        .map(SwapListing.fromDoc)
+        .where((s) => s.userId != _auth.currentUser?.uid)
+        .toList());
+    _presenceService.start();
   }
 
   @override
@@ -244,7 +249,15 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF0F172A),
-        body: _buildBody(screenHeight),
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            _buildHomeTab(screenHeight),
+            const ChatScreen(),
+            const MySwapsScreen(),
+            const SettingsScreen(),
+          ],
+        ),
         bottomNavigationBar: BottomAppBar(
           color: const Color(0xFF1E293B),
           shape: const CircularNotchedRectangle(),
@@ -314,162 +327,150 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     );
   }
 
-  Widget _buildBody(double screenHeight) {
-    switch (_selectedIndex) {
-      case 1:
-        return const ChatScreen();
-      case 2:
-        return const MySwapsScreen();
-      case 3:
-        return const SettingsScreen();
-      case 0:
-      default:
-        return SafeArea(
-          child: Column(
-            children: [
-              // ── Header (profile stream) ──────────────────────────────
-              StreamBuilder<DocumentSnapshot?>(
-                stream: _myListingStream,
-                builder: (context, snapshot) {
-                  String? liveImageUrl;
-                  String liveInitials = _initials;
+  Widget _buildHomeTab(double screenHeight) {
+    return SafeArea(
+      child: Column(
+        children: [
+          // ── Header (profile stream) ──────────────────────────────
+          StreamBuilder<DocumentSnapshot?>(
+            stream: _myListingStream,
+            builder: (context, snapshot) {
+              String? liveImageUrl;
+              String liveInitials = _initials;
 
-                  if (snapshot.hasData && snapshot.data != null) {
-                    final data =
-                    snapshot.data!.data() as Map<String, dynamic>?;
-                    _userName = (data?['name'] as String?) ??
-                        _auth.currentUser?.email?.split('@').first ??
-                        'User';
-                    liveImageUrl = data?['imageUrl'] as String?;
-                    _handleImageUrlChange(liveImageUrl);
+              if (snapshot.hasData && snapshot.data != null) {
+                final data =
+                snapshot.data!.data() as Map<String, dynamic>?;
+                _userName = (data?['name'] as String?) ??
+                    _auth.currentUser?.email?.split('@').first ??
+                    'User';
+                liveImageUrl = data?['imageUrl'] as String?;
+                _handleImageUrlChange(liveImageUrl);
 
-                    final name = (data?['name'] as String?) ?? _userName;
-                    final parts = name.trim().split(' ');
-                    liveInitials = parts.length >= 2
-                        ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
-                        : (parts[0].isNotEmpty
-                        ? parts[0][0].toUpperCase()
-                        : '?');
-                  }
+                final name = (data?['name'] as String?) ?? _userName;
+                final parts = name.trim().split(' ');
+                liveInitials = parts.length >= 2
+                    ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
+                    : (parts[0].isNotEmpty
+                    ? parts[0][0].toUpperCase()
+                    : '?');
+              }
 
-                  return _buildHeader(screenHeight, liveImageUrl, liveInitials);
-                },
-              ),
-
-              // ── Swaps list (stable stream) ───────────────────────────
-              Expanded(
-                child: StreamBuilder<List<SwapListing>>(
-                  // FIX: use the stable cached stream; it never changes
-                  // unless the category changes, so no flicker on search.
-                  stream: _categoryStream,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF00C2FF),
-                        ),
-                      );
-                    }
-
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Text(
-                          'Error: ${snapshot.error}',
-                          style: const TextStyle(color: Colors.white54),
-                        ),
-                      );
-                    }
-
-                    // FIX: cache the raw list; _filteredSwaps filters it
-                    // reactively whenever _searchQuery or _allSwaps changes.
-                    _allSwaps = snapshot.data ?? [];
-
-                    final swaps = _filteredSwaps;
-                    final liveSessions =
-                    swaps.where((s) => s.isLive).toList();
-
-                    return SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 22),
-
-                          // SEARCH BAR
-                          _buildSearchBar(),
-                          const SizedBox(height: 20),
-
-                          // CATEGORY CHIPS
-                          _buildCategoryChips(),
-
-                          const SizedBox(height: 26),
-
-                          if (swaps.isNotEmpty) ...[
-                            Row(
-                              mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
-                              children: [
-                                const _SectionTitle(title: 'Featured Swaps'),
-                                GestureDetector(
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const SeeAllScreen(),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'See all',
-                                    style: TextStyle(
-                                      color: Color(0xFF00C2FF),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount:
-                              swaps.length > 3 ? 3 : swaps.length,
-                              separatorBuilder: (_, __) =>
-                              const SizedBox(height: 14),
-                              itemBuilder: (_, i) =>
-                                  _SwapCard(swap: swaps[i]),
-                            ),
-                            const SizedBox(height: 30),
-                            const _SectionTitle(
-                                title: 'Active Swap Sessions'),
-                            const SizedBox(height: 14),
-                            if (liveSessions.isNotEmpty)
-                              ...liveSessions.map(
-                                    (s) => Padding(
-                                  padding:
-                                  const EdgeInsets.only(bottom: 12),
-                                  child: _LiveSessionCard(swap: s),
-                                ),
-                              )
-                            else
-                              _buildEmptySessions(),
-                          ] else ...[
-                            const SizedBox(height: 40),
-                            _buildEmptyHomeState(),
-                          ],
-
-                          const SizedBox(height: 100),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+              return _buildHeader(screenHeight, liveImageUrl, liveInitials);
+            },
           ),
-        );
-    }
+
+          // ── Swaps list (stable stream) ───────────────────────────
+          Expanded(
+            child: StreamBuilder<List<SwapListing>>(
+              stream: _swapsStream,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.white54),
+                    ),
+                  );
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF00C2FF),
+                    ),
+                  );
+                }
+
+                // FIX: cache the raw list; _filteredSwaps filters it
+                // reactively whenever _searchQuery or _allSwaps changes.
+                _allSwaps = snapshot.data ?? [];
+
+                final swaps = _filteredSwaps;
+                final liveSessions =
+                swaps.where((s) => s.isLive).toList();
+
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 22),
+
+                      // SEARCH BAR
+                      _buildSearchBar(),
+                      const SizedBox(height: 20),
+
+                      // CATEGORY CHIPS
+                      _buildCategoryChips(),
+
+                      const SizedBox(height: 26),
+
+                      if (swaps.isNotEmpty) ...[
+                        Row(
+                          mainAxisAlignment:
+                          MainAxisAlignment.spaceBetween,
+                          children: [
+                            const _SectionTitle(title: 'Featured Swaps'),
+                            GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SeeAllScreen(),
+                                ),
+                              ),
+                              child: const Text(
+                                'See all',
+                                style: TextStyle(
+                                  color: Color(0xFF00C2FF),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount:
+                          swaps.length > 3 ? 3 : swaps.length,
+                          separatorBuilder: (_, __) =>
+                          const SizedBox(height: 14),
+                          itemBuilder: (_, i) =>
+                              _SwapCard(swap: swaps[i]),
+                        ),
+                        const SizedBox(height: 30),
+                        const _SectionTitle(
+                            title: 'Active Swap Sessions'),
+                        const SizedBox(height: 14),
+                        if (liveSessions.isNotEmpty)
+                          ...liveSessions.map(
+                                (s) => Padding(
+                              padding:
+                              const EdgeInsets.only(bottom: 12),
+                              child: _LiveSessionCard(swap: s),
+                            ),
+                          )
+                        else
+                          _buildEmptySessions(),
+                      ] else ...[
+                        const SizedBox(height: 40),
+                        _buildEmptyHomeState(),
+                      ],
+
+                      const SizedBox(height: 100),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildEmptyHomeState() {
@@ -704,7 +705,6 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               if (_selectedCategory == index) return; // no-op if same
               setState(() {
                 _selectedCategory = index;
-                _refreshCategoryStream(); // rebuild stream for new category
               });
             },
             child: AnimatedContainer(

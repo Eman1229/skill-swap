@@ -25,8 +25,12 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
     'Data Analysis', 'AI', 'Music', 'Drawing',
   ];
 
-  Stream<List<SwapListing>> get _swapsStream {
-    return _db.collection('swapListings').snapshots().map(
+  late final Stream<List<SwapListing>> _swapsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _swapsStream = _db.collection('swapListings').snapshots().map(
           (snap) => snap.docs.map(SwapListing.fromDoc).toList(),
     );
   }
@@ -176,7 +180,7 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
               child: StreamBuilder<List<SwapListing>>(
                 stream: _swapsStream,
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+                  if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                     return const Center(
                       child: CircularProgressIndicator(
                           color: Color(0xFF00C2FF)),

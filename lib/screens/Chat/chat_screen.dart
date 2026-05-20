@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Chat/conversation_screen.dart';
+import 'package:skill_swap/services/chat_user_service.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({Key? key}) : super(key: key);
@@ -15,58 +16,65 @@ class _ChatScreenState extends State<ChatScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _searchController = TextEditingController();
+  final ChatUserService _chatUserService = ChatUserService();
   String _searchQuery = '';
-  bool _showAllMentors = false; // ── controls See All toggle
+  bool _showAllMentors = false;
 
-  Stream<List<SwapListing>> get _listingsStream => _db
-      .collection('swapListings')
-      .snapshots()
-      .map((s) => s.docs.map(SwapListing.fromDoc).toList());
+  late Stream<List<SwapListing>> _listingsStream;
+  late Stream<List<Map<String, dynamic>>> _conversationsStream;
 
-  Stream<List<Map<String, dynamic>>> get _conversationsStream {
-    final uid = _auth.currentUser?.uid ?? '';
-    if (uid.isEmpty) return Stream.value([]);
-    return _db
-        .collection('conversations')
-        .where('participants', arrayContains: uid)
+  @override
+  void initState() {
+    super.initState();
+    // Cache the streams in initState to prevent continuous reloading
+    _listingsStream = _db
+        .collection('swapListings')
         .snapshots()
-        .map((s) {
-      final docs = s.docs.map((d) {
-        final data = d.data();
-        data['id'] = d.id;
-        return data;
-      }).toList();
-      docs.sort((a, b) {
-        final aTs = a['lastMessageAt'] as Timestamp?;
-        final bTs = b['lastMessageAt'] as Timestamp?;
-        if (aTs == null && bTs == null) return 0;
-        if (aTs == null) return 1;
-        if (bTs == null) return -1;
-        return bTs.compareTo(aTs);
-      });
-      return docs;
-    });
-  }
+        .map((s) => s.docs.map(SwapListing.fromDoc).toList());
 
-  String _resolveName(Map<String, dynamic> c, String currentUid) {
-    final participants = List<String>.from(c['participants'] ?? []);
-    final otherUserId = participants.firstWhere(
-          (id) => id != currentUid,
-      orElse: () => '',
-    );
-    if (c['otherUserId'] == otherUserId) {
-      final name = c['otherName'] as String?;
-      return (name != null && name.trim().isNotEmpty) ? name : 'Unknown';
+    final uid = _auth.currentUser?.uid ?? '';
+    if (uid.isEmpty) {
+      _conversationsStream = Stream.value([]);
     } else {
-      final name = c['senderName'] as String?;
-      return (name != null && name.trim().isNotEmpty) ? name : 'Unknown';
+      _conversationsStream = _db
+          .collection('conversations')
+          .where('participants', arrayContains: uid)
+          .snapshots()
+          .map((s) {
+        final docs = s.docs.map((d) {
+          final data = d.data();
+          data['id'] = d.id;
+          return data;
+        }).toList();
+
+        // Sort in-memory to prevent requiring composite indexes
+        docs.sort((a, b) {
+          final aTime = a['lastMessageAt'] as Timestamp?;
+          final bTime = b['lastMessageAt'] as Timestamp?;
+          if (aTime == null && bTime == null) return 0;
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+          return bTime.compareTo(aTime);
+        });
+
+        final seen = <String>{};
+        final deduped = <Map<String, dynamic>>[];
+        for (final doc in docs) {
+          final otherId = _resolveOtherUserId(doc, uid);
+          if (otherId.isEmpty) continue;
+          if (seen.contains(otherId)) continue;
+          seen.add(otherId);
+          deduped.add(doc);
+        }
+        return deduped;
+      });
     }
   }
 
   String _resolveOtherUserId(Map<String, dynamic> c, String currentUid) {
     final participants = List<String>.from(c['participants'] ?? []);
     final fromParticipants = participants.firstWhere(
-          (id) => id != currentUid,
+      (id) => id != currentUid,
       orElse: () => '',
     );
     if (fromParticipants.isNotEmpty) return fromParticipants;
@@ -81,7 +89,20 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  void _openConversation(SwapListing swap) {
+  void _openConversation(String conversationId, ChatUserProfile profile, String offering, String wanting) {
+    final swap = SwapListing(
+      id: conversationId,
+      userId: profile.userId,
+      name: profile.name,
+      initials: profile.initials,
+      avatarColor: const Color(0xFF6B8AFF),
+      offering: offering,
+      wanting: wanting,
+      rating: 0.0,
+      reviews: 0,
+      category: 'All',
+      imageUrl: profile.imageUrl,
+    );
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => ConversationScreen(swap: swap)),
@@ -135,9 +156,8 @@ class _ChatScreenState extends State<ChatScreen> {
       stream: _listingsStream,
       builder: (context, mentorSnap) {
         final allMentors = mentorSnap.data ?? [];
-        // Show only 4 unless See All is tapped
         final displayMentors =
-        _showAllMentors ? allMentors : allMentors.take(4).toList();
+            _showAllMentors ? allMentors : allMentors.take(4).toList();
 
         return Column(
           children: [
@@ -148,8 +168,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 40),
-
-                    // Icon area
                     Stack(
                       alignment: Alignment.center,
                       children: [
@@ -203,10 +221,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 12),
-
-                    // Badge
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 6),
@@ -215,7 +230,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                             color:
-                            const Color(0xFF00C2FF).withOpacity(0.3)),
+                                const Color(0xFF00C2FF).withOpacity(0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -241,7 +256,6 @@ class _ChatScreenState extends State<ChatScreen> {
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 28),
                     const Text(
                       'No conversations yet',
@@ -264,10 +278,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 28),
-
-                    // Explore Now button
                     Container(
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
@@ -282,7 +293,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           context,
                           MaterialPageRoute(
                               builder: (_) => const SwappingAvailable()),
-                              (route) => false,
+                          (route) => false,
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
@@ -301,16 +312,13 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 40),
-
-                    // Suggested Mentors header
                     Padding(
                       padding:
-                      const EdgeInsets.symmetric(horizontal: 20),
+                          const EdgeInsets.symmetric(horizontal: 20),
                       child: Row(
                         mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
+                            MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
                             'Suggested Mentors',
@@ -322,7 +330,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                           GestureDetector(
                             onTap: () => setState(
-                                    () => _showAllMentors = !_showAllMentors),
+                                () => _showAllMentors = !_showAllMentors),
                             child: Text(
                               _showAllMentors ? 'Show Less' : 'See All',
                               style: const TextStyle(
@@ -335,10 +343,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 14),
-
-                    // Mentor list — 4 or all
                     if (displayMentors.isEmpty)
                       const SizedBox(height: 60)
                     else
@@ -346,15 +351,24 @@ class _ChatScreenState extends State<ChatScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         padding:
-                        const EdgeInsets.symmetric(horizontal: 20),
+                            const EdgeInsets.symmetric(horizontal: 20),
                         itemCount: displayMentors.length,
-                        itemBuilder: (_, i) => _SuggestedMentorTile(
-                          swap: displayMentors[i],
-                          onTap: () =>
-                              _openConversation(displayMentors[i]),
-                        ),
+                        itemBuilder: (_, i) {
+                          final mentor = displayMentors[i];
+                          return _SuggestedMentorTile(
+                            swap: mentor,
+                            onTap: () {
+                              final profile = ChatUserProfile(
+                                userId: mentor.userId ?? '',
+                                name: mentor.name,
+                                imageUrl: mentor.imageUrl,
+                                isOnline: false,
+                              );
+                              _openConversation(mentor.id, profile, mentor.offering, mentor.wanting);
+                            },
+                          );
+                        },
                       ),
-
                     const SizedBox(height: 100),
                   ],
                 ),
@@ -370,63 +384,50 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildConversationsList(List<Map<String, dynamic>> conversations) {
     final currentUid = _auth.currentUser?.uid ?? '';
 
-    final filtered = conversations.where((c) {
-      final name = _resolveName(c, currentUid).toLowerCase();
-      return _searchQuery.isEmpty ||
-          name.contains(_searchQuery.toLowerCase());
-    }).toList();
-
     return Column(
       children: [
         _buildHeader(showSearch: true),
         const SizedBox(height: 14),
         _buildRecentMentorsRow(conversations, currentUid),
         Expanded(
-          child: filtered.isEmpty
-              ? const Center(
-            child: Text('No conversations found',
-                style: TextStyle(
-                    color: Colors.white38, fontSize: 13)),
-          )
-              : ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: filtered.length,
-            itemBuilder: (_, i) {
-              final c = filtered[i];
-              final otherUserId =
-              _resolveOtherUserId(c, currentUid);
-              final name = _resolveName(c, currentUid);
-              final skill = c['skill'] as String? ?? '';
-              final wanting = c['wanting'] as String? ?? '';
-              final conversationId = c['id'] as String? ?? '';
+          child: StreamBuilder<List<Map<String, dynamic>>>(
+            stream: Stream.value(conversations),
+            builder: (context, snapshot) {
+              final list = snapshot.data ?? [];
+              
+              // Apply search filter locally
+              final filtered = list.where((c) {
+                // Search query is matched later inside tile stream or we filter here by checking cached/initial values
+                // For optimal speed, we can let the ListView build tiles, but to search correctly, we can filter conversations
+                return true; 
+              }).toList();
 
-              final initials =
-              name.trim().split(' ').length >= 2
-                  ? '${name.trim().split(' ')[0][0]}${name.trim().split(' ')[1][0]}'
-                  .toUpperCase()
-                  : name.isNotEmpty
-                  ? name[0].toUpperCase()
-                  : 'U';
+              if (filtered.isEmpty) {
+                return const Center(
+                  child: Text('No conversations found',
+                      style: TextStyle(
+                          color: Colors.white38, fontSize: 13)),
+                );
+              }
 
-              final swap = SwapListing(
-                id: conversationId,
-                userId: otherUserId,
-                name: name,
-                initials: initials,
-                avatarColor: const Color(0xFF6B8AFF),
-                offering: skill,
-                wanting: wanting,
-                rating: 0.0,
-                reviews: 0,
-                category: 'All',
-              );
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: filtered.length,
+                itemBuilder: (_, i) {
+                  final c = filtered[i];
+                  final otherUserId = _resolveOtherUserId(c, currentUid);
+                  final skill = c['skill'] as String? ?? '';
+                  final wanting = c['wanting'] as String? ?? '';
+                  final conversationId = c['id'] as String? ?? '';
 
-              return _ConversationTile(
-                data: c,
-                currentUid: currentUid,
-                otherUserId: otherUserId,
-                resolvedName: name,
-                onTap: () => _openConversation(swap),
+                  return _ConversationTile(
+                    data: c,
+                    currentUid: currentUid,
+                    otherUserId: otherUserId,
+                    searchQuery: _searchQuery,
+                    onTap: (profile) => _openConversation(conversationId, profile, skill, wanting),
+                  );
+                },
               );
             },
           ),
@@ -439,6 +440,15 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildRecentMentorsRow(
       List<Map<String, dynamic>> conversations, String currentUid) {
     if (conversations.isEmpty) return const SizedBox.shrink();
+
+    final seen = <String>{};
+    final unique = <Map<String, dynamic>>[];
+    for (final c in conversations) {
+      final otherId = _resolveOtherUserId(c, currentUid);
+      if (otherId.isEmpty || seen.contains(otherId)) continue;
+      seen.add(otherId);
+      unique.add(c);
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,35 +469,16 @@ class _ChatScreenState extends State<ChatScreen> {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: conversations.length,
+            itemCount: unique.length,
             itemBuilder: (_, i) {
-              final c = conversations[i];
+              final c = unique[i];
               final otherUserId = _resolveOtherUserId(c, currentUid);
-              final name = _resolveName(c, currentUid);
-              final initials = name.trim().split(' ').length >= 2
-                  ? '${name.trim().split(' ')[0][0]}${name.trim().split(' ')[1][0]}'
-                  .toUpperCase()
-                  : name.isNotEmpty
-                  ? name[0].toUpperCase()
-                  : 'U';
-
-              final swap = SwapListing(
-                id: c['id'] as String? ?? '',
-                userId: otherUserId,
-                name: name,
-                initials: initials,
-                avatarColor: const Color(0xFF6B8AFF),
-                offering: c['skill'] as String? ?? '',
-                wanting: c['wanting'] as String? ?? '',
-                rating: 0.0,
-                reviews: 0,
-                category: 'All',
-              );
+              final skill = c['skill'] as String? ?? '';
+              final wanting = c['wanting'] as String? ?? '';
 
               return _RecentMentorAvatar(
-                swap: swap,
                 otherUserId: otherUserId,
-                onTap: () => _openConversation(swap),
+                onTap: (profile) => _openConversation(c['id'] ?? '', profile, skill, wanting),
               );
             },
           ),
@@ -543,13 +534,13 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               child: TextField(
                 controller: _searchController,
-                onChanged: (v) => setState(() => _searchQuery = v),
+                onChanged: (v) => setState(() => _searchQuery = v.trim()),
                 style: const TextStyle(
                     color: Colors.white, fontSize: 14),
                 decoration: const InputDecoration(
                   hintText: 'Search conversations...',
                   hintStyle:
-                  TextStyle(color: Colors.white38, fontSize: 13),
+                      TextStyle(color: Colors.white38, fontSize: 13),
                   suffixIcon: Icon(Icons.search_rounded,
                       color: Colors.white38, size: 20),
                   border: InputBorder.none,
@@ -572,7 +563,7 @@ class _ThreeDotMenu extends StatelessWidget {
     return PopupMenuButton<String>(
       color: const Color(0xFF1E293B),
       shape:
-      RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       icon: const Icon(Icons.more_vert_rounded,
           color: Colors.white54, size: 22),
       onSelected: (value) {},
@@ -602,7 +593,7 @@ class _ThreeDotMenu extends StatelessWidget {
           value: 'clear',
           child: Text('Clear all chats',
               style:
-              TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
+                  TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
         ),
       ],
     );
@@ -632,19 +623,12 @@ class _SuggestedMentorTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                  color: swap.avatarColor,
-                  shape: BoxShape.circle),
-              child: Center(
-                child: Text(swap.initials,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16)),
-              ),
+            _AvatarCircle(
+              name: swap.name,
+              initials: swap.initials,
+              imageUrl: swap.imageUrl,
+              isOnline: false,
+              size: 46,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -674,82 +658,130 @@ class _SuggestedMentorTile extends StatelessWidget {
 
 // ── Recent mentor avatar ─────────────────────────────────────────────
 class _RecentMentorAvatar extends StatelessWidget {
-  final SwapListing swap;
   final String otherUserId;
-  final VoidCallback onTap;
+  final Function(ChatUserProfile) onTap;
+
   const _RecentMentorAvatar({
-    required this.swap,
     required this.otherUserId,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(right: 16),
-        child: Column(
-          children: [
-            Stack(
+    return StreamBuilder<ChatUserProfile>(
+      stream: ChatUserService().getUserProfile(otherUserId),
+      builder: (context, snapshot) {
+        final profile = snapshot.data;
+        if (profile == null) return const SizedBox.shrink();
+
+        return GestureDetector(
+          onTap: () => onTap(profile),
+          child: Container(
+            margin: const EdgeInsets.only(right: 16),
+            child: Column(
               children: [
-                Container(
-                  width: 58,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    color: swap.avatarColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFF00C2FF),
-                      width: 2.5,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(swap.initials,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18)),
+                _AvatarCircle(
+                  name: profile.name,
+                  initials: profile.initials,
+                  imageUrl: profile.imageUrl,
+                  isOnline: profile.isOnline,
+                  size: 58,
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: 60,
+                  child: Text(
+                    profile.name.split(' ').first,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white54, fontSize: 11),
                   ),
                 ),
-                if (otherUserId.isNotEmpty)
-                  StreamBuilder<DocumentSnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(otherUserId)
-                        .snapshots(),
-                    builder: (context, snap) {
-                      final userData = snap.data?.data()
-                      as Map<String, dynamic>?;
-                      final isOnline =
-                          userData?['isOnline'] as bool? ?? false;
-                      if (!isOnline) return const SizedBox.shrink();
-                      return Positioned(
-                        bottom: 2,
-                        right: 2,
-                        child: Container(
-                          width: 13,
-                          height: 13,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF22C55E),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                                color: const Color(0xFF0F172A),
-                                width: 2),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              swap.name.split(' ').first,
-              style: const TextStyle(
-                  color: Colors.white54, fontSize: 11),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ── Reusable avatar circle with optional online dot ──────────────────
+class _AvatarCircle extends StatelessWidget {
+  final String name;
+  final String initials;
+  final String? imageUrl;
+  final bool isOnline;
+  final double size;
+
+  const _AvatarCircle({
+    required this.name,
+    required this.initials,
+    this.imageUrl,
+    required this.isOnline,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: const Color(0xFF2E3E5C),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isOnline
+                  ? const Color(0xFF22C55E)
+                  : const Color(0xFF00C2FF).withOpacity(0.2),
+              width: isOnline ? 2 : 1.5,
             ),
-          ],
+          ),
+          child: ClipOval(
+            child: imageUrl != null && imageUrl!.isNotEmpty
+                ? Image.network(
+                    imageUrl!,
+                    width: size,
+                    height: size,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildInitials(),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return _buildInitials(); // Show initials while loading for smooth feel
+                    },
+                  )
+                : _buildInitials(),
+          ),
+        ),
+        if (isOnline)
+          Positioned(
+            bottom: 1,
+            right: 1,
+            child: Container(
+              width: size * 0.24,
+              height: size * 0.24,
+              decoration: BoxDecoration(
+                color: const Color(0xFF22C55E),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF0F172A), width: 1.5),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildInitials() {
+    return Center(
+      child: Text(
+        initials,
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: size * 0.35,
         ),
       ),
     );
@@ -761,187 +793,148 @@ class _ConversationTile extends StatelessWidget {
   final Map<String, dynamic> data;
   final String currentUid;
   final String otherUserId;
-  final String resolvedName;
-  final VoidCallback onTap;
+  final String searchQuery;
+  final Function(ChatUserProfile) onTap;
 
   const _ConversationTile({
     required this.data,
     required this.currentUid,
     required this.otherUserId,
-    required this.resolvedName,
+    required this.searchQuery,
     required this.onTap,
   });
+
+  String _formatTime(DateTime dt) {
+    final now = DateTime.now();
+    if (now.difference(dt).inDays == 0) {
+      return "${dt.hour}:${dt.minute.toString().padLeft(2, '0')}";
+    }
+    return "${dt.day}/${dt.month}";
+  }
 
   @override
   Widget build(BuildContext context) {
     final lastMsg = data['lastMessage'] as String? ?? '';
-    final unread = (data['unreadCount'] as int?) ?? 0;
-    final skill = data['skill'] as String? ?? '';
+    final rawUnread = data['unreadCount'];
+    final unread = rawUnread is Map ? (rawUnread[currentUid] ?? 0) : 0;
     final Timestamp? ts = data['lastMessageAt'] as Timestamp?;
     final timeStr = ts != null ? _formatTime(ts.toDate()) : '';
 
-    final initials = resolvedName.trim().split(' ').length >= 2
-        ? '${resolvedName.trim().split(' ')[0][0]}${resolvedName.trim().split(' ')[1][0]}'
-        .toUpperCase()
-        : resolvedName.isNotEmpty
-        ? resolvedName[0].toUpperCase()
-        : 'U';
+    return StreamBuilder<ChatUserProfile>(
+      stream: ChatUserService().getUserProfile(otherUserId),
+      builder: (context, snapshot) {
+        final profile = snapshot.data;
+        if (profile == null) return const SizedBox.shrink();
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: const Color(0xFF00C2FF).withOpacity(0.08)),
-        ),
-        child: Row(
-          children: [
-            Stack(
+        // Dynamic search filter matching
+        if (searchQuery.isNotEmpty &&
+            !profile.name.toLowerCase().contains(searchQuery.toLowerCase())) {
+          return const SizedBox.shrink();
+        }
+
+        return GestureDetector(
+          onTap: () => onTap(profile),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                  color: const Color(0xFF00C2FF).withOpacity(0.05)),
+            ),
+            child: Row(
               children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF6B8AFF),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(initials,
+                _AvatarCircle(
+                  name: profile.name,
+                  initials: profile.initials,
+                  imageUrl: profile.imageUrl,
+                  isOnline: profile.isOnline,
+                  size: 52,
+                ),
+                const SizedBox(width: 12),
+
+                // Name & Last message
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              profile.name,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          // Online/Offline tag next to name
+                          Text(
+                            profile.isOnline ? 'Online' : profile.relativeLastSeen,
+                            style: TextStyle(
+                              color: profile.isOnline
+                                  ? const Color(0xFF22C55E)
+                                  : Colors.white38,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        lastMsg,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16)),
+                            color: Colors.white70, fontSize: 13),
+                      ),
+                    ],
                   ),
                 ),
-                if (otherUserId.isNotEmpty)
-                  StreamBuilder<DocumentSnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(otherUserId)
-                        .snapshots(),
-                    builder: (context, snap) {
-                      final userData = snap.data?.data()
-                      as Map<String, dynamic>?;
-                      final isOnline =
-                          userData?['isOnline'] as bool? ?? false;
-                      if (!isOnline) return const SizedBox.shrink();
-                      return Positioned(
-                        bottom: 1,
-                        right: 1,
-                        child: Container(
-                          width: 13,
-                          height: 13,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF22C55E),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                                color: const Color(0xFF0F172A),
-                                width: 2),
+
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(timeStr,
+                        style: const TextStyle(
+                            color: Colors.white38, fontSize: 11)),
+                    const SizedBox(height: 6),
+                    if (unread > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
                           ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF00C2FF).withOpacity(0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            )
+                          ],
                         ),
-                      );
-                    },
-                  ),
-              ],
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(resolvedName,
+                        child: Text(unread.toString(),
                             style: const TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14),
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                      Text(timeStr,
-                          style: const TextStyle(
-                              color: Colors.white38, fontSize: 11)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          lastMsg,
-                          style: const TextStyle(
-                              color: Colors.white38, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (unread > 0)
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF00C2FF),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text('$unread',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                    ],
-                  ),
-                  if (skill.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    _SkillTag(
-                        label: 'Skill: $skill',
-                        color: const Color(0xFF00C2FF)),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold)),
+                      )
                   ],
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatTime(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return 'Yesterday';
-  }
-}
-
-// ── Skill tag ────────────────────────────────────────────────────────
-class _SkillTag extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _SkillTag({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Text(label,
-          style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.w600)),
+          ),
+        );
+      },
     );
   }
 }

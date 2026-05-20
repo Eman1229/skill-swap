@@ -16,6 +16,22 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String _selectedFilter = 'All';
 
+  late final Stream<QuerySnapshot>? _learningStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      _learningStream = _db
+          .collection('swaps')
+          .where('learnerId', isEqualTo: uid)
+          .snapshots();
+    } else {
+      _learningStream = null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final uid = _auth.currentUser?.uid;
@@ -33,19 +49,16 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
-      body: uid == null
+      body: uid == null || _learningStream == null
           ? const Center(child: Text('Please login', style: TextStyle(color: Colors.white)))
           : Column(
               children: [
                 _buildFilters(),
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
-                    stream: _db
-                        .collection('swaps')
-                        .where('learnerId', isEqualTo: uid)
-                        .snapshots(),
+                    stream: _learningStream,
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
+                      if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                         return const Center(child: CircularProgressIndicator(color: Color(0xFF00C2FF)));
                       }
 

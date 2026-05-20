@@ -83,47 +83,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
     setState(() => _isLoading = true);
 
-    // ── STEP 1: Check if email exists using dummy password ──
-    bool emailExists = false;
-
     try {
-      await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: '________dummy________',
-      );
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        setState(() => _emailError = "No account found with this email.");
-        setState(() => _isLoading = false);
-        return;
-      } else if (e.code == 'invalid-credential' ||
-          e.code == 'wrong-password' ||
-          e.code == 'invalid-email') {
-        // Email exists but dummy password was wrong — expected
-        emailExists = true;
-      } else if (e.code == 'user-disabled') {
-        setState(() => _emailError = "This account has been disabled. Contact support.");
-        setState(() => _isLoading = false);
-        return;
-      } else if (e.code == 'too-many-requests') {
-        setState(() => _generalError = "Too many failed attempts. Please try again later.");
-        setState(() => _isLoading = false);
-        return;
-      } else if (e.code == 'network-request-failed') {
-        setState(() => _generalError = "No internet connection. Please check your network.");
-        setState(() => _isLoading = false);
-        return;
-      }
-    }
-
-    if (!emailExists) {
-      setState(() => _emailError = "No account found with this email.");
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    // ── STEP 2: Email exists, now try with real password ──
-    try {
+      // ── Direct Sign-In (Single Call) ──
       await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -148,9 +109,17 @@ class _SignInScreenState extends State<SignInScreen> {
       if (!mounted) return;
 
       switch (e.code) {
+        case 'user-not-found':
+          setState(() => _emailError = "No account found with this email.");
+          break;
+
         case 'wrong-password':
-        case 'invalid-credential':
           setState(() => _passwordError = "Incorrect password. Please try again.");
+          break;
+
+        case 'invalid-credential':
+          // Standard modern Firebase error when either email or password is wrong (due to enumeration protection)
+          setState(() => _generalError = "Invalid email or password. Please try again.");
           break;
 
         case 'user-disabled':

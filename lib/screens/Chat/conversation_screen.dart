@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
+import 'package:skill_swap/services/chat_user_service.dart';
 
 class ConversationScreen extends StatefulWidget {
   final SwapListing swap;
@@ -16,18 +17,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _msgController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final ChatUserService _chatUserService = ChatUserService();
 
   String? _conversationId;
-
-  Stream<bool> get _onlineStream {
-    final otherId = widget.swap.userId ?? '';
-    if (otherId.isEmpty) return Stream.value(false);
-    return _db
-        .collection('users')
-        .doc(otherId)
-        .snapshots()
-        .map((doc) => (doc.data()?['isOnline'] as bool?) ?? false);
-  }
+  Stream<List<QueryDocumentSnapshot>>? _messagesStream;
+  Stream<ChatUserProfile>? _profileStream;
 
   @override
   void initState() {
@@ -42,10 +36,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
     if (uid == null) return;
 
     final otherId = widget.swap.userId ?? '';
+    
+    // Set up profile details stream for header in real-time
+    setState(() {
+      _profileStream = _chatUserService.getUserProfile(otherId);
+    });
 
-    // Step 1: Always search by participants pair first.
-    // This guarantees two users always share one single conversation,
-    // regardless of which skill listing was clicked.
     if (otherId.isNotEmpty) {
       final query = await _db
           .collection('conversations')
@@ -54,10 +50,20 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
       for (final doc in query.docs) {
         final participants =
-        List<String>.from(doc.data()['participants'] ?? []);
+            List<String>.from(doc.data()['participants'] ?? []);
         if (participants.contains(otherId)) {
           // Found existing conversation → reuse it
-          setState(() => _conversationId = doc.id);
+          setState(() {
+            _conversationId = doc.id;
+            _messagesStream = _db
+                .collection('conversations')
+                .doc(doc.id)
+                .collection('messages')
+                .orderBy('timestamp', descending: false)
+                .snapshots()
+                .map((snap) => snap.docs);
+          });
+          _markAsRead(doc.id);
           return;
         }
       }
@@ -72,76 +78,115 @@ class _ConversationScreenState extends State<ConversationScreen> {
           .get();
       if (directDoc.exists) {
         final participants =
-        List<String>.from(directDoc.data()?['participants'] ?? []);
+            List<String>.from(directDoc.data()?['participants'] ?? []);
         if (participants.contains(uid) && participants.contains(otherId)) {
-          setState(() => _conversationId = directDoc.id);
+          setState(() {
+            _conversationId = directDoc.id;
+            _messagesStream = _db
+                .collection('conversations')
+                .doc(directDoc.id)
+                .collection('messages')
+                .orderBy('timestamp', descending: false)
+                .snapshots()
+                .map((snap) => snap.docs);
+          });
+          _markAsRead(directDoc.id);
           return;
         }
       }
     }
 
     // Step 3: No existing conversation → will be created on first message
-    setState(() => _conversationId = '');
+    setState(() {
+      _conversationId = '';
+    });
   }
 
-  Future<void> _sendMessage(String text) async {
+  void _markAsRead(String convoId) {
+    if (convoId.isEmpty) return;
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    _db.collection('conversations').doc(convoId).set({
+      'unreadCount': {uid: 0},
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> sendMessage(String text) async {
     if (text.trim().isEmpty) return;
-    final uid = _auth.currentUser?.uid ?? '';
-    final otherId = widget.swap.userId ?? widget.swap.id;
 
-    if (_conversationId == null || _conversationId!.isEmpty) {
-      final senderName =
-      _auth.currentUser?.displayName?.trim().isNotEmpty == true
-          ? _auth.currentUser!.displayName!
-          : _auth.currentUser?.email?.split('@').first ?? 'User';
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
 
-      final ref = await _db.collection('conversations').add({
+    final otherId = widget.swap.userId ?? '';
+    String convoId = _conversationId ?? '';
+
+    // If it is the first message in the conversation, dynamically create the conversation doc
+    if (convoId.isEmpty) {
+      if (otherId.isEmpty) return;
+
+      final newConvoRef = _db.collection('conversations').doc();
+      convoId = newConvoRef.id;
+
+      await newConvoRef.set({
         'participants': [uid, otherId],
-        'otherUserId': otherId,
-        'senderName': senderName,
-        'otherName': widget.swap.name,
+        'lastMessage': text,
+        'lastMessageAt': FieldValue.serverTimestamp(),
         'skill': widget.swap.offering,
         'wanting': widget.swap.wanting,
-        'lastMessage': text.trim(),
-        'lastMessageAt': FieldValue.serverTimestamp(),
-        'unreadCount': 0,
+        'unreadCount': {
+          uid: 0,
+          otherId: 1,
+        },
       });
-      setState(() => _conversationId = ref.id);
+
+      setState(() {
+        _conversationId = convoId;
+        _messagesStream = _db
+            .collection('conversations')
+            .doc(convoId)
+            .collection('messages')
+            .orderBy('timestamp', descending: false)
+            .snapshots()
+            .map((snap) => snap.docs);
+      });
+    } else {
+      // Update existing conversation meta
+      await _db.collection('conversations').doc(convoId).set({
+        'lastMessage': text,
+        'lastMessageAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      await _db.collection('conversations').doc(convoId).update({
+        'unreadCount.$otherId': FieldValue.increment(1),
+      });
     }
 
+    // Add new message document
     await _db
         .collection('conversations')
-        .doc(_conversationId)
+        .doc(convoId)
         .collection('messages')
         .add({
+      'text': text,
       'senderId': uid,
-      'text': text.trim(),
       'timestamp': FieldValue.serverTimestamp(),
       'type': 'text',
     });
 
-    await _db
-        .collection('conversations')
-        .doc(_conversationId)
-        .update({
-      'lastMessage': text.trim(),
-      'lastMessageAt': FieldValue.serverTimestamp(),
-    });
-
     _msgController.clear();
     _scrollToBottom();
+    _markAsRead(convoId);
   }
 
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   Future<void> _confirmSwap(
@@ -297,105 +342,104 @@ class _ConversationScreenState extends State<ConversationScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            StreamBuilder<bool>(
-              stream: _onlineStream,
-              builder: (context, snap) {
-                final isOnline = snap.data ?? false;
-                return _buildHeader(isOnline);
-              },
-            ),
+            // Dynamic Header listening to real-time user presence
+            _profileStream != null
+                ? StreamBuilder<ChatUserProfile>(
+                    stream: _profileStream,
+                    builder: (context, snap) {
+                      final profile = snap.data ??
+                          ChatUserProfile(
+                            userId: widget.swap.userId ?? '',
+                            name: widget.swap.name,
+                            imageUrl: widget.swap.imageUrl,
+                            isOnline: false,
+                          );
+                      return _buildHeader(profile);
+                    },
+                  )
+                : _buildHeader(ChatUserProfile(
+                    userId: widget.swap.userId ?? '',
+                    name: widget.swap.name,
+                    imageUrl: widget.swap.imageUrl,
+                    isOnline: false,
+                  )),
+
             Expanded(
               child: _conversationId == null
                   ? const Center(
-                  child: CircularProgressIndicator(
-                      color: Color(0xFF00C2FF)))
+                      child: CircularProgressIndicator(
+                          color: Color(0xFF00C2FF)))
                   : _conversationId!.isEmpty
-                  ? _buildEmptyChat()
-                  : StreamBuilder<QuerySnapshot>(
-                stream: _db
-                    .collection('conversations')
-                    .doc(_conversationId)
-                    .collection('messages')
-                    .orderBy('timestamp', descending: false)
-                    .snapshots(
-                    includeMetadataChanges: true),
-                builder: (context, snap) {
-                  if (snap.connectionState ==
-                      ConnectionState.waiting &&
-                      !snap.hasData) {
-                    return const Center(
-                        child: CircularProgressIndicator(
-                            color: Color(0xFF00C2FF)));
-                  }
+                      ? _buildEmptyChat()
+                      : _messagesStream != null
+                          ? StreamBuilder<List<QueryDocumentSnapshot>>(
+                              stream: _messagesStream,
+                              builder: (context, snap) {
+                                if (snap.connectionState ==
+                                        ConnectionState.waiting &&
+                                    !snap.hasData) {
+                                  return const Center(
+                                      child: CircularProgressIndicator(
+                                          color: Color(0xFF00C2FF)));
+                                }
 
-                  final docs = snap.data?.docs ?? [];
-                  if (docs.isEmpty) {
-                    return _buildEmptyChat();
-                  }
+                                final docs = snap.data ?? [];
+                                if (docs.isEmpty) {
+                                  return _buildEmptyChat();
+                                }
 
-                  WidgetsBinding.instance
-                      .addPostFrameCallback(
-                          (_) => _scrollToBottom());
+                                // Auto scroll on frame render
+                                WidgetsBinding.instance.addPostFrameCallback(
+                                    (_) => _scrollToBottom());
 
-                  return ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    itemCount: docs.length + 1,
-                    itemBuilder: (_, i) {
-                      if (i == 0) {
-                        return const _DateChip(
-                            label: 'TODAY');
-                      }
-                      final d = docs[i - 1].data()
-                      as Map<String, dynamic>;
-                      final isMine =
-                          d['senderId'] == uid;
-                      final type =
-                          d['type'] as String? ?? 'text';
+                                return ListView.builder(
+                                  controller: _scrollController,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                  itemCount: docs.length + 1,
+                                  itemBuilder: (_, i) {
+                                    if (i == 0) {
+                                      return const _DateChip(label: 'TODAY');
+                                    }
+                                    final d = docs[i - 1].data()
+                                        as Map<String, dynamic>;
+                                    final isMine = d['senderId'] == uid;
+                                    final type = d['type'] as String? ?? 'text';
 
-                      if (type == 'swap_proposal') {
-                        return _SwapProposalCard(
-                          offering:
-                          d['offering'] ?? '',
-                          wanting: d['wanting'] ?? '',
-                          senderName: widget.swap.name,
-                          senderId:
-                          d['senderId'] ?? '',
-                          onConfirm: (o, w, s) =>
-                              _confirmSwap(o, w, s),
-                        );
-                      }
+                                    if (type == 'swap_proposal') {
+                                      return _SwapProposalCard(
+                                        offering: d['offering'] ?? '',
+                                        wanting: d['wanting'] ?? '',
+                                        senderName: widget.swap.name,
+                                        senderId: d['senderId'] ?? '',
+                                        onConfirm: (o, w, s) =>
+                                            _confirmSwap(o, w, s),
+                                      );
+                                    }
 
-                      if (type == 'session_invite') {
-                        return _SessionInviteCard(
-                          sessionId:
-                          d['sessionId'] ?? '',
-                          swapId: d['swapId'] ?? '',
-                          title: d['title'] ?? '',
-                          date:
-                          d['date'] as Timestamp?,
-                          duration:
-                          d['duration'] ?? '',
-                          senderId:
-                          d['senderId'] ?? '',
-                          onAccept: (sid, swid) =>
-                              _acceptSession(
-                                  sid, swid),
-                        );
-                      }
+                                    if (type == 'session_invite') {
+                                      return _SessionInviteCard(
+                                        sessionId: d['sessionId'] ?? '',
+                                        swapId: d['swapId'] ?? '',
+                                        title: d['title'] ?? '',
+                                        date: d['date'] as Timestamp?,
+                                        duration: d['duration'] ?? '',
+                                        senderId: d['senderId'] ?? '',
+                                        onAccept: (sid, swid) =>
+                                            _acceptSession(sid, swid),
+                                      );
+                                    }
 
-                      return _MessageBubble(
-                        text: d['text'] as String? ??
-                            '',
-                        isMine: isMine,
-                        timestamp: d['timestamp']
-                        as Timestamp?,
-                      );
-                    },
-                  );
-                },
-              ),
+                                    return _MessageBubble(
+                                      text: d['text'] as String? ?? '',
+                                      isMine: isMine,
+                                      timestamp: d['timestamp'] as Timestamp?,
+                                    );
+                                  },
+                                );
+                              },
+                            )
+                          : _buildEmptyChat(),
             ),
             _buildInputBar(),
           ],
@@ -404,10 +448,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
     );
   }
 
-  Widget _buildHeader(bool isOnline) {
+  Widget _buildHeader(ChatUserProfile profile) {
     return Container(
-      padding:
-      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFF0F172A),
         border: Border(
@@ -431,58 +474,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          Stack(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: widget.swap.imageUrl == null
-                      ? widget.swap.avatarColor
-                      : null,
-                  shape: BoxShape.circle,
-                ),
-                child: widget.swap.imageUrl != null
-                    ? ClipOval(
-                  child: Image.network(
-                    widget.swap.imageUrl!,
-                    width: 42,
-                    height: 42,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Center(
-                      child: Text(widget.swap.initials,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16)),
-                    ),
-                  ),
-                )
-                    : Center(
-                  child: Text(widget.swap.initials,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16)),
-                ),
-              ),
-              if (isOnline)
-                Positioned(
-                  bottom: 1,
-                  right: 1,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF22C55E),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: const Color(0xFF0F172A),
-                          width: 2),
-                    ),
-                  ),
-                ),
-            ],
+          _AvatarCircle(
+            name: profile.name,
+            initials: profile.initials,
+            imageUrl: profile.imageUrl,
+            isOnline: profile.isOnline,
+            size: 42,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -490,7 +487,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.swap.name,
+                  profile.name,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -504,16 +501,16 @@ class _ConversationScreenState extends State<ConversationScreen> {
                       height: 6,
                       margin: const EdgeInsets.only(right: 5),
                       decoration: BoxDecoration(
-                        color: isOnline
+                        color: profile.isOnline
                             ? const Color(0xFF22C55E)
                             : Colors.white38,
                         shape: BoxShape.circle,
                       ),
                     ),
                     Text(
-                      isOnline ? 'Online' : 'Offline',
+                      profile.isOnline ? 'Online' : profile.relativeLastSeen,
                       style: TextStyle(
-                        color: isOnline
+                        color: profile.isOnline
                             ? const Color(0xFF22C55E)
                             : Colors.white38,
                         fontSize: 11,
@@ -533,16 +530,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.call_rounded,
-                color: Color(0xFF00C2FF), size: 22),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.videocam_rounded,
-                color: Color(0xFF00C2FF), size: 22),
-            onPressed: () {},
-          ),
+          // Telephony and video buttons completely removed as requested!
         ],
       ),
     );
@@ -598,7 +586,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 shape: BoxShape.circle,
                 border: Border.all(
                     color:
-                    const Color(0xFF00C2FF).withOpacity(0.2)),
+                        const Color(0xFF00C2FF).withOpacity(0.2)),
               ),
               child: const Icon(Icons.add_rounded,
                   color: Color(0xFF00C2FF), size: 20),
@@ -612,7 +600,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                     color:
-                    const Color(0xFF00C2FF).withOpacity(0.2)),
+                        const Color(0xFF00C2FF).withOpacity(0.2)),
               ),
               child: TextField(
                 controller: _msgController,
@@ -626,13 +614,13 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   contentPadding: EdgeInsets.symmetric(
                       horizontal: 16, vertical: 10),
                 ),
-                onSubmitted: _sendMessage,
+                onSubmitted: sendMessage,
               ),
             ),
           ),
           const SizedBox(width: 10),
           GestureDetector(
-            onTap: () => _sendMessage(_msgController.text),
+            onTap: () => sendMessage(_msgController.text),
             child: Container(
               width: 42,
               height: 42,
@@ -665,7 +653,7 @@ class _DateChip extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 12),
         padding:
-        const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
         decoration: BoxDecoration(
           color: const Color(0xFF1E293B),
           borderRadius: BorderRadius.circular(20),
@@ -678,6 +666,87 @@ class _DateChip extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5)),
+      ),
+    );
+  }
+}
+
+// ── Reusable avatar circle ───────────────────────────────────────────
+class _AvatarCircle extends StatelessWidget {
+  final String name;
+  final String initials;
+  final String? imageUrl;
+  final bool isOnline;
+  final double size;
+
+  const _AvatarCircle({
+    required this.name,
+    required this.initials,
+    this.imageUrl,
+    required this.isOnline,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: const Color(0xFF2E3E5C),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isOnline
+                  ? const Color(0xFF22C55E)
+                  : const Color(0xFF00C2FF).withOpacity(0.2),
+              width: isOnline ? 2 : 1.5,
+            ),
+          ),
+          child: ClipOval(
+            child: imageUrl != null && imageUrl!.isNotEmpty
+                ? Image.network(
+                    imageUrl!,
+                    width: size,
+                    height: size,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildInitials(),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return _buildInitials();
+                    },
+                  )
+                : _buildInitials(),
+          ),
+        ),
+        if (isOnline)
+          Positioned(
+            bottom: 1,
+            right: 1,
+            child: Container(
+              width: size * 0.24,
+              height: size * 0.24,
+              decoration: BoxDecoration(
+                color: const Color(0xFF22C55E),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF0F172A), width: 1.5),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildInitials() {
+    return Center(
+      child: Text(
+        initials,
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: size * 0.35,
+        ),
       ),
     );
   }
@@ -698,11 +767,11 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final timeStr =
-    timestamp != null ? _fmt(timestamp!.toDate()) : '';
+        timestamp != null ? _fmt(timestamp!.toDate()) : '';
 
     return Align(
       alignment:
-      isMine ? Alignment.centerRight : Alignment.centerLeft,
+          isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
         crossAxisAlignment: isMine
             ? CrossAxisAlignment.end
@@ -711,20 +780,20 @@ class _MessageBubble extends StatelessWidget {
           Container(
             constraints: BoxConstraints(
                 maxWidth:
-                MediaQuery.of(context).size.width * 0.72),
+                    MediaQuery.of(context).size.width * 0.72),
             margin: const EdgeInsets.symmetric(vertical: 4),
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 11),
             decoration: BoxDecoration(
               gradient: isMine
                   ? const LinearGradient(
-                colors: [
-                  Color(0xFF00C2FF),
-                  Color(0xFF6B8AFF)
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
+                      colors: [
+                        Color(0xFF00C2FF),
+                        Color(0xFF6B8AFF)
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
                   : null,
               color: isMine ? null : const Color(0xFF1E293B),
               borderRadius: BorderRadius.only(
@@ -736,8 +805,8 @@ class _MessageBubble extends StatelessWidget {
               border: isMine
                   ? null
                   : Border.all(
-                  color: const Color(0xFF00C2FF)
-                      .withOpacity(0.1)),
+                      color: const Color(0xFF00C2FF)
+                          .withOpacity(0.1)),
             ),
             child: Text(
               text,

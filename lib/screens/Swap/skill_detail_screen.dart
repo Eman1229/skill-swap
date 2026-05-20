@@ -17,6 +17,18 @@ class SkillDetailScreen extends StatefulWidget {
 class _SkillDetailScreenState extends State<SkillDetailScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  late final Stream<QuerySnapshot> _sessionsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _sessionsStream = _db
+        .collection('swaps')
+        .doc(widget.swap.id)
+        .collection('sessions')
+        .orderBy('date', descending: true)
+        .snapshots();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -168,14 +180,9 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
 
   Widget _buildSessionsList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _db
-          .collection('swaps')
-          .doc(widget.swap.id)
-          .collection('sessions')
-          .orderBy('date', descending: true)
-          .snapshots(),
+      stream: _sessionsStream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
           return const Center(child: CircularProgressIndicator(color: Color(0xFF00C2FF)));
         }
 
