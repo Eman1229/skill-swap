@@ -51,7 +51,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (internetAvailable) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const OnBoardingScreen()),
+        MaterialPageRoute(builder: (context) => OnBoardingScreen()),
       );
     } else {
       Navigator.pushReplacement(

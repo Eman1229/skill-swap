@@ -292,7 +292,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         onPressed: () => Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const SwappingAvailable()),
+                              builder: (_) => SwappingAvailable()),
                           (route) => false,
                         ),
                         style: ElevatedButton.styleFrom(
