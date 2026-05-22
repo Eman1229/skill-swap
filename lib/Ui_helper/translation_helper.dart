@@ -3,6 +3,10 @@ import 'package:skill_swap/screens/Setting/app_settings.dart';
 class AppTranslations {
   static const Map<String, Map<String, String>> _localizedValues = {
     'English': {
+      'appTitle': 'SkillSwapX',
+      'lightMode': 'Light Mode',
+      'signIn': 'Sign in',
+      'signUp': 'Sign up',
       'settings': 'Settings',
       'account': 'Account',
       'profile_info': 'Profile Information',
@@ -1389,6 +1393,10 @@ class AppTranslations {
       'add_skill': 'Aggiungi Abilità',
     },
     'Urdu': {
+      'appTitle': 'SkillSwapX',
+      'lightMode': 'Light Mode',
+      'signIn': 'Sign in',
+      'signUp': 'Sign up',
       'settings': 'ترجیحات',
       'account': 'اکاؤنٹ',
       'profile_info': 'پروفائل کی معلومات',

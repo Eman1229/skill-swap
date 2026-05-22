@@ -39,6 +39,15 @@ class FcmService {
       print("User granted push notification permission.");
     }
 
+    // Explicit notification permission request for Android 13+
+    try {
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+    } catch (e) {
+      print("Error requesting Android 13+ notification permissions: $e");
+    }
+
     // 2. Initialize local notifications for foreground popups
     const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings iOSInit = DarwinInitializationSettings(
@@ -94,12 +103,21 @@ class FcmService {
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;
 
-      if (notification != null) {
+      String? title = notification?.title;
+      String? body = notification?.body;
+
+      // Handle data-only messages when foreground
+      if (title == null && body == null && message.data.isNotEmpty) {
+        title = message.data['title'] as String?;
+        body = message.data['body'] as String?;
+      }
+
+      if (title != null && body != null) {
         // Show a local notification alert using strictly named parameters
         _localNotifications.show(
-          id: notification.hashCode,
-          title: notification.title,
-          body: notification.body,
+          id: message.hashCode,
+          title: title,
+          body: body,
           notificationDetails: NotificationDetails(
             android: AndroidNotificationDetails(
               channel.id,
@@ -120,9 +138,16 @@ class FcmService {
       }
     });
 
+    // Listen to Firebase Auth state changes to dynamically save device tokens
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) {
+        saveDeviceToken();
+      }
+    });
+
     _initialized = true;
     
-    // Register FCM Token for logged-in user
+    // Register FCM Token for currently logged-in user if any
     await saveDeviceToken();
   }
 

@@ -1,0 +1,12 @@
+{
+  "@@locale": "en",
+  "appTitle": "SkillSwapX",
+  "settings": "Settings",
+  "language": "Language",
+  "lightMode": "Light Mode",
+  "home": "Home",
+  "chat": "Chat",
+  "swaps": "Swaps",
+  "signIn": "Sign in",
+  "signUp": "Sign up"
+}

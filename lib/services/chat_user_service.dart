@@ -46,9 +46,15 @@ class ChatUserProfile {
 }
 
 class ChatUserService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static final ChatUserService _instance = ChatUserService._internal();
+  factory ChatUserService() => _instance;
+  ChatUserService._internal();
 
-  // Single dynamic stream for user details and presence
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  
+  // Cache base profile info to prevent heavy listing lookups
+  final Map<String, ({String name, String? imageUrl})> _baseInfoCache = {};
+
   Stream<ChatUserProfile> getUserProfile(String userId) {
     if (userId.isEmpty) {
       return Stream.value(const ChatUserProfile(
@@ -67,32 +73,35 @@ class ChatUserService {
       final bool isOnline = (userData?['isOnline'] as bool?) ?? false;
       final Timestamp? lastSeen = userData?['lastSeen'] as Timestamp?;
 
-      // Query swapListings where userId matches to fetch profile image and actual name
-      final listingsSnap = await _db
-          .collection('swapListings')
-          .where('userId', isEqualTo: userId)
-          .get();
-
       String name = 'Unknown User';
       String? imageUrl;
 
-      if (listingsSnap.docs.isNotEmpty) {
-        final docs = List<QueryDocumentSnapshot>.from(listingsSnap.docs);
-        // Sort in-memory to get the latest updated listing
-        docs.sort((a, b) {
-          final aData = a.data() as Map<String, dynamic>;
-          final bData = b.data() as Map<String, dynamic>;
-          final aTime = aData['createdAt'] as Timestamp?;
-          final bTime = bData['createdAt'] as Timestamp?;
-          if (aTime == null && bTime == null) return 0;
-          if (aTime == null) return 1;
-          if (bTime == null) return -1;
-          return bTime.compareTo(aTime);
-        });
+      // 1. Check if name/image is already in main user doc (optimization)
+      if (userData?['name'] != null) {
+        name = userData!['name'];
+        imageUrl = userData['imageUrl'];
+      } 
+      // 2. Check cache
+      else if (_baseInfoCache.containsKey(userId)) {
+        final cached = _baseInfoCache[userId]!;
+        name = cached.name;
+        imageUrl = cached.imageUrl;
+      } 
+      // 3. Fallback to slow listing lookup
+      else {
+        final listingsSnap = await _db
+            .collection('swapListings')
+            .where('userId', isEqualTo: userId)
+            .limit(1)
+            .get();
 
-        final latestData = docs.first.data() as Map<String, dynamic>;
-        name = latestData['name'] as String? ?? 'Unknown User';
-        imageUrl = latestData['imageUrl'] as String? ?? latestData['imageUrl'];
+        if (listingsSnap.docs.isNotEmpty) {
+          final data = listingsSnap.docs.first.data();
+          name = data['name'] as String? ?? 'Unknown User';
+          imageUrl = data['imageUrl'] as String?;
+          
+          _baseInfoCache[userId] = (name: name, imageUrl: imageUrl);
+        }
       }
 
       return ChatUserProfile(

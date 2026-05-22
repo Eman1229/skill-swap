@@ -3,11 +3,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class PresenceService with WidgetsBindingObserver {
+  static final PresenceService _instance = PresenceService._internal();
+  factory PresenceService() => _instance;
+  PresenceService._internal();
+
   final _auth = FirebaseAuth.instance;
   final _db = FirebaseFirestore.instance;
+  bool _started = false;
 
   void start() {
+    if (_started) return;
+    _started = true;
     WidgetsBinding.instance.addObserver(this);
+
+    // Track active user changes
+    _auth.authStateChanges().listen((user) {
+      if (user != null) {
+        _setStatus(true);
+      }
+    });
 
     _setStatus(true);
   }
@@ -26,9 +40,13 @@ class PresenceService with WidgetsBindingObserver {
 
     if (user == null) return;
 
-    await _db.collection('users').doc(user.uid).set({
-      'isOnline': online,
-      'lastSeen': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    try {
+      await _db.collection('users').doc(user.uid).set({
+        'isOnline': online,
+        'lastSeen': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint("Error setting status: $e");
+    }
   }
 }
