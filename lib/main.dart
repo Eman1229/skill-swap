@@ -52,8 +52,36 @@ Future<void> main() async {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    // Start active user presence tracking on startup
+    PresenceService().startPresenceTracking();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      PresenceService().setUserOnline();
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      PresenceService().setUserOffline();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

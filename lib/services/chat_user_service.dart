@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 
 class ChatUserProfile {
   final String userId;
@@ -48,7 +50,7 @@ class ChatUserProfile {
 class ChatUserService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Single dynamic stream for user details and presence
+  // Single dynamic stream for user details (Firestore) and presence (Realtime Database)
   Stream<ChatUserProfile> getUserProfile(String userId) {
     if (userId.isEmpty) {
       return Stream.value(const ChatUserProfile(
@@ -58,27 +60,17 @@ class ChatUserService {
       ));
     }
 
-    return _db
-        .collection('users')
-        .doc(userId)
-        .snapshots()
-        .asyncMap((userDoc) async {
-      final userData = userDoc.data();
-      final bool isOnline = (userData?['isOnline'] as bool?) ?? false;
-      final Timestamp? lastSeen = userData?['lastSeen'] as Timestamp?;
-
-      // Query swapListings where userId matches to fetch profile image and actual name
-      final listingsSnap = await _db
-          .collection('swapListings')
-          .where('userId', isEqualTo: userId)
-          .get();
-
+    // 1. Fetch swap listing profile details once (since name and photo don't change dynamically)
+    final profileFuture = _db
+        .collection('swapListings')
+        .where('userId', isEqualTo: userId)
+        .get()
+        .then((listingsSnap) {
       String name = 'Unknown User';
       String? imageUrl;
 
       if (listingsSnap.docs.isNotEmpty) {
         final docs = List<QueryDocumentSnapshot>.from(listingsSnap.docs);
-        // Sort in-memory to get the latest updated listing
         docs.sort((a, b) {
           final aData = a.data() as Map<String, dynamic>;
           final bData = b.data() as Map<String, dynamic>;
@@ -92,13 +84,37 @@ class ChatUserService {
 
         final latestData = docs.first.data() as Map<String, dynamic>;
         name = latestData['name'] as String? ?? 'Unknown User';
-        imageUrl = latestData['imageUrl'] as String? ?? latestData['imageUrl'];
+        imageUrl = latestData['imageUrl'] as String?;
       }
 
+      return {'name': name, 'imageUrl': imageUrl};
+    });
+
+    // 2. Stream user active status and lastSeen timestamp from Realtime Database
+    final dbRef = FirebaseDatabase.instance.ref('status/$userId');
+    return dbRef.onValue.asyncMap((event) async {
+      final snap = event.snapshot;
+      bool isOnline = false;
+      Timestamp? lastSeen;
+
+      if (snap.exists && snap.value != null) {
+        try {
+          final val = snap.value as Map<dynamic, dynamic>;
+          isOnline = (val['online'] as bool?) ?? false;
+          final lastSeenMs = val['lastSeen'] as int?;
+          if (lastSeenMs != null) {
+            lastSeen = Timestamp.fromMillisecondsSinceEpoch(lastSeenMs);
+          }
+        } catch (e) {
+          debugPrint("ChatUserService: Error parsing presence value: $e");
+        }
+      }
+
+      final profile = await profileFuture;
       return ChatUserProfile(
         userId: userId,
-        name: name,
-        imageUrl: imageUrl,
+        name: profile['name'] as String,
+        imageUrl: profile['imageUrl'],
         isOnline: isOnline,
         lastSeen: lastSeen,
       );

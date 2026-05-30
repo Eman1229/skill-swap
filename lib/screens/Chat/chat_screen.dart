@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Chat/conversation_screen.dart';
 import 'package:skill_swap/services/chat_user_service.dart';
+import 'package:skill_swap/services/message_sync_service.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({Key? key}) : super(key: key);
@@ -36,6 +37,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (uid.isEmpty) {
       _conversationsStream = Stream.value([]);
     } else {
+      MessageSyncService().markIncomingMessagesAsDelivered(uid);
       _conversationsStream = _db
           .collection('conversations')
           .where('participants', arrayContains: uid)

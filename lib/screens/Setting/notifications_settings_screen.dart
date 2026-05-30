@@ -1,16 +1,63 @@
 import 'package:flutter/material.dart';
-import 'package:skill_swap/screens/Setting/app_settings.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:skill_swap/services/notification_service.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class NotificationsSettingsScreen extends StatefulWidget {
-  NotificationsSettingsScreen({super.key});
+  const NotificationsSettingsScreen({super.key});
 
   @override
   State<NotificationsSettingsScreen> createState() => _NotificationsSettingsScreenState();
 }
 
 class _NotificationsSettingsScreenState extends State<NotificationsSettingsScreen> {
-  final AppSettings _settings = AppSettings();
+  final NotificationService _notificationService = NotificationService();
+  bool _loading = true;
+
+  Map<String, bool> _settings = {
+    'directMessages': true,
+    'swapRequests': true,
+    'swapUpdates': true,
+    'progressUpdates': true,
+    'reviews': true,
+    'general': true,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      final fetched = await _notificationService.getSettings(uid);
+      if (mounted) {
+        setState(() {
+          _settings = fetched;
+          _loading = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleSetting(String key, bool val) async {
+    setState(() {
+      _settings[key] = val;
+    });
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      await _notificationService.updateSettings(uid, _settings);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,99 +76,76 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
         ),
         centerTitle: true,
       ),
-      body: ListView(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        children: [
-          SizedBox(height: 10),
-          _buildInfoCard(),
-          SizedBox(height: 24),
-          _buildSectionTitle('master_controls'.tr()),
-          ValueListenableBuilder<bool>(
-            valueListenable: _settings.notificationsEnabled,
-            builder: (context, enabled, _) {
-              return _buildSwitchTile(
-                icon: Icons.notifications_active_rounded,
-                title: 'allow_push'.tr(),
-                description: 'allow_push_desc'.tr(),
-                value: enabled,
-                onChanged: (v) {
-                  setState(() {
-                    _settings.setNotificationsEnabled(v);
-                  });
-                },
-                activeColor: Theme.of(context).colorScheme.primary,
-              );
-            },
-          ),
-          SizedBox(height: 24),
-          _buildSectionTitle('notification_types'.tr()),
-          ValueListenableBuilder<bool>(
-            valueListenable: _settings.notificationsEnabled,
-            builder: (context, masterEnabled, _) {
-              return Column(
-                children: [
-                  ValueListenableBuilder<bool>(
-                    valueListenable: _settings.swapRequestsEnabled,
-                    builder: (context, enabled, _) {
-                      return _buildSwitchTile(
-                        icon: Icons.swap_horizontal_circle_outlined,
-                        title: 'swap_proposals'.tr(),
-                        description: 'swap_proposals_desc'.tr(),
-                        value: enabled,
-                        onChanged: masterEnabled
-                            ? (v) => setState(() => _settings.swapRequestsEnabled.value = v)
-                            : null,
-                        activeColor: Theme.of(context).colorScheme.primary,
-                      );
-                    },
-                  ),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: _settings.chatMessagesEnabled,
-                    builder: (context, enabled, _) {
-                      return _buildSwitchTile(
-                        icon: Icons.chat_bubble_outline_rounded,
-                        title: 'direct_messages'.tr(),
-                        description: 'direct_messages_desc'.tr(),
-                        value: enabled,
-                        onChanged: masterEnabled
-                            ? (v) => setState(() => _settings.chatMessagesEnabled.value = v)
-                            : null,
-                        activeColor: Theme.of(context).colorScheme.primary,
-                      );
-                    },
-                  ),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: _settings.marketingEmailsEnabled,
-                    builder: (context, enabled, _) {
-                      return _buildSwitchTile(
-                        icon: Icons.alternate_email_rounded,
-                        title: 'weekly_tips'.tr(),
-                        description: 'weekly_tips_desc'.tr(),
-                        value: enabled,
-                        onChanged: masterEnabled
-                            ? (v) => setState(() => _settings.marketingEmailsEnabled.value = v)
-                            : null,
-                        activeColor: Theme.of(context).colorScheme.primary,
-                      );
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
+      body: _loading
+          ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
+          : ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              children: [
+                const SizedBox(height: 10),
+                _buildInfoCard(),
+                const SizedBox(height: 24),
+                _buildSectionTitle('notification_types'.tr()),
+                _buildSwitchTile(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  title: 'Direct Messages',
+                  description: 'Receive notifications for incoming chat messages.',
+                  value: _settings['directMessages'] ?? true,
+                  onChanged: (v) => _toggleSetting('directMessages', v),
+                  activeColor: Theme.of(context).colorScheme.primary,
+                ),
+                _buildSwitchTile(
+                  icon: Icons.swap_horizontal_circle_outlined,
+                  title: 'Swap Requests',
+                  description: 'Get notified when someone sends you a new skill swap request.',
+                  value: _settings['swapRequests'] ?? true,
+                  onChanged: (v) => _toggleSetting('swapRequests', v),
+                  activeColor: Theme.of(context).colorScheme.primary,
+                ),
+                _buildSwitchTile(
+                  icon: Icons.sync_problem_rounded,
+                  title: 'Swap Updates',
+                  description: 'Notifications when your swap requests are accepted or rejected.',
+                  value: _settings['swapUpdates'] ?? true,
+                  onChanged: (v) => _toggleSetting('swapUpdates', v),
+                  activeColor: Theme.of(context).colorScheme.primary,
+                ),
+                _buildSwitchTile(
+                  icon: Icons.playlist_add_check_circle_outlined,
+                  title: 'Progress Updates',
+                  description: 'Alerts when your sessions are marked completed or progress changes.',
+                  value: _settings['progressUpdates'] ?? true,
+                  onChanged: (v) => _toggleSetting('progressUpdates', v),
+                  activeColor: Theme.of(context).colorScheme.primary,
+                ),
+                _buildSwitchTile(
+                  icon: Icons.star_outline_rounded,
+                  title: 'Reviews & Ratings',
+                  description: 'Receive notifications for new feedback and skill reviews.',
+                  value: _settings['reviews'] ?? true,
+                  onChanged: (v) => _toggleSetting('reviews', v),
+                  activeColor: Theme.of(context).colorScheme.primary,
+                ),
+                _buildSwitchTile(
+                  icon: Icons.notifications_none_rounded,
+                  title: 'General Notifications',
+                  description: 'Receive announcements, tips, and important activity alerts.',
+                  value: _settings['general'] ?? true,
+                  onChanged: (v) => _toggleSetting('general', v),
+                  activeColor: Theme.of(context).colorScheme.primary,
+                ),
+              ],
+            ),
     );
   }
 
   Widget _buildInfoCard() {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
             Theme.of(context).colorScheme.primary.withOpacity(0.15),
-            Color(0xFF6B8AFF).withOpacity(0.05),
+            const Color(0xFF6B8AFF).withOpacity(0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -132,10 +156,10 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
       child: Row(
         children: [
           Icon(Icons.info_outline_rounded, color: Theme.of(context).colorScheme.primary, size: 24),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'customize_alerts'.tr(),
+              'Customize which push notifications and in-app alerts you want to receive on your device.',
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.4),
             ),
           ),
@@ -146,7 +170,7 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: EdgeInsets.only(left: 4, bottom: 12),
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
         title,
         style: TextStyle(
@@ -164,55 +188,54 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
     required String title,
     required String description,
     required bool value,
-    required ValueChanged<bool>? onChanged,
+    required ValueChanged<bool> onChanged,
     required Color activeColor,
   }) {
-    final bool isEnabled = onChanged != null;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: isEnabled
-            ? (isDark ? const Color(0xFF1E293B) : Colors.white)
-            : (isDark ? const Color(0xFF1E293B).withOpacity(0.5) : Colors.white.withOpacity(0.5)),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
-        boxShadow: isDark ? null : [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
-          padding: EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
             icon,
-            color: isEnabled ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
+            color: Theme.of(context).colorScheme.primary,
             size: 20,
           ),
         ),
         title: Text(
           title,
           style: TextStyle(
-            color: isEnabled ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
         ),
         subtitle: Padding(
-          padding: EdgeInsets.only(top: 4),
+          padding: const EdgeInsets.only(top: 4),
           child: Text(
             description,
             style: TextStyle(
-              color: isEnabled ? Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65) : Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
               fontSize: 12,
               height: 1.3,
             ),

@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:skill_swap/screens/Chat/conversation_screen.dart';
+import 'package:skill_swap/screens/Swap/skill_detail_screen.dart';
+import 'package:skill_swap/models/swap_model.dart';
+import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 
 class NotificationsScreen extends StatelessWidget {
-  NotificationsScreen({Key? key}) : super(key: key);
+  const NotificationsScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -15,20 +19,43 @@ class NotificationsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text(
-          'notifications'.tr(),
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
+        title: Text(
+          'notifications'.tr(),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(Icons.more_horiz, color: Theme.of(context).colorScheme.onSurface),
-            onPressed: () {},
-          ),
+          // StreamBuilder for Unread Counter badge in AppBar
+          if (uid != null)
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('notifications')
+                  .where('receiverId', isEqualTo: uid)
+                  .where('isRead', isEqualTo: false)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                final unreadCount = snapshot.data?.docs.length ?? 0;
+                if (unreadCount == 0) return const SizedBox.shrink();
+                return Container(
+                  margin: const EdgeInsets.only(right: 16, top: 14, bottom: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$unreadCount New',
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                );
+              },
+            ),
         ],
       ),
       body: uid == null
@@ -36,8 +63,8 @@ class NotificationsScreen extends StatelessWidget {
           : StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('notifications')
-                  .where('recipientId', isEqualTo: uid)
-                  .orderBy('timestamp', descending: true)
+                  .where('receiverId', isEqualTo: uid)
+                  .orderBy('createdAt', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -50,25 +77,19 @@ class NotificationsScreen extends StatelessWidget {
                 }
 
                 return ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
-                    return _NotificationCard(
-                      title: data['title'] ?? 'New Notification',
-                      message: data['message'] ?? '',
-                      type: data['type'] ?? 'info',
-                      timestamp: data['timestamp'] as Timestamp?,
-                      isRead: data['isRead'] ?? false,
-                      onTap: () {
-                        // Mark as read
-                        FirebaseFirestore.instance
-                            .collection('notifications')
-                            .doc(docs[index].id)
-                            .update({'isRead': true});
+                    final doc = docs[index];
+                    final data = doc.data() as Map<String, dynamic>;
 
-                        // Handle navigation based on type if needed
-                      },
+                    return _NotificationCard(
+                      title: data['title'] ?? 'Notification',
+                      body: data['body'] ?? '',
+                      type: data['type'] ?? 'general',
+                      timestamp: data['createdAt'] as Timestamp?,
+                      isRead: data['isRead'] ?? false,
+                      onTap: () => _handleNotificationClick(context, doc.id, data),
                     );
                   },
                 );
@@ -77,26 +98,109 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _handleNotificationClick(
+    BuildContext context,
+    String docId,
+    Map<String, dynamic> data,
+  ) async {
+    // 1. Mark notification as read in Firestore
+    FirebaseFirestore.instance
+        .collection('notifications')
+        .doc(docId)
+        .update({'isRead': true});
+
+    final String deepLinkScreen = data['deepLinkScreen'] ?? '';
+    final String referenceId = data['referenceId'] ?? '';
+    final String senderId = data['senderId'] ?? '';
+
+    if (deepLinkScreen.isEmpty || referenceId.isEmpty) return;
+
+    // 2. Perform Deep Linking Navigation
+    if (deepLinkScreen == 'chat') {
+      final name = data['senderName'] ?? 'Swap Partner';
+      final imageUrl = data['senderImageUrl'] as String?;
+      final swap = SwapListing(
+        id: referenceId, // Conversation ID
+        userId: senderId,
+        name: name,
+        initials: name.trim().split(' ').length >= 2
+            ? '${name.trim().split(' ')[0][0]}${name.trim().split(' ')[1][0]}'.toUpperCase()
+            : (name.isNotEmpty ? name[0].toUpperCase() : 'U'),
+        avatarColor: const Color(0xFF6B8AFF),
+        offering: 'Skill Swap',
+        wanting: 'Learning',
+        rating: 0.0,
+        reviews: 0,
+        category: 'All',
+        imageUrl: imageUrl,
+      );
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ConversationScreen(swap: swap)),
+      );
+    } else if (deepLinkScreen == 'swap_detail') {
+      // Show loading spinner dialog while fetching the swap detail doc
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(
+          child: CircularProgressIndicator(color: Color(0xFF00C2FF)),
+        ),
+      );
+
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('swaps')
+            .doc(referenceId)
+            .get();
+
+        Navigator.pop(context); // Dismiss loading dialog
+
+        if (doc.exists) {
+          final swapModel = SwapModel.fromDoc(doc);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => SkillDetailScreen(swap: swapModel)),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Error: Swap Details not found.")),
+          );
+        }
+      } catch (e) {
+        Navigator.pop(context); // Dismiss loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error fetching swap details: $e")),
+        );
+      }
+    }
+  }
+
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               shape: BoxShape.circle,
-              border: Border.all(color: Theme.of(context).colorScheme.primary.withAlpha(26)),
+              border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
             ),
-            child: Icon(Icons.notifications_off_outlined, color: Theme.of(context).colorScheme.primary.withAlpha(128), size: 48),
+            child: Icon(
+              Icons.notifications_off_outlined,
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+              size: 48,
+            ),
           ),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
           Text(
             'all_caught_up'.tr(),
             style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'notifications_will_show'.tr(),
             textAlign: TextAlign.center,
@@ -106,28 +210,19 @@ class NotificationsScreen extends StatelessWidget {
       ),
     );
   }
-
-  }
-
-
-String _formatTime(DateTime dt) {
-  final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
-  final m = dt.minute.toString().padLeft(2, '0');
-  final p = dt.hour >= 12 ? 'PM' : 'AM';
-  return '$h:$m $p';
 }
 
 class _NotificationCard extends StatelessWidget {
   final String title;
-  final String message;
+  final String body;
   final String type;
   final Timestamp? timestamp;
   final bool isRead;
   final VoidCallback onTap;
 
-  _NotificationCard({
+  const _NotificationCard({
     required this.title,
-    required this.message,
+    required this.body,
     required this.type,
     this.timestamp,
     required this.isRead,
@@ -144,52 +239,53 @@ class _NotificationCard extends StatelessWidget {
         iconData = Icons.chat_bubble_rounded;
         iconColor = Theme.of(context).colorScheme.primary;
         break;
-      case 'swap_request':
+      case 'swap':
         iconData = Icons.swap_horiz_rounded;
-        iconColor = Color(0xFFFBBF24);
+        iconColor = const Color(0xFFFBBF24); // Amber
         break;
-      case 'swap_confirmed':
-        iconData = Icons.check_circle_rounded;
-        iconColor = Color(0xFF22C55E);
+      case 'progress':
+        iconData = Icons.playlist_add_check_circle_rounded;
+        iconColor = const Color(0xFF22C55E); // Green
+        break;
+      case 'review':
+        iconData = Icons.star_rounded;
+        iconColor = const Color(0xFFA855F7); // Purple
         break;
       default:
         iconData = Icons.notifications_rounded;
-        iconColor = Color(0xFF6B8AFF);
+        iconColor = const Color(0xFF6B8AFF); // Slate Blue
     }
 
-    final timeStr = timestamp != null
-        ? _formatTime(timestamp!.toDate())
-        : '';
+    final timeStr = timestamp != null ? _formatTime(timestamp!.toDate()) : '';
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isRead ? Theme.of(context).colorScheme.surface.withAlpha(128) : Theme.of(context).colorScheme.surface,
+        color: isRead
+            ? Theme.of(context).colorScheme.surface.withOpacity(0.4)
+            : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isRead ? Colors.transparent : Theme.of(context).colorScheme.primary.withAlpha(51),
+          color: isRead ? Colors.transparent : Theme.of(context).colorScheme.primary.withOpacity(0.1),
         ),
       ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon Badge
               Container(
-                padding: EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: iconColor.withAlpha(26),
+                  color: iconColor.withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(iconData, color: iconColor, size: 22),
               ),
-              SizedBox(width: 16),
-
-              // Content
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,19 +307,17 @@ class _NotificationCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      message,
+                      body,
                       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.4),
                     ),
                   ],
                 ),
               ),
-
-              // Unread Dot
               if (!isRead)
                 Container(
-                  margin: EdgeInsets.only(left: 8, top: 4),
+                  margin: const EdgeInsets.only(left: 8, top: 4),
                   width: 8,
                   height: 8,
                   decoration: BoxDecoration(
@@ -236,5 +330,12 @@ class _NotificationCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatTime(DateTime dt) {
+    final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final m = dt.minute.toString().padLeft(2, '0');
+    final p = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$h:$m $p';
   }
 }

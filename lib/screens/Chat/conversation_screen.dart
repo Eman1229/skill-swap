@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/services/chat_user_service.dart';
+import 'package:skill_swap/services/message_sync_service.dart';
+import 'package:skill_swap/services/notification_service.dart';
 
 class ConversationScreen extends StatefulWidget {
   final SwapListing swap;
@@ -61,7 +63,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 .collection('messages')
                 .orderBy('timestamp', descending: false)
                 .snapshots()
-                .map((snap) => snap.docs);
+                .map((snap) {
+                  MessageSyncService().markConversationMessagesAsSeen(doc.id, uid);
+                  return snap.docs;
+                });
           });
           _markAsRead(doc.id);
           return;
@@ -88,7 +93,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 .collection('messages')
                 .orderBy('timestamp', descending: false)
                 .snapshots()
-                .map((snap) => snap.docs);
+                .map((snap) {
+                  MessageSyncService().markConversationMessagesAsSeen(directDoc.id, uid);
+                  return snap.docs;
+                });
           });
           _markAsRead(directDoc.id);
           return;
@@ -110,6 +118,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
     _db.collection('conversations').doc(convoId).set({
       'unreadCount': {uid: 0},
     }, SetOptions(merge: true));
+
+    MessageSyncService().markConversationMessagesAsSeen(convoId, uid);
   }
 
   Future<void> sendMessage(String text) async {
@@ -148,7 +158,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
             .collection('messages')
             .orderBy('timestamp', descending: false)
             .snapshots()
-            .map((snap) => snap.docs);
+            .map((snap) {
+              MessageSyncService().markConversationMessagesAsSeen(convoId, uid);
+              return snap.docs;
+            });
       });
     } else {
       // Update existing conversation meta
@@ -162,7 +175,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
       });
     }
 
-    // Add new message document
     await _db
         .collection('conversations')
         .doc(convoId)
@@ -170,13 +182,27 @@ class _ConversationScreenState extends State<ConversationScreen> {
         .add({
       'text': text,
       'senderId': uid,
+      'receiverId': otherId,
       'timestamp': FieldValue.serverTimestamp(),
       'type': 'text',
+      'isDelivered': false,
+      'isSeen': false,
+      'deliveredAt': null,
+      'seenAt': null,
     });
 
     _msgController.clear();
     _scrollToBottom();
     _markAsRead(convoId);
+
+    NotificationService().sendNotification(
+      receiverId: otherId,
+      type: 'message',
+      title: 'New Message from ${widget.swap.name}',
+      body: text,
+      deepLinkScreen: 'chat',
+      referenceId: convoId,
+    );
   }
 
   void _scrollToBottom() {
@@ -195,7 +221,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
     if (uid == null || _conversationId == null) return;
 
     try {
-      await _db.collection('swaps').doc().set({
+      final swapDocRef = _db.collection('swaps').doc();
+      await swapDocRef.set({
         'mentorId': senderId,
         'learnerId': uid,
         'mentorName': widget.swap.name,
@@ -209,6 +236,15 @@ class _ConversationScreenState extends State<ConversationScreen> {
         'participants': [uid, senderId],
         'createdAt': FieldValue.serverTimestamp(),
       });
+
+      NotificationService().sendNotification(
+        receiverId: senderId,
+        type: 'swap',
+        title: 'Swap Confirmed! 🤝',
+        body: '${_auth.currentUser?.displayName ?? "Someone"} has confirmed your Skill Swap request!',
+        deepLinkScreen: 'swap_detail',
+        referenceId: swapDocRef.id,
+      );
 
       if (wanting.isNotEmpty) {
         await _db.collection('swaps').add({
@@ -233,9 +269,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
           .collection('messages')
           .add({
         'senderId': uid,
+        'receiverId': senderId,
         'text': 'I have confirmed the Skill Swap! Let\'s start learning. 🚀',
         'timestamp': FieldValue.serverTimestamp(),
         'type': 'text',
+        'isDelivered': false,
+        'isSeen': false,
+        'deliveredAt': null,
+        'seenAt': null,
       });
 
       if (mounted) {
@@ -274,10 +315,24 @@ class _ConversationScreenState extends State<ConversationScreen> {
           .collection('messages')
           .add({
         'senderId': uid,
+        'receiverId': widget.swap.userId ?? '',
         'text': 'I\'ve accepted the session invitation! See you then. 👋',
         'timestamp': FieldValue.serverTimestamp(),
         'type': 'text',
+        'isDelivered': false,
+        'isSeen': false,
+        'deliveredAt': null,
+        'seenAt': null,
       });
+
+      NotificationService().sendNotification(
+        receiverId: widget.swap.userId ?? '',
+        type: 'progress',
+        title: 'Session Accepted! ✅',
+        body: '${_auth.currentUser?.displayName ?? "Someone"} has accepted your session invitation.',
+        deepLinkScreen: 'swap_detail',
+        referenceId: swapId,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -307,10 +362,15 @@ class _ConversationScreenState extends State<ConversationScreen> {
         .collection('messages')
         .add({
       'senderId': uid,
+      'receiverId': widget.swap.userId ?? '',
       'type': 'swap_proposal',
       'offering': widget.swap.offering,
       'wanting': widget.swap.wanting,
       'timestamp': FieldValue.serverTimestamp(),
+      'isDelivered': false,
+      'isSeen': false,
+      'deliveredAt': null,
+      'seenAt': null,
     });
 
     await _db
@@ -320,6 +380,15 @@ class _ConversationScreenState extends State<ConversationScreen> {
       'lastMessage': 'Skill Swap Proposal',
       'lastMessageAt': FieldValue.serverTimestamp(),
     });
+
+    NotificationService().sendNotification(
+      receiverId: widget.swap.userId ?? '',
+      type: 'swap',
+      title: 'New Swap Proposal! 📩',
+      body: '${_auth.currentUser?.displayName ?? "Someone"} sent you a Skill Swap proposal.',
+      deepLinkScreen: 'chat',
+      referenceId: _conversationId,
+    );
 
     _scrollToBottom();
   }
@@ -431,6 +500,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
                                     }
 
                                     return _MessageBubble(
+                                      isDelivered: d['isDelivered'] as bool? ?? false,
+                                      isSeen: d['isSeen'] as bool? ?? false,
                                       text: d['text'] as String? ?? '',
                                       isMine: isMine,
                                       timestamp: d['timestamp'] as Timestamp?,
@@ -757,11 +828,15 @@ class _MessageBubble extends StatelessWidget {
   final String text;
   final bool isMine;
   final Timestamp? timestamp;
+  final bool isDelivered;
+  final bool isSeen;
 
   const _MessageBubble({
     required this.text,
     required this.isMine,
     this.timestamp,
+    this.isDelivered = false,
+    this.isSeen = false,
   });
 
   @override
@@ -828,8 +903,11 @@ class _MessageBubble extends StatelessWidget {
                         color: Colors.white24, fontSize: 10)),
                 if (isMine) ...[
                   const SizedBox(width: 4),
-                  const Icon(Icons.done_all_rounded,
-                      color: Color(0xFF00C2FF), size: 13),
+                  Icon(
+                    isSeen ? Icons.done_all_rounded : (isDelivered ? Icons.done_all_rounded : Icons.done_rounded),
+                    color: isSeen ? const Color(0xFF00C2FF) : Colors.white38,
+                    size: 13,
+                  ),
                 ],
               ],
             ),
