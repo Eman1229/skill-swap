@@ -10,6 +10,7 @@ import 'package:skill_swap/screens/Profile/profile%20screen.dart';
 import 'package:skill_swap/screens/Swap/my_swaps_screen.dart';
 import 'package:skill_swap/screens/Setting/settings_screen.dart';
 import 'package:skill_swap/screens/Notifications/notifications_screen.dart';
+import 'package:skill_swap/services/notification_repository.dart';
 
 class SwapListing {
   final String id;
@@ -599,7 +600,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => NotificationsScreen()),
+                    builder: (_) => const NotificationsScreen()),
               );
             },
             child: Stack(
@@ -617,21 +618,33 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     size: 22,
                   ),
                 ),
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: Color(0xFFEF4444),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        width: 2,
+                StreamBuilder<int>(
+                  stream: NotificationRepository().unreadCountStream(),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
+                    if (count == 0) return const SizedBox.shrink();
+                    return Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                            width: 1.5,
+                          ),
+                        ),
+                        constraints: const BoxConstraints(minWidth: 12, minHeight: 12),
+                        child: Text(
+                          '$count',
+                          style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ],
             ),

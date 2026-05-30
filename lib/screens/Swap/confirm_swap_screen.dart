@@ -3,15 +3,120 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:skill_swap/services/swap_request_repository.dart';
+import 'package:skill_swap/services/chat_user_service.dart';
 
-
-class ConfirmSwapScreen extends StatelessWidget {
+class ConfirmSwapScreen extends StatefulWidget {
   final SwapListing swap;
 
   ConfirmSwapScreen({Key? key, required this.swap}) : super(key: key);
 
   @override
+  State<ConfirmSwapScreen> createState() => _ConfirmSwapScreenState();
+}
+
+class _ConfirmSwapScreenState extends State<ConfirmSwapScreen> {
+  final SwapRequestRepository _requestRepo = SwapRequestRepository();
+  bool _isSending = false;
+
+  Future<void> _handleConfirmSwap() async {
+    if (_isSending) return;
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    if (uid == widget.swap.userId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('You cannot swap with yourself!')),
+      );
+      return;
+    }
+
+    setState(() => _isSending = true);
+
+    try {
+      // 1. Check for existing request first
+      final existing = await _requestRepo.checkExistingRequest(widget.swap.userId ?? '');
+      if (existing != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('A ${existing.status.name} request already exists between you and ${widget.swap.name}.'),
+              backgroundColor: Colors.orangeAccent,
+            ),
+          );
+        }
+        return;
+      }
+
+      // 2. Resolve or find conversation ID
+      String conversationId = '';
+      final query = await FirebaseFirestore.instance
+          .collection('conversations')
+          .where('participants', arrayContains: uid)
+          .get();
+
+      for (var doc in query.docs) {
+        final parts = List<String>.from(doc.data()['participants'] ?? []);
+        if (parts.contains(widget.swap.userId)) {
+          conversationId = doc.id;
+          break;
+        }
+      }
+
+      // If no conversation exists, we can still send the request, 
+      // but it's better to create one or handle it gracefully.
+      // For now, let's assume we might need to create it if it doesn't exist.
+      if (conversationId.isEmpty) {
+        final convoRef = FirebaseFirestore.instance.collection('conversations').doc();
+        conversationId = convoRef.id;
+        await convoRef.set({
+          'participants': [uid, widget.swap.userId],
+          'lastMessage': 'Skill Swap Request',
+          'lastMessageAt': FieldValue.serverTimestamp(),
+          'skill': widget.swap.offering,
+          'wanting': widget.swap.wanting,
+          'unreadCount': {uid: 0, widget.swap.userId: 1},
+        });
+      }
+
+      // 2. Send the request via repository
+      await _requestRepo.sendRequest(
+        receiverId: widget.swap.userId ?? '',
+        receiverName: widget.swap.name,
+        offeredSkill: widget.swap.wanting, // User wants what mentor has
+        requestedSkill: widget.swap.offering,
+        conversationId: conversationId,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${'swap_request_sent'.tr()} ${widget.swap.name}!'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final swap = widget.swap;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -240,48 +345,30 @@ class ConfirmSwapScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: ElevatedButton(
-                        onPressed: () {
-                          final uid = FirebaseAuth.instance.currentUser?.uid;
-                          if (uid != null) {
-                            FirebaseFirestore.instance.collection('swaps').add({
-                              'mentorId': swap.userId ?? swap.id,
-                              'learnerId': uid,
-                              'mentorName': swap.name,
-                              'learnerName': FirebaseAuth.instance.currentUser?.displayName ?? 'Learner',
-                              'skillName': swap.offering,
-                              'status': 'ongoing',
-                              'progress': 0.1,
-                              'conversationId': '', // To be updated when chat starts
-                              'completedSessions': 0,
-                              'totalSessions': 8,
-                              'participants': [uid, swap.userId ?? swap.id],
-                              'createdAt': FieldValue.serverTimestamp(),
-                            });
-                          }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content:
-                              Text('${'swap_request_sent'.tr()} ${swap.name}!'),
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                          Navigator.pop(context);
-                        },
+                        onPressed: _isSending ? null : _handleConfirmSwap,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
                           shape: StadiumBorder(),
                           padding: EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: Text(
-                          'confirm_swap'.tr(),
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child: _isSending
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              )
+                            : Text(
+                                'confirm_swap'.tr(),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                   ),

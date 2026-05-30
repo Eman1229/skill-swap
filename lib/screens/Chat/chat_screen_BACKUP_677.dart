@@ -7,7 +7,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Chat/conversation_screen.dart';
 import 'package:skill_swap/services/chat_user_service.dart';
+<<<<<<< HEAD
+import 'package:skill_swap/services/message_sync_service.dart';
+=======
 import 'package:skill_swap/services/chat_repository.dart';
+>>>>>>> 72e56ab73b7930f43caaeb0cd48a3c402fe9ed6b
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -43,9 +47,14 @@ class _ChatScreenState extends State<ChatScreen> {
     if (uid.isEmpty) {
       _conversationsStream = Stream.value([]);
     } else {
+<<<<<<< HEAD
+      MessageSyncService().markIncomingMessagesAsDelivered(uid);
+      _conversationsStream = _db
+=======
       // Use raw Firestore map logic here for ChatScreen specifically to match existing UI map dependencies
       // but optimized to avoid loops in the map function.
       _conversationsStream = FirebaseFirestore.instance
+>>>>>>> 72e56ab73b7930f43caaeb0cd48a3c402fe9ed6b
           .collection('conversations')
           .where('participants', arrayContains: uid)
           .snapshots()

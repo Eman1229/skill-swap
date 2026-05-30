@@ -1,7 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:skill_swap/firebase_options.dart';
+import 'package:skill_swap/l10n/app_localizations.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/providers/notification_provider.dart';
 import 'package:skill_swap/screens/splash/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:skill_swap/services/presence_service.dart';
@@ -26,6 +31,9 @@ Future<void> main() async {
     // Initialize Push Notifications (FCM)
     await FcmService().init();
 
+    // Start presence tracking service
+    PresenceService().start();
+
     // Enable Firestore offline persistence/caching
     FirebaseFirestore.instance.settings = const Settings(
       persistenceEnabled: true,
@@ -40,8 +48,18 @@ Future<void> main() async {
           'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bXFnd29zbHRrbXRsdHdmdnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMTg3NjcsImV4cCI6MjA5Mzg5NDc2N30.OlvpVDEcYSzm8C-hu-JYTh-bjgLVoK1JajmrQMsDULY',
     );
 
-    runApp(const MyApp());
+    final languageProvider = LanguageProvider.instance;
+    await languageProvider.loadSavedLocale();
 
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
+          ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+        ],
+        child: const MyApp(),
+      ),
+    );
   } catch (e) {
     debugPrint("Initialization Error: $e");
     runApp(
@@ -86,30 +104,38 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final settings = AppSettings();
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        settings.currentLanguage,
-        settings.isDarkMode,
-      ]),
-      builder: (context, _) {
-        final language = settings.currentLanguage.value;
-        final isRtl = language == 'Arabic' || language == 'Urdu';
-        return MaterialApp(
-          navigatorKey: FcmService.navigatorKey,
-          key: ValueKey(language),
-          debugShowCheckedModeBanner: false,
-          theme: _buildLightTheme(),
-          darkTheme: _buildDarkTheme(),
-          themeMode: settings.themeMode,
-          themeAnimationDuration: const Duration(milliseconds: 250),
-          themeAnimationCurve: Curves.easeInOut,
-          builder: (context, child) {
-            return Directionality(
-              textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
-              child: child!,
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, _) {
+        return ListenableBuilder(
+          listenable: settings.isDarkMode,
+          builder: (context, _) {
+            return MaterialApp(
+              key: const ValueKey('SkillSwapMainApp'),
+              navigatorKey: FcmService.navigatorKey,
+              debugShowCheckedModeBanner: false,
+              locale: languageProvider.locale,
+              supportedLocales: LanguageProvider.supportedLocales,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              onGenerateTitle: (context) => AppLocalizations.of(context)?.appTitle ?? 'Skill Swap',
+              theme: _buildLightTheme(),
+              darkTheme: _buildDarkTheme(),
+              themeMode: settings.themeMode,
+              themeAnimationDuration: const Duration(milliseconds: 250),
+              themeAnimationCurve: Curves.easeInOut,
+              builder: (context, child) {
+                return Directionality(
+                  textDirection: languageProvider.textDirection,
+                  child: child!,
+                );
+              },
+              home: const SplashScreen(),
             );
           },
-          home: const SplashScreen(),
         );
       },
     );

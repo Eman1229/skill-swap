@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:skill_swap/screens/Setting/app_settings.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class LanguageSettingsScreen extends StatefulWidget {
@@ -10,23 +11,22 @@ class LanguageSettingsScreen extends StatefulWidget {
 }
 
 class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
-  final AppSettings _settings = AppSettings();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
   final List<Map<String, String>> _languages = [
-    {'name': 'English', 'native': 'English (US)', 'flag': '🇺🇸'},
-    {'name': 'Spanish', 'native': 'Español', 'flag': '🇪🇸'},
-    {'name': 'French', 'native': 'Français', 'flag': '🇫🇷'},
-    {'name': 'German', 'native': 'Deutsch', 'flag': '🇩🇪'},
-    {'name': 'Chinese', 'native': '中文', 'flag': '🇨🇳'},
-    {'name': 'Japanese', 'native': '日本語', 'flag': '🇯🇵'},
-    {'name': 'Arabic', 'native': 'العربية', 'flag': '🇸🇦'},
-    {'name': 'Russian', 'native': 'Русский', 'flag': '🇷🇺'},
-    {'name': 'Portuguese', 'native': 'Português', 'flag': '🇵🇹'},
-    {'name': 'Italian', 'native': 'Italiano', 'flag': '🇮🇹'},
-    {'name': 'Urdu', 'native': 'اردو', 'flag': '🇵🇰'},
-    {'name': 'Hindi', 'native': 'हिंदी', 'flag': '🇮🇳'},
+    {'name': 'English', 'native': 'English (US)', 'flag': '🇺🇸', 'code': 'en'},
+    {'name': 'Spanish', 'native': 'Español', 'flag': '🇪🇸', 'code': 'es'},
+    {'name': 'French', 'native': 'Français', 'flag': '🇫🇷', 'code': 'fr'},
+    {'name': 'German', 'native': 'Deutsch', 'flag': '🇩🇪', 'code': 'de'},
+    {'name': 'Chinese', 'native': '中文', 'flag': '🇨🇳', 'code': 'zh'},
+    {'name': 'Japanese', 'native': '日本語', 'flag': '🇯🇵', 'code': 'ja'},
+    {'name': 'Arabic', 'native': 'العربية', 'flag': '🇸🇦', 'code': 'ar'},
+    {'name': 'Russian', 'native': 'Русский', 'flag': '🇷🇺', 'code': 'ru'},
+    {'name': 'Portuguese', 'native': 'Português', 'flag': '🇵🇹', 'code': 'pt'},
+    {'name': 'Italian', 'native': 'Italiano', 'flag': '🇮🇹', 'code': 'it'},
+    {'name': 'Urdu', 'native': 'اردو', 'flag': '🇵🇰', 'code': 'ur'},
+    {'name': 'Hindi', 'native': 'हिंदी', 'flag': '🇮🇳', 'code': 'hi'},
   ];
 
   @override
@@ -68,20 +68,20 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
             child: _buildSearchBar(),
           ),
           Expanded(
-            child: ValueListenableBuilder<String>(
-              valueListenable: _settings.currentLanguage,
-              builder: (context, currentLang, _) {
+            child: Consumer<LanguageProvider>(
+              builder: (context, languageProvider, _) {
                 final list = _filteredLanguages;
                 if (list.isEmpty) {
                   return _buildEmptyState();
                 }
+
                 return ListView.separated(
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   itemCount: list.length,
                   separatorBuilder: (_, __) => SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final lang = list[index];
-                    final isSelected = currentLang == lang['name'];
+                    final isSelected = languageProvider.languageCode == lang['code'];
                     return _buildLanguageTile(lang, isSelected);
                   },
                 );
@@ -136,10 +136,12 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
   Widget _buildLanguageTile(Map<String, String> lang, bool isSelected) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _settings.currentLanguage.value = lang['name']!;
-        });
+      onTap: () async {
+        await context
+            .read<LanguageProvider>()
+            .setLocale(Locale(lang['code']!));
+
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${'language'.tr()}: ${lang['name']}'),

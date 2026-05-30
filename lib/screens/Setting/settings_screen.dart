@@ -148,7 +148,7 @@ class SettingsScreen extends StatelessWidget {
                 icon: isLight
                     ? Icons.light_mode_rounded
                     : Icons.dark_mode_rounded,
-                title: 'Light Mode'.tr(),
+                title: 'lightMode'.tr(),
                 onTap: () {
                   _settings.setDarkMode(!isLight);
                 },
