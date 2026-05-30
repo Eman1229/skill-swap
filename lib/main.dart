@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:skill_swap/firebase_options.dart';
 import 'package:skill_swap/l10n/app_localizations.dart';
 import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/providers/notification_provider.dart';
 import 'package:skill_swap/screens/splash/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:skill_swap/services/presence_service.dart';
@@ -51,8 +52,11 @@ Future<void> main() async {
     await languageProvider.loadSavedLocale();
 
     runApp(
-      ChangeNotifierProvider<LanguageProvider>.value(
-        value: languageProvider,
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
+          ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+        ],
         child: const MyApp(),
       ),
     );
@@ -78,6 +82,7 @@ class MyApp extends StatelessWidget {
           listenable: settings.isDarkMode,
           builder: (context, _) {
             return MaterialApp(
+              key: const ValueKey('SkillSwapMainApp'),
               navigatorKey: FcmService.navigatorKey,
               debugShowCheckedModeBanner: false,
               locale: languageProvider.locale,

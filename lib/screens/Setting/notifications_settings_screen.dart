@@ -13,104 +13,115 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
   final AppSettings _settings = AppSettings();
 
   @override
+  void initState() {
+    super.initState();
+    _settings.initNotificationSettings();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'notifications'.tr(),
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        centerTitle: true,
-      ),
-      body: ListView(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        children: [
-          SizedBox(height: 10),
-          _buildInfoCard(),
-          SizedBox(height: 24),
-          _buildSectionTitle('master_controls'.tr()),
-          ValueListenableBuilder<bool>(
-            valueListenable: _settings.notificationsEnabled,
-            builder: (context, enabled, _) {
-              return _buildSwitchTile(
-                icon: Icons.notifications_active_rounded,
-                title: 'allow_push'.tr(),
-                description: 'allow_push_desc'.tr(),
-                value: enabled,
-                onChanged: (v) {
-                  setState(() {
-                    _settings.setNotificationsEnabled(v);
-                  });
+    return ValueListenableBuilder<bool>(
+      valueListenable: _settings.isLoading,
+      builder: (context, loading, _) {
+        if (loading) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              'notifications'.tr(),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            centerTitle: true,
+          ),
+          body: ListView(
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            children: [
+              SizedBox(height: 10),
+              _buildInfoCard(),
+              SizedBox(height: 24),
+              _buildSectionTitle('master_controls'.tr()),
+              ValueListenableBuilder<bool>(
+                valueListenable: _settings.notificationsEnabled,
+                builder: (context, enabled, _) {
+                  return _buildSwitchTile(
+                    icon: Icons.notifications_active_rounded,
+                    title: 'allow_push'.tr(),
+                    description: 'allow_push_desc'.tr(),
+                    value: enabled,
+                    onChanged: (v) => _settings.setNotificationsEnabled(v),
+                    activeColor: Theme.of(context).colorScheme.primary,
+                  );
                 },
-                activeColor: Theme.of(context).colorScheme.primary,
-              );
-            },
+              ),
+              SizedBox(height: 24),
+              _buildSectionTitle('notification_types'.tr()),
+              ValueListenableBuilder<bool>(
+                valueListenable: _settings.notificationsEnabled,
+                builder: (context, masterEnabled, _) {
+                  return Column(
+                    children: [
+                      ValueListenableBuilder<bool>(
+                        valueListenable: _settings.swapRequestsEnabled,
+                        builder: (context, enabled, _) {
+                          return _buildSwitchTile(
+                            icon: Icons.swap_horizontal_circle_outlined,
+                            title: 'swap_proposals'.tr(),
+                            description: 'swap_proposals_desc'.tr(),
+                            value: enabled,
+                            onChanged: masterEnabled
+                                ? (v) => _settings.updateSetting(_settings.swapRequestsEnabled, v)
+                                : null,
+                            activeColor: Theme.of(context).colorScheme.primary,
+                          );
+                        },
+                      ),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: _settings.chatMessagesEnabled,
+                        builder: (context, enabled, _) {
+                          return _buildSwitchTile(
+                            icon: Icons.chat_bubble_outline_rounded,
+                            title: 'direct_messages'.tr(),
+                            description: 'direct_messages_desc'.tr(),
+                            value: enabled,
+                            onChanged: masterEnabled
+                                ? (v) => _settings.updateSetting(_settings.chatMessagesEnabled, v)
+                                : null,
+                            activeColor: Theme.of(context).colorScheme.primary,
+                          );
+                        },
+                      ),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: _settings.marketingEmailsEnabled,
+                        builder: (context, enabled, _) {
+                          return _buildSwitchTile(
+                            icon: Icons.alternate_email_rounded,
+                            title: 'weekly_tips'.tr(),
+                            description: 'weekly_tips_desc'.tr(),
+                            value: enabled,
+                            onChanged: masterEnabled
+                                ? (v) => _settings.updateSetting(_settings.marketingEmailsEnabled, v)
+                                : null,
+                            activeColor: Theme.of(context).colorScheme.primary,
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
           ),
-          SizedBox(height: 24),
-          _buildSectionTitle('notification_types'.tr()),
-          ValueListenableBuilder<bool>(
-            valueListenable: _settings.notificationsEnabled,
-            builder: (context, masterEnabled, _) {
-              return Column(
-                children: [
-                  ValueListenableBuilder<bool>(
-                    valueListenable: _settings.swapRequestsEnabled,
-                    builder: (context, enabled, _) {
-                      return _buildSwitchTile(
-                        icon: Icons.swap_horizontal_circle_outlined,
-                        title: 'swap_proposals'.tr(),
-                        description: 'swap_proposals_desc'.tr(),
-                        value: enabled,
-                        onChanged: masterEnabled
-                            ? (v) => setState(() => _settings.swapRequestsEnabled.value = v)
-                            : null,
-                        activeColor: Theme.of(context).colorScheme.primary,
-                      );
-                    },
-                  ),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: _settings.chatMessagesEnabled,
-                    builder: (context, enabled, _) {
-                      return _buildSwitchTile(
-                        icon: Icons.chat_bubble_outline_rounded,
-                        title: 'direct_messages'.tr(),
-                        description: 'direct_messages_desc'.tr(),
-                        value: enabled,
-                        onChanged: masterEnabled
-                            ? (v) => setState(() => _settings.chatMessagesEnabled.value = v)
-                            : null,
-                        activeColor: Theme.of(context).colorScheme.primary,
-                      );
-                    },
-                  ),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: _settings.marketingEmailsEnabled,
-                    builder: (context, enabled, _) {
-                      return _buildSwitchTile(
-                        icon: Icons.alternate_email_rounded,
-                        title: 'weekly_tips'.tr(),
-                        description: 'weekly_tips_desc'.tr(),
-                        value: enabled,
-                        onChanged: masterEnabled
-                            ? (v) => setState(() => _settings.marketingEmailsEnabled.value = v)
-                            : null,
-                        activeColor: Theme.of(context).colorScheme.primary,
-                      );
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

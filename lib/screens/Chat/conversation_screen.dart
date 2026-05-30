@@ -5,6 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/services/chat_user_service.dart';
 import 'package:skill_swap/services/chat_repository.dart';
+import 'package:skill_swap/screens/Chat/widgets/swap_request_card.dart';
+import 'package:skill_swap/screens/Chat/widgets/session_invite_card.dart';
+import 'package:skill_swap/services/fcm_service.dart';
 
 class ConversationScreen extends StatefulWidget {
   final SwapListing swap;
@@ -160,6 +163,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
   void _updateMessagesStream() {
     final convoId = _conversationId;
     if (convoId == null || convoId.isEmpty) return;
+
+    // Mute foreground alerts for this active conversation
+    FcmService().currentActiveConvoId = convoId;
+    debugPrint("ConversationScreen: Muted foreground notifications for $convoId");
 
     // Listen for typing status once convoId is available
     _listenTypingStatus();
@@ -327,6 +334,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   @override
   void dispose() {
+    // Unmute foreground alerts
+    if (FcmService().currentActiveConvoId == _conversationId) {
+      FcmService().currentActiveConvoId = null;
+    }
     _msgController.dispose();
     _scrollController.dispose();
     _typingTimer?.cancel();
@@ -398,7 +409,23 @@ class _ConversationScreenState extends State<ConversationScreen> {
                                   }
                                   final d = docs[i - 1].data() as Map<String, dynamic>;
                                   final isMine = d['senderId'] == uid;
-                                  
+                                  final type = d['type'] as String? ?? 'text';
+
+                                  if (type == 'swap_request') {
+                                    return SwapRequestCard(
+                                      requestId: d['requestId'] ?? '',
+                                      isMine: isMine,
+                                    );
+                                  }
+
+                                  if (type == 'session_invite') {
+                                    return SessionInviteCard(
+                                      sessionId: d['sessionId'] ?? '',
+                                      swapId: d['swapId'] ?? '',
+                                      isMine: isMine,
+                                    );
+                                  }
+
                                   return _MessageBubble(
                                     text: d['text'] as String? ?? '',
                                     isMine: isMine,

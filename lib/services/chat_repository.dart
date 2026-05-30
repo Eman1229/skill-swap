@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/message.dart';
 import 'package:skill_swap/models/conversation.dart';
+import 'package:flutter/foundation.dart';
 
 class ChatRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -92,6 +93,50 @@ class ChatRepository {
     }
     
     await batch.commit();
+
+    // ── NOTIFICATION ──────────────────────────────────────────────────
+    final otherUid = participants.firstWhere((p) => p != uid, orElse: () => '');
+    if (otherUid.isNotEmpty) {
+      String senderName = _auth.currentUser?.displayName ?? 'Someone';
+      String senderProfilePic = _auth.currentUser?.photoURL ?? '';
+      
+      try {
+        final senderDoc = await _db.collection('users').doc(uid).get();
+        if (senderDoc.exists) {
+          final sData = senderDoc.data();
+          if (sData?['name'] != null && sData!['name'].toString().isNotEmpty) {
+            senderName = sData['name'];
+          }
+          if (sData?['imageUrl'] != null && sData!['imageUrl'].toString().isNotEmpty) {
+            senderProfilePic = sData['imageUrl'];
+          }
+        }
+      } catch (e) {
+        debugPrint("Error fetching sender details for notification: $e");
+      }
+
+      await _db.collection('notifications').add({
+        'senderId': uid,
+        'senderName': senderName,
+        'senderProfilePic': senderProfilePic,
+        'receiverId': otherUid,
+        'type': 'chat_message',
+        'title': senderName,
+        'body': text,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+        'actionRoute': '/chat',
+        'actionId': conversationId,
+        'imageUrl': senderProfilePic,
+        'data': {
+          'conversationId': conversationId,
+          'otherUserId': uid,
+          'otherName': senderName,
+          'senderProfilePic': senderProfilePic,
+          'type': 'chat_message',
+        },
+      });
+    }
   }
 
   /// Marks messages as delivered for the current user in a conversation.

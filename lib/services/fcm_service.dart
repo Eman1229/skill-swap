@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -6,11 +7,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Chat/conversation_screen.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
+import 'package:skill_swap/screens/Notifications/notifications_screen.dart';
+import 'package:skill_swap/models/notification_settings.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Handle background/terminated state messages here if needed.
-  print("Background FCM message received: ${message.messageId}");
+  await Firebase.initializeApp();
+  debugPrint("Background FCM received: ${message.messageId}");
 }
 
 class FcmService {
@@ -21,204 +24,281 @@ class FcmService {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
-
+  
   bool _initialized = false;
+  String? currentActiveConvoId;
+  final DateTime _listenerStartTime = DateTime.now();
+  final Set<String> _shownNotificationIds = {};
 
   Future<void> init() async {
     if (_initialized) return;
 
-    // 1. Request iOS / Android permissions
-    NotificationSettings settings = await _fcm.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
+    // 1. Initial Logic for permissions
+    await _fcm.requestPermission(
+      alert: true, badge: true, sound: true,
     );
 
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print("User granted push notification permission.");
-    }
-
-    // Explicit notification permission request for Android 13+
-    try {
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
-    } catch (e) {
-      print("Error requesting Android 13+ notification permissions: $e");
-    }
-
-    // 2. Initialize local notifications for foreground popups
+    // 2. Initialize local notifications
     const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const DarwinInitializationSettings iOSInit = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
-    const InitializationSettings initSettings = InitializationSettings(
-      android: androidInit,
-      iOS: iOSInit,
-    );
+    const DarwinInitializationSettings iOSInit = DarwinInitializationSettings();
+    const InitializationSettings initSettings = InitializationSettings(android: androidInit, iOS: iOSInit);
 
     await _localNotifications.initialize(
       settings: initSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        if (response.payload != null) {
-          final Map<String, dynamic> data = jsonDecode(response.payload!);
-          _handleNotificationClick(data);
+      onDidReceiveNotificationResponse: (NotificationResponse res) {
+        if (res.payload != null) {
+          _handleNotificationClick(jsonDecode(res.payload!));
         }
       },
     );
 
-    // Create high-importance notification channel for Android
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'chat_messages',
-      'Chat Messages',
-      description: 'Notifications for incoming SkillSwapX chat messages.',
-      importance: Importance.max,
-      playSound: true,
-      enableVibration: true,
-    );
+    // Channels
+    _createChannels();
 
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
-
-    // 3. Register Top-level Background handler
+    // 3. Listeners
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    
+    // Foreground
+    FirebaseMessaging.onMessage.listen((msg) async {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
 
-    // 4. Handle notification tap when app is completely terminated and opened
-    RemoteMessage? initialMessage = await _fcm.getInitialMessage();
-    if (initialMessage != null) {
-      _handleNotificationClick(initialMessage.data);
-    }
-
-    // 5. Handle notification tap when app is in background but alive
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      _handleNotificationClick(message.data);
-    });
-
-    // 6. Handle foreground messages (app is actively open)
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      RemoteNotification? notification = message.notification;
-      AndroidNotification? android = message.notification?.android;
-
-      String? title = notification?.title;
-      String? body = notification?.body;
-
-      // Handle data-only messages when foreground
-      if (title == null && body == null && message.data.isNotEmpty) {
-        title = message.data['title'] as String?;
-        body = message.data['body'] as String?;
+      // Suppress if user is currently looking at this active conversation
+      final String? convoId = msg.data['conversationId'] ?? msg.data['data']?['conversationId'];
+      if (convoId != null && convoId == currentActiveConvoId) {
+        debugPrint("FCM Service: Suppressed foreground notification for active chat $convoId");
+        return;
       }
 
-      if (title != null && body != null) {
-        // Show a local notification alert using strictly named parameters
-        _localNotifications.show(
-          id: message.hashCode,
-          title: title,
-          body: body,
-          notificationDetails: NotificationDetails(
-            android: AndroidNotificationDetails(
-              channel.id,
-              channel.name,
-              channelDescription: channel.description,
-              importance: Importance.max,
-              priority: Priority.high,
-              icon: android?.smallIcon ?? '@mipmap/ic_launcher',
-            ),
-            iOS: const DarwinNotificationDetails(
-              presentAlert: true,
-              presentBadge: true,
-              presentSound: true,
-            ),
-          ),
-          payload: jsonEncode(message.data),
-        );
+      // Deduplicate if already shown
+      if (msg.messageId != null && _shownNotificationIds.contains(msg.messageId)) {
+        return;
+      }
+      if (msg.messageId != null) {
+        _shownNotificationIds.add(msg.messageId!);
+      }
+
+      // Fetch settings
+      final settingsDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('settings')
+          .doc('notifications')
+          .get();
+      
+      final settings = NotificationSettingsModel.fromDoc(settingsDoc);
+
+      if (!settings.pushEnabled) return;
+
+      final type = msg.data['type'] as String?;
+      if (type == 'chat_message' && !settings.directMessagesEnabled) return;
+      if (type == 'swap_request' && !settings.swapProposalEnabled) return;
+
+      _showLocalNotification(msg, settings);
+    });
+
+    // Interaction listeners
+    FirebaseMessaging.onMessageOpenedApp.listen((msg) => _handleNotificationClick(msg.data));
+    
+    _fcm.getInitialMessage().then((msg) {
+      if (msg != null) {
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          _handleNotificationClick(msg.data);
+        });
       }
     });
 
-    // Listen to Firebase Auth state changes to dynamically save device tokens
     FirebaseAuth.instance.authStateChanges().listen((user) {
-      if (user != null) {
-        saveDeviceToken();
-      }
+      if (user != null) saveDeviceToken();
     });
 
     _initialized = true;
-    
-    // Register FCM Token for currently logged-in user if any
-    await saveDeviceToken();
+    saveDeviceToken();
+    _startNotificationsListener();
   }
 
-  // Updates current user's FCM token in Firestore
+  void _startNotificationsListener() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    FirebaseFirestore.instance
+        .collection('notifications')
+        .where('receiverId', isEqualTo: uid)
+        .where('isRead', isEqualTo: false)
+        .snapshots()
+        .listen((snap) {
+      for (var change in snap.docChanges) {
+        if (change.type == DocumentChangeType.added) {
+          final data = change.doc.data() as Map<String, dynamic>;
+          
+          // Deduplicate if already processed
+          if (_shownNotificationIds.contains(change.doc.id)) {
+            continue;
+          }
+
+          // Filter out historic notifications during startup to prevent initial-burst spam
+          final createdAtField = data['createdAt'];
+          DateTime? createdAt;
+          if (createdAtField is Timestamp) {
+            createdAt = createdAtField.toDate();
+          } else if (createdAtField is String) {
+            createdAt = DateTime.tryParse(createdAtField);
+          }
+          createdAt ??= DateTime.now();
+
+          // Only alert if created after initialization (with a small 2s grace window)
+          if (createdAt.isAfter(_listenerStartTime.subtract(const Duration(seconds: 2)))) {
+            _shownNotificationIds.add(change.doc.id);
+            _showLocalNotificationFromMap(change.doc.id, data);
+          }
+        }
+      }
+    });
+  }
+
+  void _showLocalNotificationFromMap(String docId, Map<String, dynamic> data) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    // Suppress if actively viewing chat room
+    final String? convoId = data['conversationId'] ?? data['data']?['conversationId'];
+    if (convoId != null && convoId == currentActiveConvoId) {
+      debugPrint("FCM Service: Suppressed Firestore-triggered notification for active chat $convoId");
+      return;
+    }
+
+    final settingsDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('settings')
+        .doc('notifications')
+        .get();
+    
+    final settings = NotificationSettingsModel.fromDoc(settingsDoc);
+    if (!settings.pushEnabled) return;
+
+    final type = data['type'] as String?;
+    if (type == 'chat_message' && !settings.directMessagesEnabled) return;
+    if (type == 'swap_request' && !settings.swapProposalEnabled) return;
+
+    String title = data['title'] ?? 'Skill Swap';
+    String body = data['body'] ?? '';
+    
+    if (data['type'] == 'chat_message' && (data['senderName'] != null || data['otherName'] != null)) {
+      title = data['senderName'] ?? data['otherName'];
+    }
+
+    String channelId = _getChannelId(type);
+
+    _localNotifications.show(
+      id: docId.hashCode,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          channelId.replaceAll('_', ' ').toUpperCase(),
+          importance: settings.soundEnabled ? Importance.max : Importance.low,
+          priority: Priority.high,
+          playSound: settings.soundEnabled,
+          enableVibration: settings.vibrationEnabled,
+        ),
+      ),
+      payload: jsonEncode(data),
+    );
+  }
+
+  void _createChannels() async {
+    final List<AndroidNotificationChannel> channels = [
+      const AndroidNotificationChannel('chat_messages', 'Chat Messages', importance: Importance.max),
+      const AndroidNotificationChannel('swap_requests', 'Swap Proposals', importance: Importance.high),
+      const AndroidNotificationChannel('sessions', 'Mentoring Sessions', importance: Importance.high),
+      const AndroidNotificationChannel('system', 'System Announcements', importance: Importance.defaultImportance),
+    ];
+
+    final androidPlugin = _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidPlugin != null) {
+      for (final channel in channels) {
+        await androidPlugin.createNotificationChannel(channel);
+      }
+    }
+  }
+
+  void _showLocalNotification(RemoteMessage msg, NotificationSettingsModel settings) {
+    RemoteNotification? notification = msg.notification;
+    String title = notification?.title ?? msg.data['title'] ?? 'Skill Swap';
+    String body = notification?.body ?? msg.data['body'] ?? '';
+    String channelId = _getChannelId(msg.data['type']);
+
+    _localNotifications.show(
+      id: msg.hashCode,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          channelId.replaceAll('_', ' ').toUpperCase(),
+          importance: settings.soundEnabled ? Importance.max : Importance.low,
+          priority: Priority.high,
+          playSound: settings.soundEnabled,
+          enableVibration: settings.vibrationEnabled,
+        ),
+      ),
+      payload: jsonEncode(msg.data),
+    );
+  }
+
+  String _getChannelId(String? type) {
+    switch (type) {
+      case 'chat_message': return 'chat_messages';
+      case 'swap_request': return 'swap_requests';
+      case 'session': return 'sessions';
+      case 'system': return 'system';
+      default: return 'chat_messages';
+    }
+  }
+
   Future<void> saveDeviceToken() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-
-    try {
-      String? token = await _fcm.getToken();
-      if (token != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'fcmToken': token,
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-        print("FCM Device Token updated: $token");
-      }
-    } catch (e) {
-      print("Error registering FCM token: $e");
+    String? token = await _fcm.getToken();
+    if (token != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'fcmToken': token,
+      }, SetOptions(merge: true));
     }
   }
 
-  // De-registers token (call on sign out)
-  Future<void> removeDeviceToken() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-        'fcmToken': FieldValue.delete(),
-      });
-      print("FCM Token cleared.");
-    } catch (e) {
-      print("Error removing FCM token: $e");
-    }
-  }
-
-  // Handles navigation on tapping the notification
   void _handleNotificationClick(Map<String, dynamic> data) {
+    final type = data['type'] as String?;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (type == 'chat_message') {
+        _openChat(data);
+      } else {
+        navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+      }
+    });
+  }
+
+  void _openChat(Map<String, dynamic> data) {
     final String conversationId = data['conversationId'] ?? '';
     final String otherUserId = data['otherUserId'] ?? '';
     final String otherName = data['otherName'] ?? 'Chat';
-    final String imageUrl = data['imageUrl'] ?? '';
-    final String offering = data['offering'] ?? '';
-    final String wanting = data['wanting'] ?? '';
 
-    if (conversationId.isEmpty || otherUserId.isEmpty) return;
+    if (conversationId.isEmpty) return;
 
     final swap = SwapListing(
       id: conversationId,
       userId: otherUserId,
       name: otherName,
-      initials: otherName.trim().split(' ').length >= 2
-          ? '${otherName.trim().split(' ')[0][0]}${otherName.trim().split(' ')[1][0]}'.toUpperCase()
-          : (otherName.isNotEmpty ? otherName[0].toUpperCase() : 'U'),
+      initials: otherName.isNotEmpty ? otherName[0] : 'U',
       avatarColor: const Color(0xFF6B8AFF),
-      offering: offering,
-      wanting: wanting,
-      rating: 0.0,
-      reviews: 0,
-      category: 'All',
-      imageUrl: imageUrl.isNotEmpty ? imageUrl : null,
+      offering: data['offering'] ?? '',
+      wanting: data['wanting'] ?? '',
+      rating: 0.0, reviews: 0, category: 'All',
     );
 
-    // Wait a brief frame to make sure navigation context is ready
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (_) => ConversationScreen(swap: swap),
-        ),
-      );
-    });
+    navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => ConversationScreen(swap: swap)));
   }
 }
