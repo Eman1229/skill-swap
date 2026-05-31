@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 
 class ChatUserProfile {
   final String userId;
@@ -46,15 +48,9 @@ class ChatUserProfile {
 }
 
 class ChatUserService {
-  static final ChatUserService _instance = ChatUserService._internal();
-  factory ChatUserService() => _instance;
-  ChatUserService._internal();
-
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  
-  // Cache base profile info to prevent heavy listing lookups
-  final Map<String, ({String name, String? imageUrl})> _baseInfoCache = {};
 
+  // Single dynamic stream for user details (Firestore) and presence (Realtime Database)
   Stream<ChatUserProfile> getUserProfile(String userId) {
     if (userId.isEmpty) {
       return Stream.value(const ChatUserProfile(
@@ -64,50 +60,61 @@ class ChatUserService {
       ));
     }
 
-    return _db
-        .collection('users')
-        .doc(userId)
-        .snapshots()
-        .asyncMap((userDoc) async {
-      final userData = userDoc.data();
-      final bool isOnline = (userData?['isOnline'] as bool?) ?? false;
-      final Timestamp? lastSeen = userData?['lastSeen'] as Timestamp?;
-
+    // 1. Fetch swap listing profile details once (since name and photo don't change dynamically)
+    final profileFuture = _db
+        .collection('swapListings')
+        .where('userId', isEqualTo: userId)
+        .get()
+        .then((listingsSnap) {
       String name = 'Unknown User';
       String? imageUrl;
 
-      // 1. Check if name/image is already in main user doc (optimization)
-      if (userData?['name'] != null) {
-        name = userData!['name'];
-        imageUrl = userData['imageUrl'];
-      } 
-      // 2. Check cache
-      else if (_baseInfoCache.containsKey(userId)) {
-        final cached = _baseInfoCache[userId]!;
-        name = cached.name;
-        imageUrl = cached.imageUrl;
-      } 
-      // 3. Fallback to slow listing lookup
-      else {
-        final listingsSnap = await _db
-            .collection('swapListings')
-            .where('userId', isEqualTo: userId)
-            .limit(1)
-            .get();
+      if (listingsSnap.docs.isNotEmpty) {
+        final docs = List<QueryDocumentSnapshot>.from(listingsSnap.docs);
+        docs.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          final aTime = aData['createdAt'] as Timestamp?;
+          final bTime = bData['createdAt'] as Timestamp?;
+          if (aTime == null && bTime == null) return 0;
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+          return bTime.compareTo(aTime);
+        });
 
-        if (listingsSnap.docs.isNotEmpty) {
-          final data = listingsSnap.docs.first.data();
-          name = data['name'] as String? ?? 'Unknown User';
-          imageUrl = data['imageUrl'] as String?;
-          
-          _baseInfoCache[userId] = (name: name, imageUrl: imageUrl);
+        final latestData = docs.first.data() as Map<String, dynamic>;
+        name = latestData['name'] as String? ?? 'Unknown User';
+        imageUrl = latestData['imageUrl'] as String?;
+      }
+
+      return {'name': name, 'imageUrl': imageUrl};
+    });
+
+    // 2. Stream user active status and lastSeen timestamp from Realtime Database
+    final dbRef = FirebaseDatabase.instance.ref('status/$userId');
+    return dbRef.onValue.asyncMap((event) async {
+      final snap = event.snapshot;
+      bool isOnline = false;
+      Timestamp? lastSeen;
+
+      if (snap.exists && snap.value != null) {
+        try {
+          final val = snap.value as Map<dynamic, dynamic>;
+          isOnline = (val['online'] as bool?) ?? false;
+          final lastSeenMs = val['lastSeen'] as int?;
+          if (lastSeenMs != null) {
+            lastSeen = Timestamp.fromMillisecondsSinceEpoch(lastSeenMs);
+          }
+        } catch (e) {
+          debugPrint("ChatUserService: Error parsing presence value: $e");
         }
       }
 
+      final profile = await profileFuture;
       return ChatUserProfile(
         userId: userId,
-        name: name,
-        imageUrl: imageUrl,
+        name: profile['name'] as String,
+        imageUrl: profile['imageUrl'],
         isOnline: isOnline,
         lastSeen: lastSeen,
       );

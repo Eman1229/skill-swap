@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:skill_swap/services/notification_service.dart';
 
 class CreateSessionScreen extends StatefulWidget {
   final SwapModel swap;
@@ -59,6 +60,16 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           'lastMessage': 'Session Invite: ${_titleController.text.trim()}',
           'lastMessageAt': FieldValue.serverTimestamp(),
         });
+
+        final otherId = uid == widget.swap.mentorId ? widget.swap.learnerId : widget.swap.mentorId;
+        NotificationService().sendNotification(
+          receiverId: otherId,
+          type: 'swap',
+          title: 'New Session Invitation! 📅',
+          body: 'You received a new session invite: "${_titleController.text.trim()}"',
+          deepLinkScreen: 'swap_detail',
+          referenceId: widget.swap.id,
+        );
       }
 
       if (mounted) {
