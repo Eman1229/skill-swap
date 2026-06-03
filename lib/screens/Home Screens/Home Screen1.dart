@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/notification_provider.dart';
 import 'package:skill_swap/screens/Notifications/notifications_screen.dart';
+import 'package:skill_swap/screens/Profile/my_profile_screen.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
@@ -111,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
+      body: _selectedIndex == 3 ? const MyProfileScreen() : SafeArea(
         child: Column(
           children: [
             // ── TOP GRADIENT HEADER ──────────────────────────────────
@@ -584,9 +585,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: () => setState(() => _selectedIndex = 2),
               ),
               _NavItem(
-                icon: Icons.settings_outlined,
-                activeIcon: Icons.settings_rounded,
-                label: 'settings'.tr(),
+                icon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
+                label: 'Profile',
                 selected: _selectedIndex == 3,
                 onTap: () => setState(() => _selectedIndex = 3),
               ),
@@ -596,6 +597,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
 }
 
 // ── Section Title ─────────────────────────────────────────────────────

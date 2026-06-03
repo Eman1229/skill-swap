@@ -6,10 +6,11 @@ import 'package:skill_swap/screens/Home%20Screens/see%20all.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Chat/chat_screen.dart';
 import 'package:skill_swap/screens/Profile/edit_profile_screen.dart';
+import 'package:skill_swap/screens/Profile/my_profile_screen.dart';
 import 'package:skill_swap/screens/Profile/profile%20screen.dart';
 import 'package:skill_swap/screens/Swap/my_swaps_screen.dart';
-import 'package:skill_swap/screens/Setting/settings_screen.dart';
 import 'package:skill_swap/screens/Notifications/notifications_screen.dart';
+import 'package:skill_swap/screens/Setting/settings_screen.dart';
 import 'package:skill_swap/services/notification_repository.dart';
 
 class SwapListing {
@@ -514,51 +515,26 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           GestureDetector(
-            onTap: _navigateToMyProfile,
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: imageUrl == null || imageUrl.isEmpty
-                    ? Theme.of(context).colorScheme.surface
-                    : Colors.transparent,
-                shape: BoxShape.circle,
-                border: Border.all(color: Theme.of(context).colorScheme.onSurface, width: 2),
-              ),
-              child: imageUrl == null || imageUrl.isEmpty
-                  ? Center(
-                child: Text(
-                  initials,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-              )
-                  : ClipOval(
-                child: Image.network(
-                  imageUrl,
-                  key: ValueKey(imageUrl),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyProfileScreen()),
+              );
+            },
+            child: Row(
+              children: [
+                Container(
                   width: 48,
                   height: 48,
-                  fit: BoxFit.cover,
-                  cacheWidth: 300,
-                  cacheHeight: 300,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                    );
-                  },
-                  errorBuilder: (_, __, ___) => Center(
+                  decoration: BoxDecoration(
+                    color: imageUrl == null || imageUrl.isEmpty
+                        ? Theme.of(context).colorScheme.surface
+                        : Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Theme.of(context).colorScheme.onSurface, width: 2),
+                  ),
+                  child: imageUrl == null || imageUrl.isEmpty
+                      ? Center(
                     child: Text(
                       initials,
                       style: TextStyle(
@@ -567,34 +543,67 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                         fontSize: 18,
                       ),
                     ),
+                  )
+                      : ClipOval(
+                    child: Image.network(
+                      imageUrl,
+                      key: ValueKey(imageUrl),
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      cacheWidth: 300,
+                      cacheHeight: 300,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (_, __, ___) => Center(
+                        child: Text(
+                          initials,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '$_greeting, $_userName',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-                Text(
-                  'Keep growing every day!',
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$_greeting, $_userName',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    Text(
+                      'Keep growing every day!',
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+          Spacer(),
           GestureDetector(
             onTap: () {
               Navigator.push(
