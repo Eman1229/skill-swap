@@ -37,57 +37,57 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
       body: uid == null
           ? Center(child: Text('Please login', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))
           : Column(
-              children: [
-                _buildFilters(),
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: _db
-                        .collection('swaps')
-                        .where('mentorId', isEqualTo: uid)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
-                      }
+        children: [
+          _buildFilters(),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _db
+                  .collection('swaps')
+                  .where('mentorId', isEqualTo: uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+                }
 
-                      var docs = snapshot.data?.docs ?? [];
+                var docs = snapshot.data?.docs ?? [];
 
-                      // Filter logic
-                      if (_selectedFilter != 'All') {
-                        docs = docs.where((doc) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          return data['status']?.toString().toLowerCase() == _selectedFilter.toLowerCase();
-                        }).toList();
-                      }
+                // Filter logic
+                if (_selectedFilter != 'All') {
+                  docs = docs.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return data['status']?.toString().toLowerCase() == _selectedFilter.toLowerCase();
+                  }).toList();
+                }
 
-                      if (docs.isEmpty) {
-                        return _buildEmptyState();
-                      }
+                if (docs.isEmpty) {
+                  return _buildEmptyState();
+                }
 
-                      final swapsList = docs.map((doc) => SwapModel.fromDoc(doc)).toList();
+                final swapsList = docs.map((doc) => SwapModel.fromDoc(doc)).toList();
 
-                      return SingleChildScrollView(
-                        padding: EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ...swapsList.map((swap) {
-                              return _TeachingCard(swap: swap);
-                            }),
-                            SizedBox(height: 32),
-                            Text('Teaching Dashboard',
-                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
-                            SizedBox(height: 16),
-                            _buildTeachingStats(swapsList, uid),
-                            SizedBox(height: 40),
-                          ],
-                        ),
-                      );
-                    },
+                return SingleChildScrollView(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ...swapsList.map((swap) {
+                        return _TeachingCard(swap: swap);
+                      }),
+                      SizedBox(height: 32),
+                      Text('Teaching Dashboard',
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 16),
+                      _buildTeachingStats(swapsList, uid),
+                      SizedBox(height: 40),
+                    ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -135,14 +135,10 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
   }
 
   Widget _buildTeachingStats(List<SwapModel> swaps, String uid) {
-    // 1. Unique students
     final uniqueStudents = swaps.map((s) => s.learnerId).toSet().length;
-
-    // 2. Hours: completed sessions * 1.5
     final totalSessions = swaps.fold<int>(0, (total, s) => total + s.completedSessions);
     final totalHours = (totalSessions * 1.5).toStringAsFixed(1);
 
-    // 3. Rating: average rating of their swapListings
     return StreamBuilder<QuerySnapshot>(
       stream: _db
           .collection('swapListings')
@@ -234,6 +230,7 @@ class _TeachingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ FIXED: fetch image from swapListings instead of users collection
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('swapListings')
@@ -245,6 +242,10 @@ class _TeachingCard extends StatelessWidget {
         if (learnerSnap.hasData && learnerSnap.data!.docs.isNotEmpty) {
           imageUrl = (learnerSnap.data!.docs.first.data() as Map<String, dynamic>)['imageUrl'] as String?;
         }
+
+        final double calculatedProgress = swap.totalSessions > 0
+            ? (swap.completedSessions / swap.totalSessions).clamp(0.0, 1.0)
+            : 0.0;
 
         return Container(
           margin: EdgeInsets.only(bottom: 16),
@@ -268,13 +269,14 @@ class _TeachingCard extends StatelessWidget {
                     ),
                     child: imageUrl != null && imageUrl.isNotEmpty
                         ? ClipOval(
-                            child: Image.network(
-                              imageUrl,
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.cover,
-                            ),
-                          )
+                      child: Image.network(
+                        imageUrl,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(Icons.person, color: Theme.of(context).colorScheme.outlineVariant),
+                      ),
+                    )
                         : Icon(Icons.person, color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   SizedBox(width: 14),
@@ -302,7 +304,7 @@ class _TeachingCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Progress: ${(swap.progress * 100).toInt()}%', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                  Text('Progress: ${(calculatedProgress * 100).toInt()}%', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
                   Text('Session ${swap.completedSessions} of ${swap.totalSessions}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12)),
                 ],
               ),
@@ -310,7 +312,7 @@ class _TeachingCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: LinearProgressIndicator(
-                  value: swap.progress,
+                  value: calculatedProgress,
                   backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
                   color: const Color(0xFF9D4EDD),
                   minHeight: 6,

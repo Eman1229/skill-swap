@@ -37,62 +37,62 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
       body: uid == null
           ? Center(child: Text('Please login', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))
           : Column(
-              children: [
-                _buildFilters(),
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: _db
-                        .collection('swaps')
-                        .where('learnerId', isEqualTo: uid)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
-                      }
+        children: [
+          _buildFilters(),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _db
+                  .collection('swaps')
+                  .where('learnerId', isEqualTo: uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+                }
 
-                      var docs = snapshot.data?.docs ?? [];
+                var docs = snapshot.data?.docs ?? [];
 
-                      // Filter logic
-                      if (_selectedFilter != 'All') {
-                        docs = docs.where((doc) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          return data['status']?.toString().toLowerCase() == _selectedFilter.toLowerCase();
-                        }).toList();
-                      }
+                // Filter logic
+                if (_selectedFilter != 'All') {
+                  docs = docs.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return data['status']?.toString().toLowerCase() == _selectedFilter.toLowerCase();
+                  }).toList();
+                }
 
-                      if (docs.isEmpty) {
-                        return _buildEmptyState();
-                      }
+                if (docs.isEmpty) {
+                  return _buildEmptyState();
+                }
 
-                      final swapsList = docs.map((doc) => SwapModel.fromDoc(doc)).toList();
+                final swapsList = docs.map((doc) => SwapModel.fromDoc(doc)).toList();
 
-                      return SingleChildScrollView(
-                        padding: EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ...swapsList.map((swap) {
-                              return _LearningCard(swap: swap);
-                            }).toList(),
-                            SizedBox(height: 32),
-                            Text('Performance Insights',
-                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
-                            SizedBox(height: 16),
-                            _buildInsights(swapsList, uid),
-                            SizedBox(height: 32),
-                            Text('Weekly Engagement',
-                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
-                            SizedBox(height: 16),
-                            _buildEngagementChart(swapsList),
-                            SizedBox(height: 40),
-                          ],
-                        ),
-                      );
-                    },
+                return SingleChildScrollView(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ...swapsList.map((swap) {
+                        return _LearningCard(swap: swap);
+                      }).toList(),
+                      SizedBox(height: 32),
+                      Text('Performance Insights',
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 16),
+                      _buildInsights(swapsList, uid),
+                      SizedBox(height: 32),
+                      Text('Weekly Engagement',
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 16),
+                      _buildEngagementChart(swapsList),
+                      SizedBox(height: 40),
+                    ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -140,112 +140,71 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
   }
 
   Widget _buildInsights(List<SwapModel> swaps, String uid) {
-    // 1. XP / Skills Learned
     final completedSwaps = swaps.where((s) => s.status.toLowerCase() == 'completed').length;
     final totalCompletedSessions = swaps.fold<int>(0, (total, s) => total + s.completedSessions);
-
-    // XP formula: 500 base + 1000 per completed swap + 100 per completed session
     final xp = 500 + (completedSwaps * 1000) + (totalCompletedSessions * 100);
-
-    // 2. Total hours: completed sessions * 1.5
     final totalHours = (totalCompletedSessions * 1.5).toStringAsFixed(1);
 
-    // 3. Average rating based on user listings
-    return StreamBuilder<QuerySnapshot>(
-      stream: _db
-          .collection('swapListings')
-          .where('userId', isEqualTo: uid)
-          .snapshots(),
-      builder: (context, listingsSnap) {
-        double rating = 4.9;
-        if (listingsSnap.hasData && listingsSnap.data!.docs.isNotEmpty) {
-          double totalR = 0;
-          int count = 0;
-          for (final doc in listingsSnap.data!.docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            final r = data['Rating'] as num?;
-            if (r != null) {
-              totalR += r.toDouble();
-              count++;
-            }
-          }
-          if (count > 0) {
-            rating = totalR / count;
-            if (rating == 0.0) {
-              rating = 4.9;
-            }
-          }
-        }
-
-        return Container(
-          padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Text('XP / Skills Learned: $completedSwaps',
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                  SizedBox(height: 4),
+                  Row(
                     children: [
-                      Text('XP / Skills Learned: $completedSwaps',
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
-                      SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text('$xp',
-                              style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold)),
-                          SizedBox(width: 8),
-                          Text('+12% this week',
-                              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10)),
-                        ],
-                      ),
+                      Text('$xp',
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold)),
+                      SizedBox(width: 8),
+                      Text('+12% this week',
+                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10)),
                     ],
-                  ),
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.workspace_premium_rounded,
-                        color: Theme.of(context).colorScheme.primary),
                   ),
                 ],
               ),
-              SizedBox(height: 20),
-              Divider(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6)),
-              SizedBox(height: 20),
-              Row(
-                children: [
-                  _StatItem(
-                      label: 'TOTAL HOURS',
-                      value: totalHours,
-                      icon: Icons.timer_outlined,
-                      color: Theme.of(context).colorScheme.primary),
-                  Spacer(),
-                  _StatItem(
-                      label: 'RATING',
-                      value: rating.toStringAsFixed(1),
-                      icon: Icons.star_rounded,
-                      color: Colors.pinkAccent),
-                ],
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.workspace_premium_rounded,
+                    color: Theme.of(context).colorScheme.primary),
               ),
             ],
           ),
-        );
-      },
+          SizedBox(height: 20),
+          Divider(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6)),
+          SizedBox(height: 20),
+          Row(
+            children: [
+              _StatItem(
+                  label: 'TOTAL HOURS',
+                  value: totalHours,
+                  icon: Icons.timer_outlined,
+                  color: Theme.of(context).colorScheme.primary),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildEngagementChart(List<SwapModel> swaps) {
-    // Count sessions or swaps per day of the week (1 = Monday, 7 = Sunday)
     final Map<int, int> dayCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
 
     for (final s in swaps) {
@@ -295,6 +254,7 @@ class _LearningCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ FIXED: fetch image from swapListings instead of users collection
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('swapListings')
@@ -306,6 +266,10 @@ class _LearningCard extends StatelessWidget {
         if (mentorSnap.hasData && mentorSnap.data!.docs.isNotEmpty) {
           imageUrl = (mentorSnap.data!.docs.first.data() as Map<String, dynamic>)['imageUrl'] as String?;
         }
+
+        final double calculatedProgress = swap.totalSessions > 0
+            ? (swap.completedSessions / swap.totalSessions).clamp(0.0, 1.0)
+            : 0.0;
 
         return Container(
           margin: EdgeInsets.only(bottom: 16),
@@ -329,14 +293,15 @@ class _LearningCard extends StatelessWidget {
                     ),
                     child: imageUrl != null && imageUrl.isNotEmpty
                         ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              imageUrl,
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.cover,
-                            ),
-                          )
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        imageUrl,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(Icons.image, color: Theme.of(context).colorScheme.outlineVariant),
+                      ),
+                    )
                         : Icon(Icons.image, color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   SizedBox(width: 14),
@@ -365,14 +330,14 @@ class _LearningCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Progress', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
-                  Text('${(swap.progress * 100).toInt()}%', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('${(calculatedProgress * 100).toInt()}%', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
               SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: LinearProgressIndicator(
-                  value: swap.progress,
+                  value: calculatedProgress,
                   backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
                   color: Theme.of(context).colorScheme.primary,
                   minHeight: 6,

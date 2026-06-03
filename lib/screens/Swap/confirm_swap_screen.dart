@@ -84,8 +84,8 @@ class _ConfirmSwapScreenState extends State<ConfirmSwapScreen> {
       await _requestRepo.sendRequest(
         receiverId: widget.swap.userId ?? '',
         receiverName: widget.swap.name,
-        offeredSkill: widget.swap.wanting, // User wants what mentor has
-        requestedSkill: widget.swap.offering,
+        offeredSkill: widget.swap.offering,
+        requestedSkill: widget.swap.wanting,
         conversationId: conversationId,
       );
 

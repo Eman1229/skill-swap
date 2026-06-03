@@ -58,7 +58,6 @@ dependencies:
   firebase_database: ^12.4.1
   shared_preferences: ^2.3.2
   url_launcher: ^6.3.2
-  firebase_database: ^12.4.1
 
 dev_dependencies:
   flutter_test:

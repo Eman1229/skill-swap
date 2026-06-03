@@ -32,7 +32,7 @@ Future<void> main() async {
     await FcmService().init();
 
     // Start presence tracking service
-    PresenceService().start();
+    PresenceService().startPresenceTracking();
 
     // Enable Firestore offline persistence/caching
     FirebaseFirestore.instance.settings = const Settings(

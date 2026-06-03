@@ -48,7 +48,19 @@ class ChatUserProfile {
 }
 
 class ChatUserService {
+  static final ChatUserService _instance = ChatUserService._internal();
+  factory ChatUserService() => _instance;
+  ChatUserService._internal();
+
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  // Cache for the profile data from Firestore
+  final Map<String, Future<Map<String, dynamic>>> _profileCache = {};
+  
+  // Cache for the fully constructed profiles to provide instant UI
+  final Map<String, ChatUserProfile> _latestProfiles = {};
+
+  ChatUserProfile? getCachedProfile(String userId) => _latestProfiles[userId];
 
   // Single dynamic stream for user details (Firestore) and presence (Realtime Database)
   Stream<ChatUserProfile> getUserProfile(String userId) {
@@ -60,39 +72,61 @@ class ChatUserService {
       ));
     }
 
-    // 1. Fetch swap listing profile details once (since name and photo don't change dynamically)
-    final profileFuture = _db
-        .collection('swapListings')
-        .where('userId', isEqualTo: userId)
-        .get()
-        .then((listingsSnap) {
-      String name = 'Unknown User';
-      String? imageUrl;
+    if (!_profileCache.containsKey(userId)) {
+      _profileCache[userId] = _db
+          .collection('swapListings')
+          .where('userId', isEqualTo: userId)
+          .get()
+          .then((listingsSnap) {
+        String name = 'Unknown User';
+        String? imageUrl;
 
-      if (listingsSnap.docs.isNotEmpty) {
-        final docs = List<QueryDocumentSnapshot>.from(listingsSnap.docs);
-        docs.sort((a, b) {
-          final aData = a.data() as Map<String, dynamic>;
-          final bData = b.data() as Map<String, dynamic>;
-          final aTime = aData['createdAt'] as Timestamp?;
-          final bTime = bData['createdAt'] as Timestamp?;
-          if (aTime == null && bTime == null) return 0;
-          if (aTime == null) return 1;
-          if (bTime == null) return -1;
-          return bTime.compareTo(aTime);
-        });
+        if (listingsSnap.docs.isNotEmpty) {
+          final docs = List<QueryDocumentSnapshot>.from(listingsSnap.docs);
+          docs.sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aTime = aData['createdAt'] as Timestamp?;
+            final bTime = bData['createdAt'] as Timestamp?;
+            if (aTime == null && bTime == null) return 0;
+            if (aTime == null) return 1;
+            if (bTime == null) return -1;
+            return bTime.compareTo(aTime);
+          });
 
-        final latestData = docs.first.data() as Map<String, dynamic>;
-        name = latestData['name'] as String? ?? 'Unknown User';
-        imageUrl = latestData['imageUrl'] as String?;
-      }
+          final latestData = docs.first.data() as Map<String, dynamic>;
+          name = latestData['name'] as String? ?? 'Unknown User';
+          imageUrl = latestData['imageUrl'] as String?;
+        }
 
-      return {'name': name, 'imageUrl': imageUrl};
-    });
+        return {'name': name, 'imageUrl': imageUrl};
+      }).catchError((e) {
+        debugPrint("ChatUserService: Error fetching profile: $e");
+        return {'name': 'Unknown User', 'imageUrl': null};
+      });
+    }
 
-    // 2. Stream user active status and lastSeen timestamp from Realtime Database
     final dbRef = FirebaseDatabase.instance.ref('status/$userId');
-    return dbRef.onValue.asyncMap((event) async {
+    return _createProfileStream(userId, dbRef);
+  }
+
+  Stream<ChatUserProfile> _createProfileStream(String userId, DatabaseReference dbRef) async* {
+    // Wait for the profile data to be fetched (or instantly resolve if cached)
+    final profile = await _profileCache[userId]!;
+    
+    // Yield the profile with offline status immediately if no latest profile exists
+    final initialProfile = _latestProfiles[userId] ?? ChatUserProfile(
+      userId: userId,
+      name: profile['name'] as String,
+      imageUrl: profile['imageUrl'] as String?,
+      isOnline: false, // Default until RTDB responds
+    );
+    
+    _latestProfiles[userId] = initialProfile;
+    yield initialProfile;
+    
+    // Then listen to RTDB updates
+    await for (final event in dbRef.onValue) {
       final snap = event.snapshot;
       bool isOnline = false;
       Timestamp? lastSeen;
@@ -110,14 +144,16 @@ class ChatUserService {
         }
       }
 
-      final profile = await profileFuture;
-      return ChatUserProfile(
+      final updatedProfile = ChatUserProfile(
         userId: userId,
         name: profile['name'] as String,
-        imageUrl: profile['imageUrl'],
+        imageUrl: profile['imageUrl'] as String?,
         isOnline: isOnline,
         lastSeen: lastSeen,
       );
-    });
+      
+      _latestProfiles[userId] = updatedProfile;
+      yield updatedProfile;
+    }
   }
 }

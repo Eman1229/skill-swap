@@ -564,6 +564,7 @@ class _RecentMentorAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<ChatUserProfile>(
+      initialData: ChatUserService().getCachedProfile(otherUserId),
       stream: ChatUserService().getUserProfile(otherUserId),
       builder: (context, snapshot) {
         final profile = snapshot.data;
@@ -646,6 +647,7 @@ class _ConversationTile extends StatelessWidget {
     final timeStr = ts != null ? _formatTime(ts.toDate()) : '';
 
     return StreamBuilder<ChatUserProfile>(
+      initialData: ChatUserService().getCachedProfile(otherUserId),
       stream: ChatUserService().getUserProfile(otherUserId),
       builder: (context, snapshot) {
         final profile = snapshot.data;
