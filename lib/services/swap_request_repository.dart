@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_request.dart';
 import 'package:flutter/foundation.dart';
+import 'package:skill_swap/services/skill_exchange_service.dart';
 
 class SwapRequestRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final SkillExchangeService _exchangeService = SkillExchangeService();
 
   /// Checks if a pending or accepted request already exists between two users
   Future<SwapRequest?> checkExistingRequest(String otherUserId) async {
@@ -44,6 +46,9 @@ class SwapRequestRepository {
 
     if (uid == receiverId) {
       throw Exception('You cannot send a swap request to yourself.');
+    }
+    if (offeredSkill.trim().isEmpty || requestedSkill.trim().isEmpty) {
+      throw Exception('A swap requires one skill to teach and one skill to learn.');
     }
 
     // 1. Double check for duplicates
@@ -117,13 +122,22 @@ class SwapRequestRepository {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    final doc = await _db.collection('swap_requests').doc(requestId).get();
+    final requestRef = _db.collection('swap_requests').doc(requestId);
+    final doc = await requestRef.get();
     if (!doc.exists) return;
     
     final request = SwapRequest.fromDoc(doc);
+    if (request.status != SwapRequestStatus.pending) {
+      throw Exception('This request is already ${request.status.name}.');
+    }
+    if (status == SwapRequestStatus.accepted &&
+        (request.offeredSkill.trim().isEmpty || request.requestedSkill.trim().isEmpty)) {
+      throw Exception('A skill swap must include one offered and one requested skill.');
+    }
+
     final batch = _db.batch();
 
-    batch.update(_db.collection('swap_requests').doc(requestId), {
+    batch.update(requestRef, {
       'status': status.name,
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -131,46 +145,25 @@ class SwapRequestRepository {
     final String offeredSkill = request.offeredSkill;
     final String targetUserId = uid == request.senderId ? request.receiverId : request.senderId;
     final String myName = _auth.currentUser?.displayName ?? 'Someone';
-    if (status == SwapRequestStatus.accepted) {
-      final swapRef = _db.collection('swaps').doc();
-      batch.set(swapRef, {
-        'mentorId': request.senderId,
-        'learnerId': request.receiverId,
-        'mentorName': request.senderName,
-        'learnerName': request.receiverName,
-        'skillName': request.offeredSkill,
-        'status': 'ongoing',
-        'progress': 0.1,
-        'conversationId': request.conversationId,
-        'completedSessions': 0,
-        'totalSessions': 8,
-        'participants': [request.senderId, request.receiverId],
-        'createdAt': FieldValue.serverTimestamp(),
-        'requestId': requestId,
-      });
-
-      // Also create the reverse swap if requested skill is specified
-      if (request.requestedSkill.isNotEmpty) {
-        final reverseSwapRef = _db.collection('swaps').doc();
-        batch.set(reverseSwapRef, {
-          'mentorId': request.receiverId,
-          'learnerId': request.senderId,
-          'mentorName': request.receiverName,
-          'learnerName': request.senderName,
-          'skillName': request.requestedSkill,
-          'status': 'ongoing',
-          'progress': 0.1,
-          'conversationId': request.conversationId,
-          'completedSessions': 0,
-          'totalSessions': 8,
-          'participants': [request.senderId, request.receiverId],
-          'createdAt': FieldValue.serverTimestamp(),
-          'requestId': requestId,
-        });
-      }
-    }
-
     await batch.commit();
+
+    if (status == SwapRequestStatus.accepted) {
+      await _exchangeService.createMissingSwapPairFromRequest(
+        requestId: requestId,
+        request: {
+          'senderId': request.senderId,
+          'receiverId': request.receiverId,
+          'senderName': request.senderName,
+          'receiverName': request.receiverName,
+          'offeredSkill': request.offeredSkill,
+          'requestedSkill': request.requestedSkill,
+          'conversationId': request.conversationId,
+        },
+      );
+    } else if (status == SwapRequestStatus.rejected ||
+        status == SwapRequestStatus.cancelled) {
+      await _exchangeService.syncParticipants([request.senderId, request.receiverId]);
+    }
 
     // Notify the other user of status change
     final statusText = status.name.toLowerCase();
