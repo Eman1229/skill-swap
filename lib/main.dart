@@ -7,44 +7,41 @@ import 'package:skill_swap/firebase_options.dart';
 import 'package:skill_swap/l10n/app_localizations.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 import 'package:skill_swap/providers/notification_provider.dart';
+import 'package:skill_swap/screens/offline/offlinescreen.dart';
 import 'package:skill_swap/screens/splash/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:skill_swap/services/presence_service.dart';
 import 'package:skill_swap/services/fcm_service.dart';
 import 'package:skill_swap/screens/Setting/app_settings.dart';
+import 'package:skill_swap/services/connectivity_service.dart';  // ← new
 
-const Color _skillSwapPrimary = Color(0xFF00C2FF); // Cyan Blue
-const Color _skillSwapSecondary = Color(0xFF00C2FF); // Use Cyan for system-wide secondary
+
+const Color _skillSwapPrimary    = Color(0xFF00C2FF);
+const Color _skillSwapSecondary  = Color(0xFF00C2FF);
 const Color _skillSwapBackground = Color(0xFFF0F4FF);
-const Color _skillSwapText = Color(0xFF0D0D1A);
-const Color _skillSwapSlate = Color(0xFFB0BAD0);
+const Color _skillSwapText       = Color(0xFF0D0D1A);
+const Color _skillSwapSlate      = Color(0xFFB0BAD0);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // 🔵 Firebase init
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // Initialize Push Notifications (FCM)
     await FcmService().init();
-
-    // Start presence tracking service
     PresenceService().startPresenceTracking();
 
-    // Enable Firestore offline persistence/caching
     FirebaseFirestore.instance.settings = const Settings(
       persistenceEnabled: true,
       cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
     );
 
-    // 🟣 Supabase init
     await Supabase.initialize(
       url: 'https://dvmqgwosltkmtltwfvpp.supabase.co',
       anonKey:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
           'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bXFnd29zbHRrbXRsdHdmdnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMTg3NjcsImV4cCI6MjA5Mzg5NDc2N30.OlvpVDEcYSzm8C-hu-JYTh-bjgLVoK1JajmrQMsDULY',
     );
 
@@ -56,6 +53,10 @@ Future<void> main() async {
         providers: [
           ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
           ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          // ← Add connectivity service here
+          ChangeNotifierProvider<ConnectivityService>(
+            create: (_) => ConnectivityService(),
+          ),
         ],
         child: const MyApp(),
       ),
@@ -81,7 +82,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    // Start active user presence tracking on startup
     PresenceService().startPresenceTracking();
     WidgetsBinding.instance.addObserver(this);
   }
@@ -96,7 +96,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       PresenceService().setUserOnline();
-    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      // Re-check connectivity when app comes back to foreground
+      ConnectivityService().retryConnection();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
       PresenceService().setUserOffline();
     }
   }
@@ -121,7 +124,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 GlobalWidgetsLocalizations.delegate,
                 GlobalCupertinoLocalizations.delegate,
               ],
-              onGenerateTitle: (context) => AppLocalizations.of(context)?.appTitle ?? 'Skill Swap',
+              onGenerateTitle: (context) =>
+              AppLocalizations.of(context)?.appTitle ?? 'Skill Swap',
               theme: _buildLightTheme(),
               darkTheme: _buildDarkTheme(),
               themeMode: settings.themeMode,
@@ -130,7 +134,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               builder: (context, child) {
                 return Directionality(
                   textDirection: languageProvider.textDirection,
-                  child: child!,
+                  // ← ConnectivityWrapper covers every screen in the app
+                  child: ConnectivityWrapper(child: child!),
                 );
               },
               home: const SplashScreen(),
@@ -167,9 +172,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         centerTitle: true,
       ),
       textTheme: ThemeData.light().textTheme.apply(
-            bodyColor: _skillSwapText,
-            displayColor: _skillSwapText,
-          ),
+        bodyColor: _skillSwapText,
+        displayColor: _skillSwapText,
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: _skillSwapPrimary,
@@ -214,17 +219,32 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   SwitchThemeData _buildSwitchTheme(ColorScheme colorScheme) {
     return SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          return Colors.white;
-        }
+        if (states.contains(WidgetState.selected)) return Colors.white;
         return colorScheme.outline;
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          return colorScheme.primary;
-        }
+        if (states.contains(WidgetState.selected)) return colorScheme.primary;
         return colorScheme.outlineVariant;
       }),
+    );
+  }
+}
+
+class ConnectivityWrapper extends StatelessWidget {
+  final Widget child;
+  const ConnectivityWrapper({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ConnectivityService>(
+      builder: (context, connectivity, _) {
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 350),
+          child: connectivity.isOffline
+              ? OfflineScreen(key: ValueKey('offline'))
+              : KeyedSubtree(key: const ValueKey('app'), child: child),
+        );
+      },
     );
   }
 }

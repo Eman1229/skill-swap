@@ -51,6 +51,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                 }
 
                 var docs = snapshot.data?.docs ?? [];
+                final totalSkills = docs.length; // ← ADDED
 
                 // Filter logic
                 if (_selectedFilter != 'All') {
@@ -71,6 +72,8 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _buildTotalBadge(totalSkills, context), // ← ADDED
+                      SizedBox(height: 20),                   // ← ADDED
                       ...swapsList.map((swap) {
                         return _LearningCard(swap: swap);
                       }).toList(),
@@ -90,6 +93,36 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ← ADDED
+  Widget _buildTotalBadge(int total, BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.school_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+          SizedBox(width: 10),
+          Text('Total Skills Learning',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
+          Spacer(),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text('$total',
+                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -254,7 +287,6 @@ class _LearningCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ FIXED: fetch image from swapListings instead of users collection
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('swapListings')

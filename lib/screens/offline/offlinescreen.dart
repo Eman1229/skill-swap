@@ -4,6 +4,8 @@ import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:skill_swap/screens/onboarding1/onboarding1.dart';
 
  class OfflineScreen extends StatefulWidget {
+   const OfflineScreen({super.key});
+
 
    @override
    State<OfflineScreen> createState() => _OfflineScreenState();

@@ -51,6 +51,7 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                 }
 
                 var docs = snapshot.data?.docs ?? [];
+                final totalSkills = docs.length; // ← ADDED
 
                 // Filter logic
                 if (_selectedFilter != 'All') {
@@ -71,6 +72,8 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _buildTotalBadge(totalSkills, context), // ← ADDED
+                      SizedBox(height: 20),                   // ← ADDED
                       ...swapsList.map((swap) {
                         return _TeachingCard(swap: swap);
                       }),
@@ -85,6 +88,36 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ← ADDED
+  Widget _buildTotalBadge(int total, BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF9D4EDD).withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF9D4EDD).withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.cast_for_education_rounded, color: const Color(0xFF9D4EDD), size: 20),
+          SizedBox(width: 10),
+          Text('Total Skills Teaching',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
+          Spacer(),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF9D4EDD),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text('$total',
+                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -230,7 +263,6 @@ class _TeachingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ FIXED: fetch image from swapListings instead of users collection
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('swapListings')
