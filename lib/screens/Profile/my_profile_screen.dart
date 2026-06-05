@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/screens/Profile/edit_profile_screen.dart';
+import 'package:skill_swap/services/skill_exchange_service.dart';
 
 class MyProfileScreen extends StatelessWidget {
   const MyProfileScreen({super.key});
@@ -13,39 +14,52 @@ class MyProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
-      return const _StateMessage(
-        icon: Icons.lock_outline_rounded,
-        title: 'Profile unavailable',
-        message: 'Sign in again to view your profile.',
-      );
-    }
+    final isPushed = Navigator.canPop(context);
 
-    return StreamBuilder<_ProfileData>(
-      stream: _ProfileDataService().watch(uid),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return _LoadingProfile();
-        }
-        if (snapshot.hasError) {
-          return _StateMessage(
-            icon: Icons.error_outline_rounded,
-            title: 'Could not load profile',
-            message: snapshot.error.toString(),
-          );
-        }
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: isPushed
+          ? AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
+                onPressed: () => Navigator.pop(context),
+              ),
+            )
+          : null,
+      body: uid == null
+          ? const _StateMessage(
+              icon: Icons.lock_outline_rounded,
+              title: 'Profile unavailable',
+              message: 'Sign in again to view your profile.',
+            )
+          : StreamBuilder<_ProfileData>(
+              stream: _ProfileDataService().watch(uid),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _LoadingProfile();
+                }
+                if (snapshot.hasError) {
+                  return _StateMessage(
+                    icon: Icons.error_outline_rounded,
+                    title: 'Could not load profile',
+                    message: snapshot.error.toString(),
+                  );
+                }
 
-        final data = snapshot.data;
-        if (data == null) {
-          return const _StateMessage(
-            icon: Icons.person_search_rounded,
-            title: 'No profile data yet',
-            message: 'Create a skill listing to start building your profile.',
-          );
-        }
+                final data = snapshot.data;
+                if (data == null) {
+                  return const _StateMessage(
+                    icon: Icons.person_search_rounded,
+                    title: 'No profile data yet',
+                    message: 'Create a skill listing to start building your profile.',
+                  );
+                }
 
-        return _ProfileContent(data: data);
-      },
+                return _ProfileContent(data: data);
+              },
+            ),
     );
   }
 }
@@ -1168,6 +1182,7 @@ class _ProfileData {
 class _ProfileDataService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final SkillExchangeService _exchangeService = SkillExchangeService();
 
   Stream<_ProfileData> watch(String uid) {
     late StreamController<_ProfileData> controller;
@@ -1176,6 +1191,7 @@ class _ProfileDataService {
     QuerySnapshot<Map<String, dynamic>>? listingsSnap;
     QuerySnapshot<Map<String, dynamic>>? swapsSnap;
     QuerySnapshot<Map<String, dynamic>>? requestsSnap;
+    var rebalanceStarted = false;
 
     void emit() {
       if (listingsSnap == null || swapsSnap == null || requestsSnap == null || controller.isClosed) return;
@@ -1184,6 +1200,12 @@ class _ProfileDataService {
 
     controller = StreamController<_ProfileData>.broadcast(
       onListen: () {
+        if (!rebalanceStarted) {
+          rebalanceStarted = true;
+          _exchangeService.rebalanceUser(uid).catchError((e) {
+            debugPrint('Error rebalancing profile skills: $e');
+          });
+        }
         subscriptions.add(_db.collection('users').doc(uid).snapshots().listen((snap) {
           userDoc = snap;
           emit();
@@ -1255,24 +1277,21 @@ class _ProfileDataService {
     for (final listing in listingMaps) {
       final offering = _stringValue(listing['offering']);
       if (offering.isNotEmpty) {
-        teachingSet.add(offering);
         progressBySkill.putIfAbsent(offering, () => []).add(0.35);
       }
-      final wanting = _stringValue(listing['wanting']);
-      if (wanting.isNotEmpty) learnedSet.add(wanting);
       final createdAt = _dateValue(listing['createdAt']);
       if (createdAt != null) activityDates.add(createdAt);
     }
 
-    int completedSwaps = 0;
+    final completedPairs = <String, List<Map<String, dynamic>>>{};
     for (final swap in swapMaps) {
       final skill = _stringValue(swap['skillName']);
       final progress = _numValue(swap['progress']).clamp(0.0, 1.0).toDouble();
       final status = _stringValue(swap['status']).toLowerCase();
-      if (swap['mentorId'] == uid && skill.isNotEmpty) teachingSet.add(skill);
-      if (swap['learnerId'] == uid && skill.isNotEmpty) learnedSet.add(skill);
       if (skill.isNotEmpty) progressBySkill.putIfAbsent(skill, () => []).add(progress);
-      if (status == 'completed' || progress >= 1.0) completedSwaps++;
+      if (status == 'completed' || progress >= 1.0) {
+        completedPairs.putIfAbsent(_exchangeId(swap), () => []).add(swap);
+      }
 
       final lastSessionAt = _dateValue(swap['lastSessionAt']);
       final createdAt = _dateValue(swap['createdAt']);
@@ -1288,31 +1307,46 @@ class _ProfileDataService {
       if (status == 'accepted' || status == 'completed' || status == 'rejected' || status == 'cancelled') {
         closedRequests++;
       }
-      if (request['senderId'] == uid) {
-        final offered = _stringValue(request['offeredSkill']);
-        final requested = _stringValue(request['requestedSkill']);
-        if (offered.isNotEmpty) teachingSet.add(offered);
-        if (requested.isNotEmpty) learnedSet.add(requested);
-      }
-      if (request['receiverId'] == uid) {
-        final offered = _stringValue(request['offeredSkill']);
-        final requested = _stringValue(request['requestedSkill']);
-        if (offered.isNotEmpty) learnedSet.add(offered);
-        if (requested.isNotEmpty) teachingSet.add(requested);
-      }
       final createdAt = _dateValue(request['createdAt']);
       if (createdAt != null) activityDates.add(createdAt);
     }
 
+    final completedExchangeIds = <String>{};
+    for (final entry in completedPairs.entries) {
+      final learned = entry.value
+          .where((swap) => _stringValue(swap['learnerId']) == uid)
+          .map((swap) => _stringValue(swap['skillName']))
+          .where((skill) => skill.isNotEmpty)
+          .toSet();
+      final taught = entry.value
+          .where((swap) => _stringValue(swap['mentorId']) == uid)
+          .map((swap) => _stringValue(swap['skillName']))
+          .where((skill) => skill.isNotEmpty)
+          .toSet();
+
+      if (learned.isNotEmpty && taught.isNotEmpty) {
+        learnedSet.add(learned.first);
+        teachingSet.add(taught.first);
+        completedExchangeIds.add(entry.key);
+      }
+    }
+
+    final balancedCount = math.min(learnedSet.length, teachingSet.length);
+    final learnedList = learnedSet.toList()..sort();
+    final teachingList = teachingSet.toList()..sort();
+    final balancedLearned = learnedList.take(balancedCount).toList();
+    final balancedTeaching = teachingList.take(balancedCount).toList();
+
     final ratings = listingMaps.map((listing) => _numValue(listing['Rating'])).where((rating) => rating > 0).toList();
     final rating = ratings.isEmpty ? 0.0 : ratings.reduce((a, b) => a + b) / ratings.length;
     final totalSessions = swapMaps.fold<int>(0, (acc, swap) => acc + _intValue(swap['completedSessions']));
-    final totalSwaps = swapMaps.length;
+    final totalSwaps = swapMaps.map(_exchangeId).toSet().length;
+    final completedSwaps = completedExchangeIds.length;
     final xp = completedSwaps * 250 +
         totalSessions * 60 +
         acceptedRequests * 40 +
-        teachingSet.length * 90 +
-        learnedSet.length * 110;
+        balancedTeaching.length * 90 +
+        balancedLearned.length * 110;
     final level = (xp ~/ 1000) + 1;
     final levelProgress = (xp % 1000) / 1000;
     final successRate = closedRequests == 0 ? 0.0 : (acceptedRequests / closedRequests) * 100;
@@ -1342,8 +1376,8 @@ class _ProfileDataService {
       level: level,
       levelProgress: levelProgress,
       successRate: successRate.clamp(0.0, 100.0).toDouble(),
-      skillsLearned: learnedSet.toList()..sort(),
-      skillsTeaching: teachingSet.toList()..sort(),
+      skillsLearned: balancedLearned,
+      skillsTeaching: balancedTeaching,
       weeklyActivity: _weeklyActivity(activityDates),
       monthlyActivity: _monthlyActivity(activityDates),
       skillGrowth: skillGrowth,
@@ -1531,6 +1565,14 @@ String _initials(String name) {
 }
 
 String _stringValue(dynamic value) => value?.toString().trim() ?? '';
+
+String _exchangeId(Map<String, dynamic> swap) {
+  final explicit = _stringValue(swap['exchangeId']);
+  if (explicit.isNotEmpty) return explicit;
+  final requestId = _stringValue(swap['requestId']);
+  if (requestId.isNotEmpty) return requestId;
+  return _stringValue(swap['id']);
+}
 
 String? _nullableString(dynamic value) {
   final text = _stringValue(value);

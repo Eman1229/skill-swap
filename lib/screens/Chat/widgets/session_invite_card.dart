@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:skill_swap/services/skill_exchange_service.dart';
 
 class SessionInviteCard extends StatelessWidget {
   final String sessionId;
@@ -295,27 +296,13 @@ class SessionInviteCard extends StatelessWidget {
       if (!swapSnap.exists) return;
 
       final sData = swapSnap.data();
-      final int completed = (sData?['completedSessions'] as num?)?.toInt() ?? 0;
-      final int total = (sData?['totalSessions'] as num?)?.toInt() ?? 8;
       final String learnerId = sData?['learnerId'] ?? '';
       
       final sessionSnap = await sessionRef.get();
       final sessionData = sessionSnap.data() as Map<String, dynamic>?;
       final String sessionTitle = sessionData?['title'] ?? 'Session';
 
-      // Increment completed sessions and recalculate progress
-      final newCompleted = completed + 1;
-      final double newProgress = newCompleted / total;
-
       final batch = FirebaseFirestore.instance.batch();
-      batch.update(parentSwapRef, {
-        'completedSessions': newCompleted,
-        'progress': newProgress,
-        'lastSessionAt': FieldValue.serverTimestamp(),
-      });
-      batch.update(sessionRef, {
-        'status': 'completed',
-      });
 
       // Inject complete message to chat room
       final String convoId = sData?['conversationId'] ?? '';
@@ -341,6 +328,10 @@ class SessionInviteCard extends StatelessWidget {
       }
 
       await batch.commit();
+      await SkillExchangeService().completeSessionAndSync(
+        swapId: swapId,
+        sessionId: sessionId,
+      );
 
       // 2. Fetch sender (mentor) name for notification
       String mentorName = 'Your mentor';

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/screens/Swap/skill_detail_screen.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:skill_swap/services/skill_exchange_service.dart';
 
 class MyTeachingScreen extends StatefulWidget {
   MyTeachingScreen({Key? key}) : super(key: key);
@@ -15,7 +16,18 @@ class MyTeachingScreen extends StatefulWidget {
 class _MyTeachingScreenState extends State<MyTeachingScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final SkillExchangeService _exchangeService = SkillExchangeService();
   String _selectedFilter = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      // Enforce strict 1:1 balance and synchronize any data mismatches immediately in real-time
+      _exchangeService.rebalanceUser(uid);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,32 +52,26 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
         children: [
           _buildFilters(),
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _db
-                  .collection('swaps')
-                  .where('mentorId', isEqualTo: uid)
-                  .snapshots(),
+            child: StreamBuilder<List<SwapModel>>(
+              stream: _exchangeService.watchTeachingSwaps(uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
                 }
 
-                var docs = snapshot.data?.docs ?? [];
-                final totalSkills = docs.length; // ← ADDED
+                var swapsList = snapshot.data ?? [];
+                final totalSkills = swapsList.length; // ← ADDED
 
                 // Filter logic
                 if (_selectedFilter != 'All') {
-                  docs = docs.where((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    return data['status']?.toString().toLowerCase() == _selectedFilter.toLowerCase();
+                  swapsList = swapsList.where((swap) {
+                    return swap.status.toLowerCase() == _selectedFilter.toLowerCase();
                   }).toList();
                 }
 
-                if (docs.isEmpty) {
+                if (swapsList.isEmpty) {
                   return _buildEmptyState();
                 }
-
-                final swapsList = docs.map((doc) => SwapModel.fromDoc(doc)).toList();
 
                 return SingleChildScrollView(
                   padding: EdgeInsets.all(24),
@@ -76,12 +82,17 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                       SizedBox(height: 20),                   // ← ADDED
                       ...swapsList.map((swap) {
                         return _TeachingCard(swap: swap);
-                      }),
+                      }).toList(),
                       SizedBox(height: 32),
-                      Text('Teaching Dashboard',
+                      Text('Performance Insights',
                           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
                       SizedBox(height: 16),
-                      _buildTeachingStats(swapsList, uid),
+                      _buildInsights(swapsList, uid),
+                      SizedBox(height: 32),
+                      Text('Weekly Engagement',
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 16),
+                      _buildEngagementChart(swapsList),
                       SizedBox(height: 40),
                     ],
                   ),
@@ -141,7 +152,7 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF9D4EDD) : Theme.of(context).colorScheme.surface,
+                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Center(
@@ -167,10 +178,11 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
     );
   }
 
-  Widget _buildTeachingStats(List<SwapModel> swaps, String uid) {
-    final uniqueStudents = swaps.map((s) => s.learnerId).toSet().length;
-    final totalSessions = swaps.fold<int>(0, (total, s) => total + s.completedSessions);
-    final totalHours = (totalSessions * 1.5).toStringAsFixed(1);
+  Widget _buildInsights(List<SwapModel> swaps, String uid) {
+    final completedSwaps = swaps.where((s) => s.status.toLowerCase() == 'completed').length;
+    final totalCompletedSessions = swaps.fold<int>(0, (total, s) => total + s.completedSessions);
+    final xp = 500 + (completedSwaps * 1000) + (totalCompletedSessions * 100);
+    final totalHours = (totalCompletedSessions * 1.5).toStringAsFixed(1);
 
     return StreamBuilder<QuerySnapshot>(
       stream: _db
@@ -178,7 +190,7 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
           .where('userId', isEqualTo: uid)
           .snapshots(),
       builder: (context, listingsSnap) {
-        double avgRating = 4.8;
+        double rating = 4.8;
         if (listingsSnap.hasData && listingsSnap.data!.docs.isNotEmpty) {
           double totalR = 0;
           int count = 0;
@@ -191,66 +203,118 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
             }
           }
           if (count > 0) {
-            avgRating = totalR / count;
-            if (avgRating == 0.0) {
-              avgRating = 4.8;
+            rating = totalR / count;
+            if (rating == 0.0) {
+              rating = 4.8;
             }
           }
         }
 
-        return Row(
-          children: [
-            Expanded(
-                child: _StatCard(
-                    label: 'STUDENTS',
-                    value: '$uniqueStudents',
-                    icon: Icons.people_alt_rounded,
-                    color: Colors.blueAccent)),
-            SizedBox(width: 12),
-            Expanded(
-                child: _StatCard(
-                    label: 'HOURS',
-                    value: totalHours,
-                    icon: Icons.access_time_filled_rounded,
-                    color: Colors.purpleAccent)),
-            SizedBox(width: 12),
-            Expanded(
-                child: _StatCard(
-                    label: 'RATING',
-                    value: avgRating.toStringAsFixed(1),
-                    icon: Icons.star_rounded,
-                    color: Colors.orangeAccent)),
-          ],
+        return Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('XP / Skills Taught: $completedSwaps',
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                      SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text('$xp',
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold)),
+                          SizedBox(width: 8),
+                          Text('+12% this week',
+                              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.workspace_premium_rounded,
+                        color: Theme.of(context).colorScheme.primary),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              Divider(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6)),
+              SizedBox(height: 20),
+              Row(
+                children: [
+                  _StatItem(
+                      label: 'TOTAL HOURS',
+                      value: totalHours,
+                      icon: Icons.timer_outlined,
+                      color: Theme.of(context).colorScheme.primary),
+                  Spacer(),
+                  _StatItem(
+                      label: 'RATING',
+                      value: rating.toStringAsFixed(1),
+                      icon: Icons.star_rounded,
+                      color: Colors.pinkAccent),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );
   }
-}
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
+  Widget _buildEngagementChart(List<SwapModel> swaps) {
+    final Map<int, int> dayCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
 
-  _StatCard({required this.label, required this.value, required this.icon, required this.color});
+    for (final s in swaps) {
+      final date = s.lastSessionAt ?? s.createdAt;
+      dayCounts[date.weekday] = (dayCounts[date.weekday] ?? 0) + 1 + s.completedSessions;
+    }
 
-  @override
-  Widget build(BuildContext context) {
+    final maxCount = dayCounts.values.fold(0, (max, count) => count > max ? count : max);
+    double getHeight(int day) {
+      final count = dayCounts[day] ?? 0;
+      if (maxCount == 0) return 20.0;
+      return 20.0 + (count / maxCount) * 80.0;
+    }
+
+    final currentWeekday = DateTime.now().weekday;
+
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 20),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 24),
-          SizedBox(height: 12),
-          Text(value, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold)),
-          SizedBox(height: 4),
-          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 10, letterSpacing: 0.5)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _Bar(height: getHeight(1), day: 'MON', active: currentWeekday == 1),
+              _Bar(height: getHeight(2), day: 'TUE', active: currentWeekday == 2),
+              _Bar(height: getHeight(3), day: 'WED', active: currentWeekday == 3),
+              _Bar(height: getHeight(4), day: 'THU', active: currentWeekday == 4),
+              _Bar(height: getHeight(5), day: 'FRI', active: currentWeekday == 5),
+              _Bar(height: getHeight(6), day: 'SAT', active: currentWeekday == 6),
+              _Bar(height: getHeight(7), day: 'SUN', active: currentWeekday == 7),
+            ],
+          ),
         ],
       ),
     );
@@ -263,16 +327,23 @@ class _TeachingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
+    return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('swapListings')
-          .where('userId', isEqualTo: swap.learnerId)
-          .limit(1)
+          .collection('users')
+          .doc(swap.learnerId)
           .snapshots(),
       builder: (context, learnerSnap) {
         String? imageUrl;
-        if (learnerSnap.hasData && learnerSnap.data!.docs.isNotEmpty) {
-          imageUrl = (learnerSnap.data!.docs.first.data() as Map<String, dynamic>)['imageUrl'] as String?;
+        String displayName = swap.learnerName;
+        if (learnerSnap.hasData && learnerSnap.data!.exists) {
+          final data = learnerSnap.data!.data() as Map<String, dynamic>?;
+          if (data != null) {
+            imageUrl = data['imageUrl'] as String?;
+            final name = data['name'] as String?;
+            if (name != null && name.trim().isNotEmpty) {
+              displayName = name;
+            }
+          }
         }
 
         final double calculatedProgress = swap.totalSessions > 0
@@ -285,7 +356,7 @@ class _TeachingCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF9D4EDD).withValues(alpha: 0.1)),
+            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,38 +368,39 @@ class _TeachingCard extends StatelessWidget {
                     height: 48,
                     decoration: BoxDecoration(
                       color: Colors.grey[800],
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: imageUrl != null && imageUrl.isNotEmpty
-                        ? ClipOval(
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
                       child: Image.network(
                         imageUrl,
                         width: 48,
                         height: 48,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(Icons.person, color: Theme.of(context).colorScheme.outlineVariant),
+                        errorBuilder: (_, __, ___) => Icon(Icons.image, color: Theme.of(context).colorScheme.outlineVariant),
                       ),
                     )
-                        : Icon(Icons.person, color: Theme.of(context).colorScheme.outlineVariant),
+                        : Icon(Icons.image, color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(swap.learnerName, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(swap.skillName.toUpperCase(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 11, letterSpacing: 0.5)),
+                        Text(swap.skillName, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(displayName, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
                       ],
                     ),
                   ),
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF9D4EDD).withValues(alpha: 0.1),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(swap.status.toUpperCase(),
-                        style: const TextStyle(color: Color(0xFF9D4EDD), fontSize: 10, fontWeight: FontWeight.bold)),
+                        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -336,8 +408,8 @@ class _TeachingCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Progress: ${(calculatedProgress * 100).toInt()}%', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
-                  Text('Session ${swap.completedSessions} of ${swap.totalSessions}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12)),
+                  Text('Progress', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                  Text('${(calculatedProgress * 100).toInt()}%', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
               SizedBox(height: 8),
@@ -346,17 +418,23 @@ class _TeachingCard extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: calculatedProgress,
                   backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
-                  color: const Color(0xFF9D4EDD),
+                  color: Theme.of(context).colorScheme.primary,
                   minHeight: 6,
                 ),
               ),
-              SizedBox(height: 20),
-              _PrimaryBtnSmall(
-                label: 'View Details',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => SkillDetailScreen(swap: swap)),
-                ),
+              SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Session ${swap.completedSessions} of ${swap.totalSessions}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12)),
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => SkillDetailScreen(swap: swap)),
+                    ),
+                    child: Text('View Details >', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                ],
               ),
             ],
           ),
@@ -366,31 +444,54 @@ class _TeachingCard extends StatelessWidget {
   }
 }
 
-class _PrimaryBtnSmall extends StatelessWidget {
+class _StatItem extends StatelessWidget {
   final String label;
-  final VoidCallback onTap;
+  final String value;
+  final IconData icon;
+  final Color color;
 
-  _PrimaryBtnSmall({required this.label, required this.onTap});
+  _StatItem({required this.label, required this.value, required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1)),
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 10)),
+            Text(value, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+      ],
+    );
+  }
+}
+
+class _Bar extends StatelessWidget {
+  final double height;
+  final String day;
+  final bool active;
+
+  _Bar({required this.height, required this.day, this.active = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 24,
+          height: height,
+          decoration: BoxDecoration(
+            color: active ? Theme.of(context).colorScheme.primary : Color(0xFF334155),
+            borderRadius: BorderRadius.circular(6),
           ),
         ),
-      ),
+        SizedBox(height: 8),
+        Text(day, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 10)),
+      ],
     );
   }
 }

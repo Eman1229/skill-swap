@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/screens/Swap/skill_detail_screen.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:skill_swap/services/skill_exchange_service.dart';
 
 class MyLearningScreen extends StatefulWidget {
   MyLearningScreen({Key? key}) : super(key: key);
@@ -15,7 +16,17 @@ class MyLearningScreen extends StatefulWidget {
 class _MyLearningScreenState extends State<MyLearningScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final SkillExchangeService _exchangeService = SkillExchangeService();
   String _selectedFilter = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      _exchangeService.rebalanceUser(uid);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,32 +51,26 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
         children: [
           _buildFilters(),
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _db
-                  .collection('swaps')
-                  .where('learnerId', isEqualTo: uid)
-                  .snapshots(),
+            child: StreamBuilder<List<SwapModel>>(
+              stream: _exchangeService.watchLearningSwaps(uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
                 }
 
-                var docs = snapshot.data?.docs ?? [];
-                final totalSkills = docs.length; // ← ADDED
+                var swapsList = snapshot.data ?? [];
+                final totalSkills = swapsList.length; // ← ADDED
 
                 // Filter logic
                 if (_selectedFilter != 'All') {
-                  docs = docs.where((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    return data['status']?.toString().toLowerCase() == _selectedFilter.toLowerCase();
+                  swapsList = swapsList.where((swap) {
+                    return swap.status.toLowerCase() == _selectedFilter.toLowerCase();
                   }).toList();
                 }
 
-                if (docs.isEmpty) {
+                if (swapsList.isEmpty) {
                   return _buildEmptyState();
                 }
-
-                final swapsList = docs.map((doc) => SwapModel.fromDoc(doc)).toList();
 
                 return SingleChildScrollView(
                   padding: EdgeInsets.all(24),
@@ -287,16 +292,23 @@ class _LearningCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
+    return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('swapListings')
-          .where('userId', isEqualTo: swap.mentorId)
-          .limit(1)
+          .collection('users')
+          .doc(swap.mentorId)
           .snapshots(),
       builder: (context, mentorSnap) {
         String? imageUrl;
-        if (mentorSnap.hasData && mentorSnap.data!.docs.isNotEmpty) {
-          imageUrl = (mentorSnap.data!.docs.first.data() as Map<String, dynamic>)['imageUrl'] as String?;
+        String displayName = swap.mentorName;
+        if (mentorSnap.hasData && mentorSnap.data!.exists) {
+          final data = mentorSnap.data!.data() as Map<String, dynamic>?;
+          if (data != null) {
+            imageUrl = data['imageUrl'] as String?;
+            final name = data['name'] as String?;
+            if (name != null && name.trim().isNotEmpty) {
+              displayName = name;
+            }
+          }
         }
 
         final double calculatedProgress = swap.totalSessions > 0
@@ -342,7 +354,7 @@ class _LearningCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(swap.skillName, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(swap.mentorName, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
+                        Text(displayName, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
                       ],
                     ),
                   ),

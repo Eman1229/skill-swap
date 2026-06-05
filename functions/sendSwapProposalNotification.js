@@ -2,7 +2,9 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { getUserSettings, buildFcmPayload, log } = require('./utils');
-admin.initializeApp();
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 /**
  * Triggered on write to swap_requests/{requestId}
