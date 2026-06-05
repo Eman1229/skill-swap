@@ -7,35 +7,79 @@ class LanguageProvider extends ChangeNotifier {
 
   static final LanguageProvider instance = LanguageProvider._();
   static const String _storageKey = 'selected_locale_code';
+
   static const Locale english = Locale('en');
+  static const Locale spanish = Locale('es');
+  static const Locale french = Locale('fr');
+  static const Locale german = Locale('de');
+  static const Locale chinese = Locale('zh');
+  static const Locale japanese = Locale('ja');
+  static const Locale arabic = Locale('ar');
+  static const Locale russian = Locale('ru');
+  static const Locale portuguese = Locale('pt');
+  static const Locale italian = Locale('it');
   static const Locale urdu = Locale('ur');
-  static const List<Locale> supportedLocales = [english, urdu];
+  static const Locale hindi = Locale('hi');
+
+  static const List<Locale> supportedLocales = [
+    english,
+    spanish,
+    french,
+    german,
+    chinese,
+    japanese,
+    arabic,
+    russian,
+    portuguese,
+    italian,
+    urdu,
+    hindi,
+  ];
 
   Locale _locale = english;
 
   Locale get locale => _locale;
   String get languageCode => _locale.languageCode;
   String get languageName => languageNameForLocale(_locale);
+  
   TextDirection get textDirection =>
-      _locale.languageCode == 'ur' ? TextDirection.rtl : TextDirection.ltr;
+      (_locale.languageCode == 'ur' || _locale.languageCode == 'ar') 
+          ? TextDirection.rtl 
+          : TextDirection.ltr;
 
   static String languageNameForLocale(Locale locale) {
     switch (locale.languageCode) {
-      case 'ur':
-        return 'Urdu';
+      case 'es': return 'Spanish';
+      case 'fr': return 'French';
+      case 'de': return 'German';
+      case 'zh': return 'Chinese';
+      case 'ja': return 'Japanese';
+      case 'ar': return 'Arabic';
+      case 'ru': return 'Russian';
+      case 'pt': return 'Portuguese';
+      case 'it': return 'Italian';
+      case 'ur': return 'Urdu';
+      case 'hi': return 'Hindi';
       case 'en':
-      default:
-        return 'English';
+      default: return 'English';
     }
   }
 
   static Locale localeForLanguageName(String languageName) {
     switch (languageName.toLowerCase()) {
-      case 'urdu':
-        return urdu;
+      case 'spanish': return spanish;
+      case 'french': return french;
+      case 'german': return german;
+      case 'chinese': return chinese;
+      case 'japanese': return japanese;
+      case 'arabic': return arabic;
+      case 'russian': return russian;
+      case 'portuguese': return portuguese;
+      case 'italian': return italian;
+      case 'urdu': return urdu;
+      case 'hindi': return hindi;
       case 'english':
-      default:
-        return english;
+      default: return english;
     }
   }
 

@@ -13,8 +13,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:skill_swap/services/presence_service.dart';
 import 'package:skill_swap/services/fcm_service.dart';
 import 'package:skill_swap/screens/Setting/app_settings.dart';
-import 'package:skill_swap/services/connectivity_service.dart';  // ← new
-
+import 'package:skill_swap/services/connectivity_service.dart';
 
 const Color _skillSwapPrimary    = Color(0xFF00C2FF);
 const Color _skillSwapSecondary  = Color(0xFF00C2FF);
@@ -31,7 +30,6 @@ Future<void> main() async {
     );
 
     await FcmService().init();
-    PresenceService().startPresenceTracking();
 
     FirebaseFirestore.instance.settings = const Settings(
       persistenceEnabled: true,
@@ -53,9 +51,8 @@ Future<void> main() async {
         providers: [
           ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
           ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
-          // ← Add connectivity service here
-          ChangeNotifierProvider<ConnectivityService>(
-            create: (_) => ConnectivityService(),
+          ChangeNotifierProvider<ConnectivityService>.value(
+            value: ConnectivityService(),
           ),
         ],
         child: const MyApp(),
@@ -96,7 +93,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       PresenceService().setUserOnline();
-      // Re-check connectivity when app comes back to foreground
       ConnectivityService().retryConnection();
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
@@ -107,40 +103,37 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final settings = AppSettings();
-    return Consumer<LanguageProvider>(
-      builder: (context, languageProvider, _) {
-        return ListenableBuilder(
-          listenable: settings.isDarkMode,
-          builder: (context, _) {
-            return MaterialApp(
-              key: const ValueKey('SkillSwapMainApp'),
-              navigatorKey: FcmService.navigatorKey,
-              debugShowCheckedModeBanner: false,
-              locale: languageProvider.locale,
-              supportedLocales: LanguageProvider.supportedLocales,
-              localizationsDelegates: const [
-                AppLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ],
-              onGenerateTitle: (context) =>
-              AppLocalizations.of(context)?.appTitle ?? 'Skill Swap',
-              theme: _buildLightTheme(),
-              darkTheme: _buildDarkTheme(),
-              themeMode: settings.themeMode,
-              themeAnimationDuration: const Duration(milliseconds: 250),
-              themeAnimationCurve: Curves.easeInOut,
-              builder: (context, child) {
-                return Directionality(
-                  textDirection: languageProvider.textDirection,
-                  // ← ConnectivityWrapper covers every screen in the app
-                  child: ConnectivityWrapper(child: child!),
-                );
-              },
-              home: const SplashScreen(),
+    final languageProvider = Provider.of<LanguageProvider>(context);
+
+    return ListenableBuilder(
+      listenable: settings.isDarkMode,
+      builder: (context, _) {
+        return MaterialApp(
+          key: const ValueKey('SkillSwapMainApp'),
+          navigatorKey: FcmService.navigatorKey,
+          debugShowCheckedModeBanner: false,
+          locale: languageProvider.locale,
+          supportedLocales: LanguageProvider.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          onGenerateTitle: (context) =>
+          AppLocalizations.of(context)?.appTitle ?? 'Skill Swap',
+          theme: _buildLightTheme(),
+          darkTheme: _buildDarkTheme(),
+          themeMode: settings.themeMode,
+          themeAnimationDuration: const Duration(milliseconds: 250),
+          themeAnimationCurve: Curves.easeInOut,
+          builder: (context, child) {
+            return Directionality(
+              textDirection: languageProvider.textDirection,
+              child: ConnectivityWrapper(child: child!),
             );
           },
+          home: const SplashScreen(),
         );
       },
     );
@@ -241,7 +234,7 @@ class ConnectivityWrapper extends StatelessWidget {
         return AnimatedSwitcher(
           duration: const Duration(milliseconds: 350),
           child: connectivity.isOffline
-              ? OfflineScreen(key: ValueKey('offline'))
+              ? OfflineScreen(key: const ValueKey('offline'))
               : KeyedSubtree(key: const ValueKey('app'), child: child),
         );
       },

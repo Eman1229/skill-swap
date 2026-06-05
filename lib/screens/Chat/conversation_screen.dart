@@ -8,6 +8,7 @@ import 'package:skill_swap/services/chat_repository.dart';
 import 'package:skill_swap/screens/Chat/widgets/swap_request_card.dart';
 import 'package:skill_swap/screens/Chat/widgets/session_invite_card.dart';
 import 'package:skill_swap/services/fcm_service.dart';
+import 'package:skill_swap/screens/widgets/report_user_dialog.dart';
 
 class ConversationScreen extends StatefulWidget {
   final SwapListing swap;
@@ -478,6 +479,36 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   Expanded(child: Text(widget.swap.offering, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 11), overflow: TextOverflow.ellipsis)),
                 ]),
             ]),
+          ),
+          // ── Options Menu ──
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 22),
+            color: Theme.of(context).colorScheme.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            onSelected: (val) {
+              if (val == 'report') {
+                showDialog(
+                  context: context,
+                  builder: (_) => ReportUserDialog(
+                    reportedUserId: widget.swap.userId ?? '',
+                    reportedUserName: widget.swap.name,
+                    source: 'chat',
+                  ),
+                );
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'report',
+                child: Row(
+                  children: [
+                    Icon(Icons.report_gmailerrorred_rounded, color: Colors.redAccent, size: 20),
+                    const SizedBox(width: 12),
+                    Text('Report User', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

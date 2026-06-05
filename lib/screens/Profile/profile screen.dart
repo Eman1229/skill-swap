@@ -8,6 +8,8 @@ import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Add%20skill/no_skill_dialog.dart';
 import 'package:skill_swap/screens/Swap/confirm_swap_screen.dart';
 import 'package:skill_swap/screens/Chat/conversation_screen.dart';
+import 'package:skill_swap/screens/Profile/edit_listing_screen.dart';
+import 'package:skill_swap/screens/widgets/report_user_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // ─────────────────────────────────────────────────────────────────────
@@ -489,6 +491,120 @@ class ProfileScreen extends StatelessWidget {
                               ),
                             ),
                           ),
+                          // ── Options Menu ──
+                          if (FirebaseAuth.instance.currentUser?.uid != swap.userId)
+                            PopupMenuButton<String>(
+                              icon: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.onSurface.withAlpha(51),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.more_vert_rounded,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  size: 22,
+                                ),
+                              ),
+                              color: Theme.of(context).colorScheme.surface,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              onSelected: (val) {
+                                if (val == 'report') {
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => ReportUserDialog(
+                                      reportedUserId: swap.userId ?? '',
+                                      reportedUserName: swap.name,
+                                      source: 'profile',
+                                    ),
+                                  );
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  value: 'report',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.report_gmailerrorred_rounded, color: Colors.redAccent, size: 20),
+                                      const SizedBox(width: 12),
+                                      Text('Report User', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            PopupMenuButton<String>(
+                              icon: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.onSurface.withAlpha(51),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.more_vert_rounded,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  size: 22,
+                                ),
+                              ),
+                              color: Theme.of(context).colorScheme.surface,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              onSelected: (val) async {
+                                if (val == 'edit') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => EditListingScreen(listing: swap)),
+                                  );
+                                } else if (val == 'delete') {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Delete Skill'),
+                                      content: const Text('Are you sure you want to permanently remove this skill offer?'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, true),
+                                          style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true) {
+                                    await FirebaseFirestore.instance.collection('swapListings').doc(swap.id).delete();
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Listing deleted'), behavior: SnackBarBehavior.floating),
+                                      );
+                                      Navigator.pop(context);
+                                    }
+                                  }
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+                                      const SizedBox(width: 12),
+                                      Text('Edit Skill', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                                      const SizedBox(width: 12),
+                                      Text('Delete Skill', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ),
