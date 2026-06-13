@@ -242,6 +242,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 }
 
+// ✅ UPDATED: Stack overlay instead of AnimatedSwitcher
 class ConnectivityWrapper extends StatelessWidget {
   final Widget child;
   const ConnectivityWrapper({super.key, required this.child});
@@ -250,11 +251,18 @@ class ConnectivityWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<ConnectivityService>(
       builder: (context, connectivity, _) {
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 350),
-          child: connectivity.isOffline
-              ? OfflineScreen(key: const ValueKey('offline'))
-              : KeyedSubtree(key: const ValueKey('app'), child: child),
+        return Stack(
+          children: [
+            // ✅ always alive, never rebuilt or destroyed
+            child,
+            // ✅ overlays on top when offline, disappears when online
+            if (connectivity.isOffline)
+              AnimatedOpacity(
+                opacity: 1.0,
+                duration: const Duration(milliseconds: 350),
+                child: const OfflineScreen(key: ValueKey('offline')),
+              ),
+          ],
         );
       },
     );
