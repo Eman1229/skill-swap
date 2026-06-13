@@ -7,7 +7,7 @@ import 'package:skill_swap/services/notification_service.dart';
 
 class CreateSessionScreen extends StatefulWidget {
   final SwapModel swap;
-  CreateSessionScreen({Key? key, required this.swap}) : super(key: key);
+  const CreateSessionScreen({Key? key, required this.swap}) : super(key: key);
 
   @override
   State<CreateSessionScreen> createState() => _CreateSessionScreenState();
@@ -19,35 +19,24 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _durationController = TextEditingController(
-    text: '1 hour',
-  );
+  final TextEditingController _durationController = TextEditingController(text: '1 hour');
   final TextEditingController _meetingLinkController = TextEditingController();
-  final TextEditingController _agendaController = TextEditingController(); // NEW
+  final TextEditingController _agendaController = TextEditingController();
   DateTime _selectedDate = DateTime.now().add(Duration(days: 1));
 
   bool _loading = false;
 
   Future<void> _createSession() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _loading = true);
 
     try {
       final uid = _auth.currentUser?.uid;
-      debugPrint('=== CREATE SESSION CALLED ===');
-      debugPrint('uid = $uid');
-      debugPrint('swap.id = ${widget.swap.id}');
-      debugPrint('swap.conversationId = ${widget.swap.conversationId}');
-      debugPrint('swap.mentorId = ${widget.swap.mentorId}');
-      debugPrint('swap.learnerId = ${widget.swap.learnerId}');
-
       final mentorId = widget.swap.mentorId;
       final learnerId = widget.swap.learnerId;
       final sessionTime =
           '${_selectedDate.hour.toString().padLeft(2, '0')}:${_selectedDate.minute.toString().padLeft(2, '0')}';
 
-      // 1. Create session doc
       final sessionRef = _db
           .collection('swaps')
           .doc(widget.swap.id)
@@ -57,7 +46,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         'sessionId': sessionRef.id,
         'swapId': widget.swap.id,
         'title': _titleController.text.trim(),
-        'agenda': _agendaController.text.trim(), // NEW
+        'agenda': _agendaController.text.trim(),
         'date': Timestamp.fromDate(_selectedDate),
         'sessionDate': Timestamp.fromDate(_selectedDate),
         'sessionTime': sessionTime,
@@ -69,48 +58,28 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         'status': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
       });
-      debugPrint('Session doc created: ${sessionRef.id}');
 
-      // 2. Find conversationId
       String conversationId = widget.swap.conversationId;
-      debugPrint('conversationId from swap model = "$conversationId"');
 
       if (conversationId.isEmpty) {
-        debugPrint('conversationId is empty — searching Firestore...');
         final query = await _db
             .collection('conversations')
             .where('participants', arrayContains: uid)
             .get();
 
-        debugPrint('Total conversations found for uid: ${query.docs.length}');
-
         for (final doc in query.docs) {
-          final participants =
-          List<String>.from(doc.data()['participants'] ?? []);
-          debugPrint('Checking convo ${doc.id} — participants: $participants');
-          if (participants.contains(mentorId) &&
-              participants.contains(learnerId)) {
+          final participants = List<String>.from(doc.data()['participants'] ?? []);
+          if (participants.contains(mentorId) && participants.contains(learnerId)) {
             conversationId = doc.id;
-            debugPrint('MATCH FOUND — conversationId: $conversationId');
             await _db.collection('swaps').doc(widget.swap.id).update({
               'conversationId': conversationId,
             });
-            debugPrint('Saved conversationId back to swap doc');
             break;
           }
         }
-
-        if (conversationId.isEmpty) {
-          debugPrint('ERROR: No matching conversation found!');
-          debugPrint('mentorId=$mentorId learnerId=$learnerId uid=$uid');
-        }
       }
 
-      debugPrint('Final conversationId = "$conversationId"');
-
-      // 3. Send invite message to chat
       if (conversationId.isNotEmpty) {
-        debugPrint('Sending session_invite message to chat...');
         await _db
             .collection('conversations')
             .doc(conversationId)
@@ -121,7 +90,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           'sessionId': sessionRef.id,
           'swapId': widget.swap.id,
           'title': _titleController.text.trim(),
-          'agenda': _agendaController.text.trim(), // NEW
+          'agenda': _agendaController.text.trim(),
           'date': Timestamp.fromDate(_selectedDate),
           'sessionDate': Timestamp.fromDate(_selectedDate),
           'sessionTime': sessionTime,
@@ -129,12 +98,8 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           'meetingLink': _meetingLinkController.text.trim(),
           'timestamp': FieldValue.serverTimestamp(),
         });
-        debugPrint('session_invite message sent successfully!');
 
-        await _db
-            .collection('conversations')
-            .doc(conversationId)
-            .update({
+        await _db.collection('conversations').doc(conversationId).update({
           'lastMessage': 'Session Invite: ${_titleController.text.trim()}',
           'lastMessageAt': FieldValue.serverTimestamp(),
         });
@@ -142,14 +107,12 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         final otherId = uid == widget.swap.mentorId
             ? widget.swap.learnerId
             : widget.swap.mentorId;
-        debugPrint('Sending notification to otherId = $otherId');
 
         NotificationService().sendNotification(
           receiverId: otherId,
           type: 'session',
           title: 'New Session Invitation',
-          body:
-          'You received a new session invite: "${_titleController.text.trim()}"',
+          body: 'You received a new session invite: "${_titleController.text.trim()}"',
           deepLinkScreen: 'chat',
           referenceId: conversationId,
           actionRoute: '/chat',
@@ -162,16 +125,11 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
             'type': 'session',
           },
         );
-        debugPrint('Notification sent!');
-      } else {
-        debugPrint('ERROR: conversationId is still empty — message NOT sent!');
       }
 
       if (mounted) {
-        final nav = Navigator.of(context);
-        final messenger = ScaffoldMessenger.of(context);
-        nav.pop();
-        messenger.showSnackBar(
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('session_invite_sent'.tr()),
             backgroundColor: Theme.of(context).colorScheme.primary,
@@ -179,13 +137,9 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         );
       }
     } catch (e) {
-      debugPrint('ERROR in _createSession: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
         );
       }
     } finally {
@@ -198,7 +152,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     _titleController.dispose();
     _durationController.dispose();
     _meetingLinkController.dispose();
-    _agendaController.dispose(); // NEW
+    _agendaController.dispose();
     super.dispose();
   }
 
@@ -206,192 +160,243 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          'create_session'.tr(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: BouncingScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLabel('session_title'.tr(), required: true),
+                      SizedBox(height: 8),
+                      _buildTextField(
+                        _titleController,
+                        'session_title_hint'.tr(),
+                        Icons.title_rounded,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'required_field'.tr()
+                            : null,
+                      ),
+                      SizedBox(height: 20),
+
+                      _buildLabel('duration'.tr(), required: true),
+                      SizedBox(height: 8),
+                      _buildTextField(
+                        _durationController,
+                        'duration_hint'.tr(),
+                        Icons.timer_outlined,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'required_field'.tr()
+                            : null,
+                      ),
+                      SizedBox(height: 20),
+
+                      _buildLabel('Meeting Link', required: true),
+                      SizedBox(height: 8),
+                      _buildTextField(
+                        _meetingLinkController,
+                        'Zoom, Google Meet, Teams, or other URL',
+                        Icons.link_rounded,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'required_field'.tr()
+                            : null,
+                      ),
+                      SizedBox(height: 20),
+
+                      _buildLabel('date_and_time'.tr(), required: true),
+                      SizedBox(height: 8),
+                      _buildDateTimePicker(),
+                      SizedBox(height: 20),
+
+                      _buildLabel('Session Agenda'),
+                      SizedBox(height: 8),
+                      // ✅ Stack places icon exactly where text cursor starts
+                      Stack(
+                        children: [
+                          _buildAgendaField(),
+                          Positioned(
+                            top: 14,
+                            left: 14,
+                            child: Icon(
+                              Icons.notes_rounded,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 36),
+
+                      _loading
+                          ? Center(
+                        child: CircularProgressIndicator(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      )
+                          : _buildSubmitButton(),
+                      SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(51),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Theme.of(context).colorScheme.onSurface,
+                size: 16,
+              ),
+            ),
+          ),
+          SizedBox(width: 14),
+          Text(
+            'create_session'.tr(),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text, {bool required = false}) {
+    return Row(
+      children: [
+        Text(
+          text,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'session_title'.tr(),
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 14,
-                ),
-              ),
-              SizedBox(height: 8),
-              _buildTextField(
-                _titleController,
-                'session_title_hint'.tr(),
-                Icons.title_rounded,
-              ),
-              SizedBox(height: 24),
-              Text(
-                'duration'.tr(),
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 14,
-                ),
-              ),
-              SizedBox(height: 8),
-              _buildTextField(
-                _durationController,
-                'duration_hint'.tr(),
-                Icons.timer_outlined,
-              ),
-              SizedBox(height: 24),
-              Text(
-                'Meeting Link',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 14,
-                ),
-              ),
-              SizedBox(height: 8),
-              _buildTextField(
-                _meetingLinkController,
-                'Zoom, Google Meet, Teams, or other URL',
-                Icons.link_rounded,
-              ),
-              SizedBox(height: 24),
-              Text(
-                'date_and_time'.tr(),
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 14,
-                ),
-              ),
-              SizedBox(height: 8),
-              _buildDateTimePicker(),
-              SizedBox(height: 24),
-
-              // ── Session Agenda (NEW) ──────────────────────────────
-              Text(
-                'Session Agenda',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 14,
-                ),
-              ),
-              SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.05),
-                  ),
-                ),
-                child: TextFormField(
-                  controller: _agendaController,
-                  maxLines: 4,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 15,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'What would you like to focus on...',
-                    hintStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                      fontSize: 14,
-                    ),
-                    prefixIcon: Align(
-                      alignment: Alignment.topLeft,
-                      heightFactor: 1,
-                      child: Padding(
-                        padding: EdgeInsets.only(left: 14, top: 14),
-                        child: Icon(
-                          Icons.notes_rounded,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                    prefixIconConstraints: BoxConstraints(
-                      minWidth: 48,
-                      minHeight: 48,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  ),
-                ),
-              ),
-              // ─────────────────────────────────────────────────────
-
-              SizedBox(height: 48),
-              _loading
-                  ? Center(
-                child: CircularProgressIndicator(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              )
-                  : _PrimaryBtn(
-                label: 'send_invitation'.tr(),
-                onTap: _createSession,
-              ),
-            ],
-          ),
-        ),
-      ),
+        if (required)
+          Text(' *', style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
+      ],
     );
   }
 
   Widget _buildTextField(
       TextEditingController controller,
       String hint,
-      IconData icon,
-      ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .onSurface
-              .withValues(alpha: 0.05),
+      IconData icon, {
+        String? Function(String?)? validator,
+      }) {
+    return TextFormField(
+      controller: controller,
+      validator: validator,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
+        fontSize: 14,
+      ),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
+          fontSize: 13,
+        ),
+        prefixIcon: Icon(icon,
+            color: Theme.of(context).colorScheme.primary, size: 20),
+        filled: true,
+        fillColor: Theme.of(context).colorScheme.surface,
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.primary.withAlpha(51)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.primary.withAlpha(51)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Color(0xFFFF3B3B)),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Color(0xFFFF3B3B), width: 1.5),
         ),
       ),
-      child: TextFormField(
-        controller: controller,
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface,
-          fontSize: 15,
+    );
+  }
+
+  // ✅ No prefixIcon — icon is placed via Stack, left:44 pushes text past icon
+  Widget _buildAgendaField() {
+    return TextFormField(
+      controller: _agendaController,
+      maxLines: 5,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
+        fontSize: 14,
+      ),
+      decoration: InputDecoration(
+        hintText: 'What would you like to focus on...',
+        hintStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
+          fontSize: 13,
         ),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: TextStyle(
-            color: Theme.of(context).colorScheme.outlineVariant,
-            fontSize: 14,
-          ),
-          prefixIcon: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-            size: 20,
-          ),
-          border: InputBorder.none,
-          contentPadding:
-          EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        filled: true,
+        fillColor: Theme.of(context).colorScheme.surface,
+        // ✅ left:44 = 14(icon left) + 20(icon size) + 10(gap)
+        contentPadding: EdgeInsets.only(top: 14, bottom: 14, left: 44, right: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.primary.withAlpha(51)),
         ),
-        validator: (v) =>
-        v == null || v.isEmpty ? 'required_field'.tr() : null,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.primary.withAlpha(51)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Color(0xFFFF3B3B)),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Color(0xFFFF3B3B), width: 1.5),
+        ),
       ),
     );
   }
@@ -413,11 +418,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           if (time != null) {
             setState(() {
               _selectedDate = DateTime(
-                date.year,
-                date.month,
-                date.day,
-                time.hour,
-                time.minute,
+                date.year, date.month, date.day, time.hour, time.minute,
               );
             });
           }
@@ -427,76 +428,85 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: Theme.of(context)
-                .colorScheme
-                .onSurface
-                .withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.primary.withAlpha(51),
           ),
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.calendar_today_rounded,
-              color: Theme.of(context).colorScheme.primary,
-              size: 20,
-            ),
+            Icon(Icons.calendar_today_rounded,
+                color: Theme.of(context).colorScheme.primary, size: 20),
             SizedBox(width: 16),
             Text(
               '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year} at ${TimeOfDay.fromDateTime(_selectedDate).format(context)}',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface,
-                fontSize: 15,
+                fontSize: 14,
               ),
             ),
             Spacer(),
-            Icon(
-              Icons.edit_calendar_rounded,
-              color: Theme.of(context).colorScheme.outlineVariant,
-              size: 20,
-            ),
+            Icon(Icons.edit_calendar_rounded,
+                color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
           ],
         ),
       ),
     );
   }
-}
 
-class _PrimaryBtn extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  _PrimaryBtn({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
-        ),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
+  Widget _buildSubmitButton() {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                  color: Theme.of(context).colorScheme.primary.withAlpha(102)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30)),
+              padding: EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: Text(
+              'cancel'.tr(),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 14),
+            ),
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+        SizedBox(width: 16),
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Color(0xFF6B8AFF),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: ElevatedButton(
+              onPressed: _createSession,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: StadiumBorder(),
+                padding: EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: Text(
+                'send_invitation'.tr(),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
