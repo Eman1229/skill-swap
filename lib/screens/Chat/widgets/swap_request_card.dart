@@ -230,29 +230,34 @@ class _ActionButton extends StatelessWidget {
   final Color color;
   final VoidCallback onPressed;
   final bool isPrimary;
+  final Color? textColor;
 
   const _ActionButton({
     required this.label,
     required this.color,
     required this.onPressed,
     this.isPrimary = false,
+    this.textColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final defaultTextColor = isPrimary ? Theme.of(context).colorScheme.onSurface : color;
+    final finalTextColor = textColor ?? defaultTextColor;
+
     return SizedBox(
-      height: 40,
+      height: 42, // Scaled down for card layout
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: isPrimary ? color : Colors.transparent,
-          foregroundColor: isPrimary ? Colors.white : color,
+          foregroundColor: finalTextColor,
           elevation: 0,
           side: BorderSide(color: color, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: EdgeInsets.zero,
         ),
-        child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+        child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: finalTextColor)),
       ),
     );
   }

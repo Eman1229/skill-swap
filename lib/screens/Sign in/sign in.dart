@@ -216,13 +216,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              "hi".tr(),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
+                            UiHelper.CustomImage(imgurl: "hi.png"),
                             SizedBox(height: 10),
                             Text(
                               "welcome_back".tr(),

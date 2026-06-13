@@ -23,7 +23,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _notificationsStream = _repo.notificationsStream();
   }
 
-  Map<String, List<NotificationModel>> _groupNotifications(List<NotificationModel> list) {
+  Map<String, List<NotificationModel>> _groupNotifications(
+    List<NotificationModel> list,
+  ) {
     final Map<String, List<NotificationModel>> groups = {
       'Today': [],
       'Yesterday': [],
@@ -87,7 +89,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             }
 
             // 2. Loading
-            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
               return _buildShimmerLoading();
             }
 
@@ -153,7 +156,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withOpacity(0.65),
               ),
             ),
           ],
@@ -166,20 +171,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final notification = list[index];
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: _NotificationTile(
-                notification: notification,
-                onTap: () => _handleNotificationTap(notification),
-                onDelete: () => _repo.deleteNotification(notification.id),
-              ),
-            );
-          },
-          childCount: list.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final notification = list[index];
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: _NotificationTile(
+              notification: notification,
+              onTap: () => _handleNotificationTap(notification),
+              onDelete: () => _repo.deleteNotification(notification.id),
+            ),
+          );
+        }, childCount: list.length),
       ),
     );
   }
@@ -203,7 +205,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.08),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -217,7 +221,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       width: 120,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -226,7 +232,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       width: double.infinity,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -247,7 +255,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 64),
+            const Icon(
+              Icons.error_outline_rounded,
+              color: Colors.redAccent,
+              size: 64,
+            ),
             const SizedBox(height: 20),
             Text(
               'something_went_wrong'.tr(),
@@ -257,14 +269,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Text(
               'Error: $error',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6), fontSize: 11),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                fontSize: 11,
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => setState(() {}),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C2FF)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00C2FF),
+              ),
               child: const Text("Retry", style: TextStyle(color: Colors.white)),
-            )
+            ),
           ],
         ),
       ),
@@ -300,7 +319,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               'notifications_will_show'.tr(),
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withOpacity(0.6),
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -313,11 +334,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   void _handleNotificationTap(NotificationModel notification) {
     _repo.markAsRead(notification.id);
-    
-    final String convoId = notification.actionId ?? notification.data['conversationId'] ?? '';
+
+    final String actionId = notification.actionId ?? '';
+    final String convoId = actionId.isNotEmpty
+        ? actionId
+        : notification.data['conversationId'] ?? '';
     final String otherUid = notification.senderId;
     final String otherName = notification.senderName;
-    
+
     if (convoId.isNotEmpty && otherUid.isNotEmpty) {
       final swap = SwapListing(
         id: convoId,
@@ -325,9 +349,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         name: otherName,
         initials: otherName.isNotEmpty ? otherName[0] : 'U',
         avatarColor: const Color(0xFF6B8AFF),
-        offering: '', wanting: '', rating: 0.0, reviews: 0, category: 'All',
+        offering: '',
+        wanting: '',
+        rating: 0.0,
+        reviews: 0,
+        category: 'All',
       );
-      Navigator.push(context, MaterialPageRoute(builder: (_) => ConversationScreen(swap: swap)));
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ConversationScreen(swap: swap)),
+      );
     }
   }
 
@@ -339,13 +370,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: Text('clear_all_notifications'.tr()),
         content: Text('clear_all_notifications_desc'.tr()),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('cancel'.tr())),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('cancel'.tr()),
+          ),
           TextButton(
             onPressed: () {
               _repo.clearAll();
               Navigator.pop(context);
             },
-            child: Text('clear'.tr(), style: const TextStyle(color: Colors.redAccent)),
+            child: Text(
+              'clear'.tr(),
+              style: const TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -380,27 +417,32 @@ class _NotificationTile extends StatelessWidget {
           color: Colors.redAccent.withOpacity(0.15),
           borderRadius: BorderRadius.circular(18),
         ),
-        child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+        child: const Icon(
+          Icons.delete_outline_rounded,
+          color: Colors.redAccent,
+        ),
       ),
       child: GestureDetector(
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: notification.isRead 
+            color: notification.isRead
                 ? (isDark ? const Color(0xFF1E293B) : Colors.white)
                 : (isDark ? const Color(0xFF2E3E5C) : const Color(0xFFF0F7FF)),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: notification.isRead 
-                  ? Colors.transparent 
+              color: notification.isRead
+                  ? Colors.transparent
                   : Theme.of(context).colorScheme.primary.withOpacity(0.15),
               width: 1,
             ),
             boxShadow: [
               if (!notification.isRead)
                 BoxShadow(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.04),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withOpacity(0.04),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -425,7 +467,9 @@ class _NotificationTile extends StatelessWidget {
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurface,
                               fontSize: 14,
-                              fontWeight: notification.isRead ? FontWeight.w600 : FontWeight.bold,
+                              fontWeight: notification.isRead
+                                  ? FontWeight.w600
+                                  : FontWeight.bold,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -436,7 +480,10 @@ class _NotificationTile extends StatelessWidget {
                             width: 8,
                             height: 8,
                             margin: const EdgeInsets.only(left: 8),
-                            decoration: const BoxDecoration(color: Color(0xFF00C2FF), shape: BoxShape.circle),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF00C2FF),
+                              shape: BoxShape.circle,
+                            ),
                           ),
                       ],
                     ),
@@ -444,7 +491,9 @@ class _NotificationTile extends StatelessWidget {
                     Text(
                       notification.body,
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.75),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withOpacity(0.75),
                         fontSize: 12.5,
                         height: 1.4,
                       ),
@@ -458,13 +507,18 @@ class _NotificationTile extends StatelessWidget {
                         Text(
                           _formatTimestamp(notification.createdAt),
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.45),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant.withOpacity(0.45),
                             fontSize: 10,
                           ),
                         ),
                         // Badge Category
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: iconColor.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(10),
@@ -492,8 +546,14 @@ class _NotificationTile extends StatelessWidget {
 
   Widget _buildAvatar(BuildContext context) {
     final hasProfilePic = notification.senderProfilePic.isNotEmpty;
-    final initials = notification.senderName.isNotEmpty 
-        ? notification.senderName.trim().split(' ').map((e) => e[0]).take(2).join().toUpperCase()
+    final initials = notification.senderName.isNotEmpty
+        ? notification.senderName
+              .trim()
+              .split(' ')
+              .map((e) => e[0])
+              .take(2)
+              .join()
+              .toUpperCase()
         : 'U';
 
     return Stack(
@@ -510,7 +570,8 @@ class _NotificationTile extends StatelessWidget {
                 ? Image.network(
                     notification.senderProfilePic,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _buildInitialsWidget(context, initials),
+                    errorBuilder: (_, __, ___) =>
+                        _buildInitialsWidget(context, initials),
                   )
                 : _buildInitialsWidget(context, initials),
           ),
@@ -523,7 +584,10 @@ class _NotificationTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: _getIconColor(notification.type),
               shape: BoxShape.circle,
-              border: Border.all(color: Theme.of(context).cardColor, width: 1.5),
+              border: Border.all(
+                color: Theme.of(context).cardColor,
+                width: 1.5,
+              ),
             ),
             child: Icon(
               _getIcon(notification.type),
@@ -551,28 +615,40 @@ class _NotificationTile extends StatelessWidget {
 
   IconData _getIcon(NotificationType type) {
     switch (type) {
-      case NotificationType.swap_request: return Icons.swap_horiz_rounded;
-      case NotificationType.chat_message: return Icons.chat_bubble_outline_rounded;
-      case NotificationType.session: return Icons.class_outlined;
-      case NotificationType.system: return Icons.campaign_rounded;
+      case NotificationType.swap_request:
+        return Icons.swap_horiz_rounded;
+      case NotificationType.chat_message:
+        return Icons.chat_bubble_outline_rounded;
+      case NotificationType.session:
+        return Icons.chat_bubble_outline_rounded;
+      case NotificationType.system:
+        return Icons.campaign_rounded;
     }
   }
 
   Color _getIconColor(NotificationType type) {
     switch (type) {
-      case NotificationType.swap_request: return const Color(0xFF00C2FF);
-      case NotificationType.chat_message: return const Color(0xFF6B8AFF);
-      case NotificationType.session: return Colors.greenAccent;
-      case NotificationType.system: return Colors.orangeAccent;
+      case NotificationType.swap_request:
+        return const Color(0xFF00C2FF);
+      case NotificationType.chat_message:
+        return const Color(0xFF6B8AFF);
+      case NotificationType.session:
+        return Colors.greenAccent;
+      case NotificationType.system:
+        return Colors.orangeAccent;
     }
   }
 
   String _getCategoryLabel(NotificationType type) {
     switch (type) {
-      case NotificationType.swap_request: return "SWAP";
-      case NotificationType.chat_message: return "CHAT";
-      case NotificationType.session: return "SESSION";
-      case NotificationType.system: return "ALERT";
+      case NotificationType.swap_request:
+        return "SWAP";
+      case NotificationType.chat_message:
+        return "CHAT";
+      case NotificationType.session:
+        return "SESSION";
+      case NotificationType.system:
+        return "ALERT";
     }
   }
 

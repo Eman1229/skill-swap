@@ -77,7 +77,7 @@ class ChatUserService {
           .collection('swapListings')
           .where('userId', isEqualTo: userId)
           .get()
-          .then((listingsSnap) {
+          .then((listingsSnap) async {
         String name = 'Unknown User';
         String? imageUrl;
 
@@ -97,6 +97,24 @@ class ChatUserService {
           final latestData = docs.first.data() as Map<String, dynamic>;
           name = latestData['name'] as String? ?? 'Unknown User';
           imageUrl = latestData['imageUrl'] as String?;
+        }
+
+        if (imageUrl == null || imageUrl.isEmpty) {
+          try {
+            final userDoc = await _db.collection('users').doc(userId).get();
+            if (userDoc.exists) {
+              final data = userDoc.data();
+              if (data != null) {
+                imageUrl = (data['imageUrl'] ?? data['photoURL'] ?? data['profilePic'] ?? data['ProfilePic']) as String?;
+                final n = data['name'] as String?;
+                if (n != null && n.trim().isNotEmpty) {
+                  name = n;
+                }
+              }
+            }
+          } catch (e) {
+            debugPrint("ChatUserService: Error fetching from users collection: $e");
+          }
         }
 
         return {'name': name, 'imageUrl': imageUrl};

@@ -51,11 +51,15 @@ class NotificationService {
   /// Checks target recipient's settings before sending.
   Future<void> sendNotification({
     required String receiverId,
-    required String type, // 'message', 'swap', 'progress', 'review', 'general'
+    required String
+    type, // 'message', 'swap', 'session', 'progress', 'review', 'general'
     required String title,
     required String body,
     String? deepLinkScreen, // 'chat' | 'swap_detail'
     String? referenceId, // e.g. conversationId, swapId
+    String? actionRoute,
+    String? actionId,
+    Map<String, dynamic>? data,
   }) async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -77,6 +81,9 @@ class NotificationService {
             settingKey = 'swapUpdates';
           }
           break;
+        case 'session':
+          settingKey = 'swapUpdates';
+          break;
         case 'progress':
           settingKey = 'progressUpdates';
           break;
@@ -89,13 +96,15 @@ class NotificationService {
 
       // 3. Skip if recipient disabled this type
       if (settings.containsKey(settingKey) && settings[settingKey] == false) {
-        debugPrint("Notification suppressed by recipient preferences: $settingKey");
+        debugPrint(
+          "Notification suppressed by recipient preferences: $settingKey",
+        );
         return;
       }
 
       // 4. Save notification log in Firestore
       final notificationRef = _db.collection('notifications').doc();
-      final data = {
+      final notificationData = {
         'receiverId': receiverId,
         'senderId': uid,
         'type': type,
@@ -105,8 +114,11 @@ class NotificationService {
         'isRead': false,
         'deepLinkScreen': deepLinkScreen,
         'referenceId': referenceId,
+        'actionRoute': actionRoute,
+        'actionId': actionId,
+        'data': data ?? {},
       };
-      await notificationRef.set(data);
+      await notificationRef.set(notificationData);
       debugPrint("Stored notification document: ${notificationRef.id}");
 
       // 5. Trigger FCM message or local heads-up fallback if token is registered
@@ -115,7 +127,9 @@ class NotificationService {
         final fcmToken = userDoc.data()?['fcmToken'] as String?;
         if (fcmToken != null && fcmToken.isNotEmpty) {
           // FCM configuration details (handled by client's listener stream trigger fallback)
-          debugPrint("FCM token found for recipient. Notification delivered successfully!");
+          debugPrint(
+            "FCM token found for recipient. Notification delivered successfully!",
+          );
         }
       }
     } catch (e) {

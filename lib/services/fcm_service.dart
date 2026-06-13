@@ -273,7 +273,7 @@ class FcmService {
     final type = data['type'] as String?;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (type == 'chat_message') {
+      if (type == 'chat_message' || type == 'session' || type == 'swap_request') {
         _openChat(data);
       } else {
         navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
@@ -282,11 +282,23 @@ class FcmService {
   }
 
   void _openChat(Map<String, dynamic> data) {
-    final String conversationId = data['conversationId'] ?? '';
-    final String otherUserId = data['otherUserId'] ?? '';
-    final String otherName = data['otherName'] ?? 'Chat';
+    Map<String, dynamic> nestedData = {};
+    if (data['data'] is Map) {
+      nestedData = Map<String, dynamic>.from(data['data']);
+    } else if (data['data'] is String) {
+      try {
+        nestedData = jsonDecode(data['data']);
+      } catch (_) {}
+    }
 
-    if (conversationId.isEmpty) return;
+    final String conversationId = data['conversationId'] ?? data['referenceId'] ?? data['actionId'] ?? nestedData['conversationId'] ?? '';
+    final String otherUserId = data['otherUserId'] ?? data['senderId'] ?? nestedData['senderId'] ?? '';
+    final String otherName = data['otherName'] ?? data['senderName'] ?? nestedData['senderName'] ?? 'Chat';
+
+    if (conversationId.isEmpty) {
+      navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+      return;
+    }
 
     final swap = SwapListing(
       id: conversationId,
@@ -294,8 +306,8 @@ class FcmService {
       name: otherName,
       initials: otherName.isNotEmpty ? otherName[0] : 'U',
       avatarColor: const Color(0xFF6B8AFF),
-      offering: data['offering'] ?? '',
-      wanting: data['wanting'] ?? '',
+      offering: data['offering'] ?? nestedData['offering'] ?? '',
+      wanting: data['wanting'] ?? nestedData['wanting'] ?? '',
       rating: 0.0, reviews: 0, category: 'All',
     );
 

@@ -19,7 +19,11 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _durationController = TextEditingController(text: '1 hour');
+  final TextEditingController _durationController = TextEditingController(
+    text: '1 hour',
+  );
+  final TextEditingController _meetingLinkController = TextEditingController();
+  final TextEditingController _agendaController = TextEditingController(); // NEW
   DateTime _selectedDate = DateTime.now().add(Duration(days: 1));
 
   bool _loading = false;
@@ -31,45 +35,136 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
 
     try {
       final uid = _auth.currentUser?.uid;
+      debugPrint('=== CREATE SESSION CALLED ===');
+      debugPrint('uid = $uid');
+      debugPrint('swap.id = ${widget.swap.id}');
+      debugPrint('swap.conversationId = ${widget.swap.conversationId}');
+      debugPrint('swap.mentorId = ${widget.swap.mentorId}');
+      debugPrint('swap.learnerId = ${widget.swap.learnerId}');
+
+      final mentorId = widget.swap.mentorId;
+      final learnerId = widget.swap.learnerId;
+      final sessionTime =
+          '${_selectedDate.hour.toString().padLeft(2, '0')}:${_selectedDate.minute.toString().padLeft(2, '0')}';
 
       // 1. Create session doc
-      final sessionRef = _db.collection('swaps').doc(widget.swap.id).collection('sessions').doc();
+      final sessionRef = _db
+          .collection('swaps')
+          .doc(widget.swap.id)
+          .collection('sessions')
+          .doc();
       await sessionRef.set({
+        'sessionId': sessionRef.id,
         'swapId': widget.swap.id,
         'title': _titleController.text.trim(),
+        'agenda': _agendaController.text.trim(), // NEW
         'date': Timestamp.fromDate(_selectedDate),
+        'sessionDate': Timestamp.fromDate(_selectedDate),
+        'sessionTime': sessionTime,
         'duration': _durationController.text.trim(),
+        'meetingLink': _meetingLinkController.text.trim(),
+        'mentorId': mentorId,
+        'learnerId': learnerId,
+        'participantIds': [mentorId, learnerId],
         'status': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
       });
+      debugPrint('Session doc created: ${sessionRef.id}');
 
-      // 2. Send invite to chat
-      if (widget.swap.conversationId.isNotEmpty) {
-        await _db.collection('conversations').doc(widget.swap.conversationId).collection('messages').add({
+      // 2. Find conversationId
+      String conversationId = widget.swap.conversationId;
+      debugPrint('conversationId from swap model = "$conversationId"');
+
+      if (conversationId.isEmpty) {
+        debugPrint('conversationId is empty — searching Firestore...');
+        final query = await _db
+            .collection('conversations')
+            .where('participants', arrayContains: uid)
+            .get();
+
+        debugPrint('Total conversations found for uid: ${query.docs.length}');
+
+        for (final doc in query.docs) {
+          final participants =
+          List<String>.from(doc.data()['participants'] ?? []);
+          debugPrint('Checking convo ${doc.id} — participants: $participants');
+          if (participants.contains(mentorId) &&
+              participants.contains(learnerId)) {
+            conversationId = doc.id;
+            debugPrint('MATCH FOUND — conversationId: $conversationId');
+            await _db.collection('swaps').doc(widget.swap.id).update({
+              'conversationId': conversationId,
+            });
+            debugPrint('Saved conversationId back to swap doc');
+            break;
+          }
+        }
+
+        if (conversationId.isEmpty) {
+          debugPrint('ERROR: No matching conversation found!');
+          debugPrint('mentorId=$mentorId learnerId=$learnerId uid=$uid');
+        }
+      }
+
+      debugPrint('Final conversationId = "$conversationId"');
+
+      // 3. Send invite message to chat
+      if (conversationId.isNotEmpty) {
+        debugPrint('Sending session_invite message to chat...');
+        await _db
+            .collection('conversations')
+            .doc(conversationId)
+            .collection('messages')
+            .add({
           'senderId': uid,
           'type': 'session_invite',
           'sessionId': sessionRef.id,
           'swapId': widget.swap.id,
           'title': _titleController.text.trim(),
+          'agenda': _agendaController.text.trim(), // NEW
           'date': Timestamp.fromDate(_selectedDate),
+          'sessionDate': Timestamp.fromDate(_selectedDate),
+          'sessionTime': sessionTime,
           'duration': _durationController.text.trim(),
+          'meetingLink': _meetingLinkController.text.trim(),
           'timestamp': FieldValue.serverTimestamp(),
         });
+        debugPrint('session_invite message sent successfully!');
 
-        await _db.collection('conversations').doc(widget.swap.conversationId).update({
+        await _db
+            .collection('conversations')
+            .doc(conversationId)
+            .update({
           'lastMessage': 'Session Invite: ${_titleController.text.trim()}',
           'lastMessageAt': FieldValue.serverTimestamp(),
         });
 
-        final otherId = uid == widget.swap.mentorId ? widget.swap.learnerId : widget.swap.mentorId;
+        final otherId = uid == widget.swap.mentorId
+            ? widget.swap.learnerId
+            : widget.swap.mentorId;
+        debugPrint('Sending notification to otherId = $otherId');
+
         NotificationService().sendNotification(
           receiverId: otherId,
-          type: 'swap',
-          title: 'New Session Invitation! 📅',
-          body: 'You received a new session invite: "${_titleController.text.trim()}"',
-          deepLinkScreen: 'swap_detail',
-          referenceId: widget.swap.id,
+          type: 'session',
+          title: 'New Session Invitation',
+          body:
+          'You received a new session invite: "${_titleController.text.trim()}"',
+          deepLinkScreen: 'chat',
+          referenceId: conversationId,
+          actionRoute: '/chat',
+          actionId: conversationId,
+          data: {
+            'conversationId': conversationId,
+            'sessionId': sessionRef.id,
+            'swapId': widget.swap.id,
+            'senderName': widget.swap.mentorName,
+            'type': 'session',
+          },
         );
+        debugPrint('Notification sent!');
+      } else {
+        debugPrint('ERROR: conversationId is still empty — message NOT sent!');
       }
 
       if (mounted) {
@@ -77,18 +172,34 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         final messenger = ScaffoldMessenger.of(context);
         nav.pop();
         messenger.showSnackBar(
-          SnackBar(content: Text('session_invite_sent'.tr()), backgroundColor: Theme.of(context).colorScheme.primary),
+          SnackBar(
+            content: Text('session_invite_sent'.tr()),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
         );
       }
     } catch (e) {
+      debugPrint('ERROR in _createSession: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _durationController.dispose();
+    _meetingLinkController.dispose();
+    _agendaController.dispose(); // NEW
+    super.dispose();
   }
 
   @override
@@ -98,7 +209,13 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('create_session'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
+        title: Text(
+          'create_session'.tr(),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -108,21 +225,127 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('session_title'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
+              Text(
+                'session_title'.tr(),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 14,
+                ),
+              ),
               SizedBox(height: 8),
-              _buildTextField(_titleController, 'session_title_hint'.tr(), Icons.title_rounded),
+              _buildTextField(
+                _titleController,
+                'session_title_hint'.tr(),
+                Icons.title_rounded,
+              ),
               SizedBox(height: 24),
-              Text('duration'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
+              Text(
+                'duration'.tr(),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 14,
+                ),
+              ),
               SizedBox(height: 8),
-              _buildTextField(_durationController, 'duration_hint'.tr(), Icons.timer_outlined),
+              _buildTextField(
+                _durationController,
+                'duration_hint'.tr(),
+                Icons.timer_outlined,
+              ),
               SizedBox(height: 24),
-              Text('date_and_time'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
+              Text(
+                'Meeting Link',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 14,
+                ),
+              ),
+              SizedBox(height: 8),
+              _buildTextField(
+                _meetingLinkController,
+                'Zoom, Google Meet, Teams, or other URL',
+                Icons.link_rounded,
+              ),
+              SizedBox(height: 24),
+              Text(
+                'date_and_time'.tr(),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 14,
+                ),
+              ),
               SizedBox(height: 8),
               _buildDateTimePicker(),
+              SizedBox(height: 24),
+
+              // ── Session Agenda (NEW) ──────────────────────────────
+              Text(
+                'Session Agenda',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 14,
+                ),
+              ),
+              SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.05),
+                  ),
+                ),
+                child: TextFormField(
+                  controller: _agendaController,
+                  maxLines: 4,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 15,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'What would you like to focus on...',
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      fontSize: 14,
+                    ),
+                    prefixIcon: Align(
+                      alignment: Alignment.topLeft,
+                      heightFactor: 1,
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 14, top: 14),
+                        child: Icon(
+                          Icons.notes_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                    prefixIconConstraints: BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
+                ),
+              ),
+              // ─────────────────────────────────────────────────────
+
               SizedBox(height: 48),
               _loading
-                ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
-                : _PrimaryBtn(label: 'send_invitation'.tr(), onTap: _createSession),
+                  ? Center(
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              )
+                  : _PrimaryBtn(
+                label: 'send_invitation'.tr(),
+                onTap: _createSession,
+              ),
             ],
           ),
         ),
@@ -130,24 +353,45 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, IconData icon) {
+  Widget _buildTextField(
+      TextEditingController controller,
+      String hint,
+      IconData icon,
+      ) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: Theme.of(context)
+              .colorScheme
+              .onSurface
+              .withValues(alpha: 0.05),
+        ),
       ),
       child: TextFormField(
         controller: controller,
-        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 15),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontSize: 15,
+        ),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Theme.of(context).colorScheme.outlineVariant, fontSize: 14),
-          prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
+          hintStyle: TextStyle(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            fontSize: 14,
+          ),
+          prefixIcon: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.primary,
+            size: 20,
+          ),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding:
+          EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
-        validator: (v) => v == null || v.isEmpty ? 'required_field'.tr() : null,
+        validator: (v) =>
+        v == null || v.isEmpty ? 'required_field'.tr() : null,
       ),
     );
   }
@@ -168,7 +412,13 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           );
           if (time != null) {
             setState(() {
-              _selectedDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+              _selectedDate = DateTime(
+                date.year,
+                date.month,
+                date.day,
+                time.hour,
+                time.minute,
+              );
             });
           }
         }
@@ -178,18 +428,34 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)),
+          border: Border.all(
+            color: Theme.of(context)
+                .colorScheme
+                .onSurface
+                .withValues(alpha: 0.05),
+          ),
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+            Icon(
+              Icons.calendar_today_rounded,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
             SizedBox(width: 16),
             Text(
               '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year} at ${TimeOfDay.fromDateTime(_selectedDate).format(context)}',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 15),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 15,
+              ),
             ),
             Spacer(),
-            Icon(Icons.edit_calendar_rounded, color: Theme.of(context).colorScheme.outlineVariant, size: 20),
+            Icon(
+              Icons.edit_calendar_rounded,
+              color: Theme.of(context).colorScheme.outlineVariant,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -218,9 +484,18 @@ class _PrimaryBtn extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
         ),
-        child: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }

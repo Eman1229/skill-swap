@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SessionInviteCard extends StatelessWidget {
   final String sessionId;
@@ -18,8 +19,9 @@ class SessionInviteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || sessionId.isEmpty || swapId.isEmpty) {
-      return const SizedBox.shrink();
+    if (uid == null) return const SizedBox.shrink();
+    if (sessionId.isEmpty || swapId.isEmpty) {
+      return Center(child: Text('Error: sessionId or swapId is empty!', style: TextStyle(color: Colors.red)));
     }
 
     final sessionRef = FirebaseFirestore.instance
@@ -31,15 +33,22 @@ class SessionInviteCard extends StatelessWidget {
     return StreamBuilder<DocumentSnapshot>(
       stream: sessionRef.snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || !snapshot.data!.exists) {
-          return const SizedBox.shrink();
+        if (snapshot.hasError) {
+          return Center(child: Text('Error loading session: ${snapshot.error}', style: TextStyle(color: Colors.red)));
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.data!.exists) {
+          return Center(child: Text('Session document not found!', style: TextStyle(color: Colors.red)));
         }
 
         final d = snapshot.data!.data() as Map<String, dynamic>;
         final String title = d['title'] ?? 'Mentoring Session';
         final String duration = d['duration'] ?? '1 hour';
+        final String meetingLink = d['meetingLink'] ?? '';
         final String status = d['status'] ?? 'pending';
-        
+
         DateTime? date;
         final dateField = d['date'];
         if (dateField is Timestamp) {
@@ -50,20 +59,19 @@ class SessionInviteCard extends StatelessWidget {
             ? "${date.day}/${date.month}/${date.year} at ${TimeOfDay.fromDateTime(date).format(context)}"
             : '';
 
-        final Color statusColor = _getStatusColor(context, status);
+        final Color badgeColor = Theme.of(context).colorScheme.primary; // Blue theme
+        final Color secondaryBadgeColor = const Color(0xFF6B8AFF); // Gradient end color
+        final Color cardBg = Theme.of(context).colorScheme.surface;
 
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
+            color: cardBg,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: statusColor.withOpacity(0.3),
-              width: 1.5,
-            ),
+            border: Border.all(color: badgeColor.withOpacity(0.3), width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withOpacity(0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -74,30 +82,39 @@ class SessionInviteCard extends StatelessWidget {
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
+                  gradient: LinearGradient(
+                    colors: [badgeColor.withOpacity(0.15), secondaryBadgeColor.withOpacity(0.15)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(19),
+                  ),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.calendar_today_rounded,
-                      color: statusColor,
+                      color: badgeColor,
                       size: 16,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'MENTORING SESSION',
+                      'SESSION INVITATION',
                       style: TextStyle(
-                        color: statusColor,
+                        color: badgeColor,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.1,
                       ),
                     ),
                     const Spacer(),
-                    _StatusBadge(status: status, color: statusColor),
+                    _StatusBadge(status: status, color: badgeColor),
                   ],
                 ),
               ),
@@ -109,15 +126,27 @@ class SessionInviteCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 18,
                       ),
                     ),
                     const SizedBox(height: 12),
                     _InfoRow(icon: Icons.event_rounded, text: dateStr),
                     const SizedBox(height: 8),
                     _InfoRow(icon: Icons.timer_outlined, text: duration),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () => _openMeetingLink(context, meetingLink),
+                      child: _InfoRow(
+                        icon: Icons.link_rounded,
+                        text: meetingLink.isEmpty
+                            ? 'No meeting link available'
+                            : meetingLink,
+                        color: badgeColor,
+                      ),
+                    ),
 
                     // Actions
                     if (status == 'pending' && !isMine) ...[
@@ -126,18 +155,26 @@ class SessionInviteCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: _ActionButton(
-                              label: 'Decline',
+                              label: 'REJECT',
                               color: Colors.redAccent,
-                              onPressed: () => _updateSessionStatus(context, sessionRef, 'cancelled'),
+                              onPressed: () => _updateSessionStatus(
+                                context,
+                                sessionRef,
+                                'rejected',
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _ActionButton(
-                              label: 'Accept',
-                              color: Theme.of(context).colorScheme.primary,
+                              label: 'ACCEPT',
+                              color: badgeColor,
                               isPrimary: true,
-                              onPressed: () => _updateSessionStatus(context, sessionRef, 'accepted'),
+                              onPressed: () => _updateSessionStatus(
+                                context,
+                                sessionRef,
+                                'accepted',
+                              ),
                             ),
                           ),
                         ],
@@ -151,23 +188,22 @@ class SessionInviteCard extends StatelessWidget {
                           if (isMine) ...[
                             Expanded(
                               child: _ActionButton(
-                                label: 'Complete',
+                                label: 'COMPLETE',
                                 color: Colors.greenAccent,
-                                onPressed: () => _completeSession(context, sessionRef),
+                                textColor: Colors.black,
+                                onPressed: () =>
+                                    _completeSession(context, sessionRef),
                               ),
                             ),
                             const SizedBox(width: 12),
                           ],
                           Expanded(
                             child: _ActionButton(
-                              label: 'Join Meeting',
-                              color: Theme.of(context).colorScheme.primary,
+                              label: 'JOIN MEETING',
+                              color: badgeColor,
                               isPrimary: true,
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Launching meeting room...')),
-                                );
-                              },
+                              onPressed: () =>
+                                  _openMeetingLink(context, meetingLink),
                             ),
                           ),
                         ],
@@ -185,15 +221,55 @@ class SessionInviteCard extends StatelessWidget {
 
   Color _getStatusColor(BuildContext context, String status) {
     switch (status.toLowerCase()) {
-      case 'pending': return Colors.orangeAccent;
-      case 'accepted': return Theme.of(context).colorScheme.primary;
-      case 'completed': return Colors.greenAccent;
-      case 'cancelled': return Colors.redAccent;
-      default: return Colors.grey;
+      case 'pending':
+        return Colors.orangeAccent;
+      case 'accepted':
+        return Theme.of(context).colorScheme.primary;
+      case 'completed':
+        return Colors.greenAccent;
+      case 'rejected':
+        return Colors.redAccent;
+      case 'cancelled':
+        return Colors.redAccent;
+      default:
+        return Colors.grey;
     }
   }
 
-  Future<void> _updateSessionStatus(BuildContext context, DocumentReference sessionRef, String newStatus) async {
+  Future<void> _openMeetingLink(
+    BuildContext context,
+    String meetingLink,
+  ) async {
+    if (meetingLink.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No meeting link available.')),
+      );
+      return;
+    }
+
+    final link = meetingLink.trim();
+    final uri = Uri.tryParse(link.contains('://') ? link : 'https://$link');
+    if (uri == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid meeting link.')));
+      return;
+    }
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!context.mounted) return;
+    if (!launched) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open meeting link.')),
+      );
+    }
+  }
+
+  Future<void> _updateSessionStatus(
+    BuildContext context,
+    DocumentReference sessionRef,
+    String newStatus,
+  ) async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
@@ -201,7 +277,10 @@ class SessionInviteCard extends StatelessWidget {
       // Fetch sender name
       String senderName = 'Someone';
       try {
-        final senderDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final senderDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .get();
         if (senderDoc.exists) {
           senderName = senderDoc.data()?['name'] ?? 'Someone';
         }
@@ -214,16 +293,24 @@ class SessionInviteCard extends StatelessWidget {
 
       // The creator is the parent chat message sender (which is the mentor)
       // Let's retrieve other details from the parent swap Listing
-      final swapDoc = await FirebaseFirestore.instance.collection('swaps').doc(swapId).get();
+      final swapDoc = await FirebaseFirestore.instance
+          .collection('swaps')
+          .doc(swapId)
+          .get();
       final swapData = swapDoc.data();
       final String mentorId = swapData?['mentorId'] ?? '';
       final String learnerId = swapData?['learnerId'] ?? '';
-      
+
       final String targetUserId = uid == mentorId ? learnerId : mentorId;
 
       final batch = FirebaseFirestore.instance.batch();
-      batch.update(sessionRef, {'status': newStatus});
-      
+      batch.update(sessionRef, {
+        'status': newStatus,
+        'statusUpdatedAt': FieldValue.serverTimestamp(),
+        if (newStatus == 'accepted') 'acceptedAt': FieldValue.serverTimestamp(),
+        if (newStatus == 'rejected') 'rejectedAt': FieldValue.serverTimestamp(),
+      });
+
       // Inject message to chat
       final String convoId = swapData?['conversationId'] ?? '';
       if (convoId.isNotEmpty) {
@@ -235,25 +322,33 @@ class SessionInviteCard extends StatelessWidget {
 
         batch.set(msgRef, {
           'senderId': uid,
-          'text': newStatus == 'accepted' 
-              ? 'I accepted your mentoring session invitation!' 
+          'text': newStatus == 'accepted'
+              ? 'I accepted your mentoring session invitation!'
               : 'I declined your mentoring session invitation.',
           'timestamp': FieldValue.serverTimestamp(),
           'type': 'text',
           'status': 'sent',
         });
 
-        batch.update(FirebaseFirestore.instance.collection('conversations').doc(convoId), {
-          'lastMessage': newStatus == 'accepted' ? 'Session Invite Accepted' : 'Session Invite Declined',
-          'lastMessageAt': FieldValue.serverTimestamp(),
-        });
+        batch.update(
+          FirebaseFirestore.instance.collection('conversations').doc(convoId),
+          {
+            'lastMessage': newStatus == 'accepted'
+                ? 'Session Invite Accepted'
+                : 'Session Invite Declined',
+            'lastMessageAt': FieldValue.serverTimestamp(),
+          },
+        );
       }
 
       await batch.commit();
+      await _deleteSessionNotification(uid);
 
       // Send real-time notification
       if (targetUserId.isNotEmpty) {
-        final String notificationTitle = newStatus == 'accepted' ? 'Session Accepted! 🎉' : 'Session Declined';
+        final String notificationTitle = newStatus == 'accepted'
+            ? 'Session Accepted! 🎉'
+            : 'Session Declined';
         final String notificationBody = newStatus == 'accepted'
             ? '$senderName accepted your invitation for session "$sessionTitle".'
             : '$senderName declined your invitation for session "$sessionTitle".';
@@ -268,10 +363,11 @@ class SessionInviteCard extends StatelessWidget {
           'body': notificationBody,
           'isRead': false,
           'createdAt': FieldValue.serverTimestamp(),
-          'actionRoute': '/session_details',
-          'actionId': sessionId,
+          'actionRoute': '/chat',
+          'actionId': convoId,
           'imageUrl': '',
           'data': {
+            'conversationId': convoId,
             'sessionId': sessionId,
             'swapId': swapId,
             'type': 'session',
@@ -279,25 +375,52 @@ class SessionInviteCard extends StatelessWidget {
           },
         });
       }
-
     } catch (e) {
       debugPrint("Error updating session status: $e");
     }
   }
 
-  Future<void> _completeSession(BuildContext context, DocumentReference sessionRef) async {
+  Future<void> _deleteSessionNotification(String uid) async {
+    final notificationSnap = await FirebaseFirestore.instance
+        .collection('notifications')
+        .where('receiverId', isEqualTo: uid)
+        .get();
+
+    final batch = FirebaseFirestore.instance.batch();
+    var hasDeletes = false;
+    for (final doc in notificationSnap.docs) {
+      final data = doc.data();
+      if (data['type'] != 'session') continue;
+      final payload = data['data'];
+      if (payload is! Map<String, dynamic>) continue;
+      if (payload['sessionId'] == sessionId || payload['swapId'] == swapId) {
+        batch.delete(doc.reference);
+        hasDeletes = true;
+      }
+    }
+    if (hasDeletes) {
+      await batch.commit();
+    }
+  }
+
+  Future<void> _completeSession(
+    BuildContext context,
+    DocumentReference sessionRef,
+  ) async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
       // 1. Fetch swap and session data
-      final parentSwapRef = FirebaseFirestore.instance.collection('swaps').doc(swapId);
+      final parentSwapRef = FirebaseFirestore.instance
+          .collection('swaps')
+          .doc(swapId);
       final swapSnap = await parentSwapRef.get();
       if (!swapSnap.exists) return;
 
       final sData = swapSnap.data();
       final String learnerId = sData?['learnerId'] ?? '';
-      
+
       final sessionSnap = await sessionRef.get();
       final sessionData = sessionSnap.data() as Map<String, dynamic>?;
       final String sessionTitle = sessionData?['title'] ?? 'Session';
@@ -321,10 +444,13 @@ class SessionInviteCard extends StatelessWidget {
           'status': 'sent',
         });
 
-        batch.update(FirebaseFirestore.instance.collection('conversations').doc(convoId), {
-          'lastMessage': 'Mentoring Session Completed 🎉',
-          'lastMessageAt': FieldValue.serverTimestamp(),
-        });
+        batch.update(
+          FirebaseFirestore.instance.collection('conversations').doc(convoId),
+          {
+            'lastMessage': 'Mentoring Session Completed 🎉',
+            'lastMessageAt': FieldValue.serverTimestamp(),
+          },
+        );
       }
 
       await batch.commit();
@@ -336,7 +462,10 @@ class SessionInviteCard extends StatelessWidget {
       // 2. Fetch sender (mentor) name for notification
       String mentorName = 'Your mentor';
       try {
-        final mentorDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final mentorDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .get();
         if (mentorDoc.exists) {
           mentorName = mentorDoc.data()?['name'] ?? 'Your mentor';
         }
@@ -351,13 +480,15 @@ class SessionInviteCard extends StatelessWidget {
           'receiverId': learnerId,
           'type': 'session',
           'title': 'Session Completed! 🎉',
-          'body': 'Your session "$sessionTitle" with $mentorName has been completed.',
+          'body':
+              'Your session "$sessionTitle" with $mentorName has been completed.',
           'isRead': false,
           'createdAt': FieldValue.serverTimestamp(),
-          'actionRoute': '/session_details',
-          'actionId': sessionId,
+          'actionRoute': '/chat',
+          'actionId': convoId,
           'imageUrl': '',
           'data': {
+            'conversationId': convoId,
             'sessionId': sessionId,
             'swapId': swapId,
             'type': 'session',
@@ -367,9 +498,11 @@ class SessionInviteCard extends StatelessWidget {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Session completed successfully! 🎉'), backgroundColor: Colors.green),
+        const SnackBar(
+          content: Text('Session completed successfully! 🎉'),
+          backgroundColor: Colors.green,
+        ),
       );
-
     } catch (e) {
       debugPrint("Error completing session: $e");
     }
@@ -391,7 +524,11 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         status.toUpperCase(),
-        style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -400,19 +537,32 @@ class _StatusBadge extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String text;
-  const _InfoRow({required this.icon, required this.text});
+  final Color? color;
+  const _InfoRow({required this.icon, required this.text, this.color});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6)),
+        Icon(
+          icon,
+          size: 16,
+          color: color ?? Theme.of(
+            context,
+          ).colorScheme.onSurfaceVariant.withOpacity(0.6),
+        ),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 13,
-            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              color: color ?? Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withOpacity(0.8),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -425,29 +575,43 @@ class _ActionButton extends StatelessWidget {
   final Color color;
   final VoidCallback onPressed;
   final bool isPrimary;
+  final Color? textColor;
 
   const _ActionButton({
     required this.label,
     required this.color,
     required this.onPressed,
     this.isPrimary = false,
+    this.textColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final defaultTextColor = isPrimary ? Theme.of(context).colorScheme.onSurface : color;
+    final finalTextColor = textColor ?? defaultTextColor;
+
     return SizedBox(
-      height: 40,
+      height: 42, // Scaled down for card layout
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: isPrimary ? color : Colors.transparent,
-          foregroundColor: isPrimary ? Colors.white : color,
+          foregroundColor: finalTextColor,
           elevation: 0,
           side: BorderSide(color: color, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12), // Scaled down to match height
+          ),
           padding: EdgeInsets.zero,
         ),
-        child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13, // Scaled down for card layout
+            fontWeight: FontWeight.bold, 
+            color: finalTextColor,
+          ),
+        ),
       ),
     );
   }

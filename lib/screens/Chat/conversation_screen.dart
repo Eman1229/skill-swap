@@ -229,6 +229,26 @@ class _ConversationScreenState extends State<ConversationScreen> {
       _profileStream = _chatUserService.getUserProfile(otherId);
     });
 
+    // Step 1: Check if widget.swap.id is a valid conversationId!
+    if (widget.swap.id.isNotEmpty && otherId.isNotEmpty) {
+      final directDoc = await FirebaseFirestore.instance
+          .collection('conversations')
+          .doc(widget.swap.id)
+          .get();
+      if (directDoc.exists) {
+        final participants = List<String>.from(directDoc.data()?['participants'] ?? []);
+        if (participants.contains(uid) && participants.contains(otherId)) {
+          setState(() {
+            _conversationId = directDoc.id;
+          });
+          _updateMessagesStream();
+          _chatRepo.markAllAsRead(directDoc.id);
+          return;
+        }
+      }
+    }
+
+    // Step 2: Fall back to finding ANY conversation between these two users
     if (otherId.isNotEmpty) {
       final query = await FirebaseFirestore.instance
           .collection('conversations')
@@ -243,25 +263,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
           });
           _updateMessagesStream();
           _chatRepo.markAllAsRead(doc.id);
-          return;
-        }
-      }
-    }
-
-    // Step 2: Only fall back to swap.id if it looks like a real conversation
-    if (widget.swap.id.isNotEmpty && otherId.isNotEmpty) {
-      final directDoc = await FirebaseFirestore.instance
-          .collection('conversations')
-          .doc(widget.swap.id)
-          .get();
-      if (directDoc.exists) {
-        final participants = List<String>.from(directDoc.data()?['participants'] ?? []);
-        if (participants.contains(uid) && participants.contains(otherId)) {
-          setState(() {
-            _conversationId = directDoc.id;
-          });
-          _updateMessagesStream();
-          _chatRepo.markAllAsRead(directDoc.id);
           return;
         }
       }
@@ -419,6 +420,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
                                   }
 
                                   if (type == 'session_invite') {
+                                    debugPrint("=== SESSION INVITE FOUND ===");
+                                    debugPrint("sessionId = ${d['sessionId']}");
+                                    debugPrint("swapId = ${d['swapId']}");
                                     return SessionInviteCard(
                                       sessionId: d['sessionId'] ?? '',
                                       swapId: d['swapId'] ?? '',

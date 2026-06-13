@@ -5,6 +5,7 @@ import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/screens/Swap/skill_detail_screen.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
+import 'package:skill_swap/services/chat_user_service.dart';
 
 class MyLearningScreen extends StatefulWidget {
   MyLearningScreen({Key? key}) : super(key: key);
@@ -286,33 +287,49 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
   }
 }
 
-class _LearningCard extends StatelessWidget {
+class _LearningCard extends StatefulWidget {
   final SwapModel swap;
-  _LearningCard({required this.swap});
+  _LearningCard({Key? key, required this.swap}) : super(key: key);
+
+  @override
+  State<_LearningCard> createState() => _LearningCardState();
+}
+
+class _LearningCardState extends State<_LearningCard> {
+  late Stream<ChatUserProfile> _userStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _userStream = ChatUserService().getUserProfile(widget.swap.mentorId);
+  }
+
+  @override
+  void didUpdateWidget(covariant _LearningCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.swap.mentorId != widget.swap.mentorId) {
+      _userStream = ChatUserService().getUserProfile(widget.swap.mentorId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(swap.mentorId)
-          .snapshots(),
+    return StreamBuilder<ChatUserProfile>(
+      stream: _userStream,
       builder: (context, mentorSnap) {
         String? imageUrl;
-        String displayName = swap.mentorName;
-        if (mentorSnap.hasData && mentorSnap.data!.exists) {
-          final data = mentorSnap.data!.data() as Map<String, dynamic>?;
-          if (data != null) {
-            imageUrl = data['imageUrl'] as String?;
-            final name = data['name'] as String?;
-            if (name != null && name.trim().isNotEmpty) {
-              displayName = name;
-            }
+        String displayName = widget.swap.mentorName;
+
+        if (mentorSnap.hasData) {
+          final profile = mentorSnap.data!;
+          imageUrl = profile.imageUrl;
+          if (profile.name.isNotEmpty && profile.name != 'Unknown User') {
+            displayName = profile.name;
           }
         }
 
-        final double calculatedProgress = swap.totalSessions > 0
-            ? (swap.completedSessions / swap.totalSessions).clamp(0.0, 1.0)
+        final double calculatedProgress = widget.swap.totalSessions > 0
+            ? (widget.swap.completedSessions / widget.swap.totalSessions).clamp(0.0, 1.0)
             : 0.0;
 
         return Container(
@@ -337,15 +354,15 @@ class _LearningCard extends StatelessWidget {
                     ),
                     child: imageUrl != null && imageUrl.isNotEmpty
                         ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        imageUrl,
-                        width: 48,
-                        height: 48,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(Icons.image, color: Theme.of(context).colorScheme.outlineVariant),
-                      ),
-                    )
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              imageUrl,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Icon(Icons.image, color: Theme.of(context).colorScheme.outlineVariant),
+                            ),
+                          )
                         : Icon(Icons.image, color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   SizedBox(width: 14),
@@ -353,7 +370,7 @@ class _LearningCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(swap.skillName, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(widget.swap.skillName, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 16)),
                         Text(displayName, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
                       ],
                     ),
@@ -364,7 +381,7 @@ class _LearningCard extends StatelessWidget {
                       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(swap.status.toUpperCase(),
+                    child: Text(widget.swap.status.toUpperCase(),
                         style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
                 ],
@@ -391,11 +408,11 @@ class _LearningCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Session ${swap.completedSessions} of ${swap.totalSessions}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12)),
+                  Text('Session ${widget.swap.completedSessions} of ${widget.swap.totalSessions}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12)),
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => SkillDetailScreen(swap: swap)),
+                      MaterialPageRoute(builder: (_) => SkillDetailScreen(swap: widget.swap)),
                     ),
                     child: Text('View Details >', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
                   ),

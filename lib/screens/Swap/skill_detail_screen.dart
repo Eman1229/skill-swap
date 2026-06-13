@@ -6,6 +6,7 @@ import 'package:skill_swap/models/session_model.dart';
 import 'package:skill_swap/screens/Swap/create_session_screen.dart';
 import 'package:skill_swap/screens/Swap/session_detail_screen.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:skill_swap/services/chat_user_service.dart';
 
 class SkillDetailScreen extends StatefulWidget {
   final SwapModel swap;
@@ -158,9 +159,27 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       children: [
         Text('details'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
         SizedBox(height: 16),
-        _InfoRow(label: 'mentor'.tr(), value: widget.swap.mentorName),
+        StreamBuilder<ChatUserProfile>(
+          stream: ChatUserService().getUserProfile(widget.swap.mentorId),
+          builder: (context, snapshot) {
+            String mentorName = widget.swap.mentorName;
+            if (snapshot.hasData && snapshot.data!.name.isNotEmpty && snapshot.data!.name != 'Unknown User') {
+              mentorName = snapshot.data!.name;
+            }
+            return _InfoRow(label: 'mentor'.tr(), value: mentorName);
+          },
+        ),
         SizedBox(height: 12),
-        _InfoRow(label: 'learner'.tr(), value: widget.swap.learnerName),
+        StreamBuilder<ChatUserProfile>(
+          stream: ChatUserService().getUserProfile(widget.swap.learnerId),
+          builder: (context, snapshot) {
+            String learnerName = widget.swap.learnerName;
+            if (snapshot.hasData && snapshot.data!.name.isNotEmpty && snapshot.data!.name != 'Unknown User') {
+              learnerName = snapshot.data!.name;
+            }
+            return _InfoRow(label: 'learner'.tr(), value: learnerName);
+          },
+        ),
         SizedBox(height: 12),
         _InfoRow(label: 'started'.tr(), value: 'May 12, 2026'),
       ],

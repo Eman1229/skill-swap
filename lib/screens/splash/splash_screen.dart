@@ -23,13 +23,13 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       final response = await http
           .head(Uri.parse('https://www.google.com'))
-          .timeout(const Duration(milliseconds: 1500));
+          .timeout(const Duration(seconds: 4));
       return response.statusCode == 200;
     } catch (_) {
       try {
         final response = await http
             .get(Uri.parse('https://www.google.com'))
-            .timeout(const Duration(milliseconds: 1500));
+            .timeout(const Duration(seconds: 4));
         return response.statusCode == 200;
       } catch (_) {
         return false;

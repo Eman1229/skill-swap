@@ -78,7 +78,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             UiHelper.CustomImage(imgurl: "hi.png"),
                             SizedBox(height: 10),
                             Text(
-                              "welcome_back".tr(),
+                              "Welcome".tr(),
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 32,
