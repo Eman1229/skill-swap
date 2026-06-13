@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/screens/Add%20skill/offer%20skill.dart';
 import 'package:skill_swap/screens/Home%20Screens/see%20all.dart';
-import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Chat/chat_screen.dart';
 import 'package:skill_swap/screens/Profile/edit_profile_screen.dart';
 import 'package:skill_swap/screens/Profile/my_profile_screen.dart';
@@ -199,35 +198,6 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _navigateToMyProfile() async {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) return;
-
-    final snap = await _db
-        .collection('swapListings')
-        .where('userId', isEqualTo: uid)
-        .limit(1)
-        .get();
-
-    if (!mounted) return;
-
-    if (snap.docs.isNotEmpty) {
-      final mySwap = SwapListing.fromDoc(snap.docs.first);
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => EditProfileScreen(swap: mySwap)),
-      );
-      if (result == true) setState(() {});
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No skill listing found for your profile.'),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-        ),
-      );
-    }
   }
 
   void _handleImageUrlChange(String? newUrl) {
@@ -433,7 +403,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                                     ),
                                   ),
                                   child: Text(
-                                    'See all',
+                                    'See All',
                                     style: TextStyle(
                                       color: Theme.of(
                                         context,
@@ -478,7 +448,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                                       children: [
                                         Icon(Icons.info_outline_rounded, color: Theme.of(context).colorScheme.primary),
                                         SizedBox(height: 8),
-                                        Text('Preparing sessions...', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+                                        Text('Preparing Sessions...', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
                                         SizedBox(height: 4),
                                         Text('Your sessions will appear here shortly once database indexing is complete. ${sessionSnapshot.error}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12), textAlign: TextAlign.center),
                                       ],
@@ -607,7 +577,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                         end: Alignment.centerRight,
                       ).createShader(bounds),
                       child: Text(
-                        '96% ACCURACY',
+                        '96% Accuracy',
                         style: TextStyle(
                           color: Colors.white, // masked by shader
                           fontSize: 10,
@@ -621,7 +591,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             ),
             SizedBox(height: 12),
             Text(
-              'We analyzed your profile and found 3 perfect mentors for your current learning path.',
+              'We Analyzed Your Profile And Found 3 Perfect Mentors For Your Current Learning Path.',
               style: TextStyle(
                 color: Colors.white70,
                 fontSize: 12,
@@ -669,7 +639,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           ),
           SizedBox(height: 16),
           Text(
-            'No swaps available',
+            'No Swaps Available',
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontSize: 18,
@@ -678,7 +648,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           ),
           SizedBox(height: 8),
           Text(
-            'Check back later or offer a skill yourself!',
+            'Check Back Later Or Offer A Skill Yourself!',
             style: TextStyle(
               color: Theme.of(
                 context,
@@ -798,7 +768,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                       maxLines: 1,
                     ),
                     Text(
-                      'Keep growing every day!',
+                      'Keep Growing Every Day!',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 12,
@@ -1014,7 +984,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           ),
           SizedBox(height: 12),
           Text(
-            'Nothing live yet',
+            'Nothing Live Yet',
             style: TextStyle(
               color: Theme.of(
                 context,
@@ -1149,7 +1119,7 @@ class HorizontalSwapCard extends StatelessWidget {
 
             // Wanting label
             Text(
-              'Looking for:',
+              'Looking For:',
               style: TextStyle(
                 color: Theme.of(context)
                     .colorScheme
@@ -1231,7 +1201,7 @@ class _LiveSessionCard extends StatelessWidget {
     if (meetingLink.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('No meeting link available.')));
+      ).showSnackBar(SnackBar(content: Text('No Meeting Link Available.')));
       return;
     }
 
@@ -1241,7 +1211,7 @@ class _LiveSessionCard extends StatelessWidget {
     if (uri == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Invalid meeting link.')));
+      ).showSnackBar(SnackBar(content: Text('Invalid Meeting Link.')));
       return;
     }
 
@@ -1250,7 +1220,7 @@ class _LiveSessionCard extends StatelessWidget {
     if (!launched) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Could not open meeting link.')));
+      ).showSnackBar(SnackBar(content: Text('Could Not Open Meeting Link.')));
     }
   }
 

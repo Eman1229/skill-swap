@@ -560,7 +560,7 @@ class ProfileScreen extends StatelessWidget {
                                     context: context,
                                     builder: (context) => AlertDialog(
                                       title: const Text('Delete Skill'),
-                                      content: const Text('Are you sure you want to permanently remove this skill offer?'),
+                                      content: const Text('Are You Sure You Want To Permanently Remove This Skill Offer?'),
                                       actions: [
                                         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
                                         TextButton(
@@ -575,7 +575,7 @@ class ProfileScreen extends StatelessWidget {
                                     await FirebaseFirestore.instance.collection('swapListings').doc(swap.id).delete();
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Listing deleted'), behavior: SnackBarBehavior.floating),
+                                        const SnackBar(content: Text('Listing Deleted'), behavior: SnackBarBehavior.floating),
                                       );
                                       Navigator.pop(context);
                                     }
@@ -683,13 +683,13 @@ class ProfileScreen extends StatelessWidget {
                             ),
                             _Divider(),
                             _DetailRow(
-                              label: 'No of swaps',
+                              label: 'No Of Swaps',
                               value: '${swap.reviews}',
                               isText: true,
                             ),
                             _Divider(),
                             _DetailRow(
-                              label: 'Looking for',
+                              label: 'Looking For',
                               value: swap.wanting,
                               isText: false,
                               isHighlight: true,
@@ -785,7 +785,7 @@ class ProfileScreen extends StatelessWidget {
                             ),
                             SizedBox(width: 8),
                             Text(
-                              'the skill available',
+                              'The Skill Available',
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontSize: 13,

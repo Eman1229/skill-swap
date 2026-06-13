@@ -223,6 +223,75 @@ class SkillExchangeService {
       }
     });
 
+    // Write real-time activity logs for both mentor and learner to update analytics instantly
+    final mentorId = _text(swapData['mentorId']);
+    final learnerId = _text(swapData['learnerId']);
+    final skillName = _text(swapData['skillName']);
+
+    if (mentorId.isNotEmpty && learnerId.isNotEmpty && skillName.isNotEmpty) {
+      final now = DateTime.now();
+      
+      // Log session completion for mentor (teaching)
+      final mentorSessionLogId = 'session_completed_${swapId}_${sessionId}_$mentorId';
+      await _db.collection('users').doc(mentorId).collection('activities').doc(mentorSessionLogId).set({
+        'type': 'session_completed',
+        'role': 'mentor',
+        'timestamp': Timestamp.fromDate(now),
+        'xp': 60,
+        'skillName': skillName,
+        'swapId': swapId,
+        'details': 'Taught a session in $skillName',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      // Log session completion for learner (learning)
+      final learnerSessionLogId = 'session_completed_${swapId}_${sessionId}_$learnerId';
+      await _db.collection('users').doc(learnerId).collection('activities').doc(learnerSessionLogId).set({
+        'type': 'session_completed',
+        'role': 'learner',
+        'timestamp': Timestamp.fromDate(now),
+        'xp': 60,
+        'skillName': skillName,
+        'swapId': swapId,
+        'details': 'Learned in a session of $skillName',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      final freshSwapSnap = await swapRef.get();
+      if (freshSwapSnap.exists) {
+        final freshData = freshSwapSnap.data() ?? {};
+        final freshStatus = _text(freshData['status']).toLowerCase();
+        final freshProgress = _num(freshData['progress']);
+        if (freshStatus == 'completed' || freshProgress >= 1.0) {
+          // Log swap completion for mentor
+          final mentorSwapLogId = 'swap_completed_${swapId}_$mentorId';
+          await _db.collection('users').doc(mentorId).collection('activities').doc(mentorSwapLogId).set({
+            'type': 'swap_completed',
+            'role': 'mentor',
+            'timestamp': Timestamp.fromDate(now),
+            'xp': 250,
+            'skillName': skillName,
+            'swapId': swapId,
+            'details': 'Completed teaching $skillName',
+            'createdAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+
+          // Log swap completion for learner
+          final learnerSwapLogId = 'swap_completed_${swapId}_$learnerId';
+          await _db.collection('users').doc(learnerId).collection('activities').doc(learnerSwapLogId).set({
+            'type': 'swap_completed',
+            'role': 'learner',
+            'timestamp': Timestamp.fromDate(now),
+            'xp': 250,
+            'skillName': skillName,
+            'swapId': swapId,
+            'details': 'Completed learning $skillName',
+            'createdAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
+      }
+    }
+
     final participants = _participantsFromSwaps(pairSnap.docs)
       ..add(_text(swapData['mentorId']))
       ..add(_text(swapData['learnerId']));

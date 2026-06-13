@@ -63,7 +63,7 @@ class SettingsScreen extends StatelessWidget {
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('No skill listing found.'.tr())),
+                    SnackBar(content: Text('No Skill Listing Found.')),
                   );
                 }
               }
@@ -195,7 +195,7 @@ class SettingsScreen extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
-        title.toUpperCase(),
+        title,
         style: TextStyle(
           color: colorScheme.secondary,
           fontSize: 11,

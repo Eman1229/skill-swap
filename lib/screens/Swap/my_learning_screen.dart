@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
+import 'package:skill_swap/models/analytics_data.dart';
 import 'package:skill_swap/screens/Swap/skill_detail_screen.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
 import 'package:skill_swap/services/chat_user_service.dart';
+import 'package:skill_swap/services/analytics_service.dart';
 
 class MyLearningScreen extends StatefulWidget {
   MyLearningScreen({Key? key}) : super(key: key);
@@ -48,60 +50,70 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
       ),
       body: uid == null
           ? Center(child: Text('Please login', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))
-          : Column(
-        children: [
-          _buildFilters(),
-          Expanded(
-            child: StreamBuilder<List<SwapModel>>(
-              stream: _exchangeService.watchLearningSwaps(uid),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+          : StreamBuilder<AnalyticsData>(
+              stream: AnalyticsService().watchAnalytics(uid),
+              builder: (context, analyticsSnap) {
+                if (analyticsSnap.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
                 }
+                final analyticsData = analyticsSnap.data ?? AnalyticsData.empty(uid);
 
-                var swapsList = snapshot.data ?? [];
-                final totalSkills = swapsList.length; // ← ADDED
+                return Column(
+                  children: [
+                    _buildFilters(),
+                    Expanded(
+                      child: StreamBuilder<List<SwapModel>>(
+                        stream: _exchangeService.watchLearningSwaps(uid),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+                          }
 
-                // Filter logic
-                if (_selectedFilter != 'All') {
-                  swapsList = swapsList.where((swap) {
-                    return swap.status.toLowerCase() == _selectedFilter.toLowerCase();
-                  }).toList();
-                }
+                          var swapsList = snapshot.data ?? [];
+                          final totalSkills = swapsList.length; // ← ADDED
 
-                if (swapsList.isEmpty) {
-                  return _buildEmptyState();
-                }
+                          // Filter logic
+                          if (_selectedFilter != 'All') {
+                            swapsList = swapsList.where((swap) {
+                              return swap.status.toLowerCase() == _selectedFilter.toLowerCase();
+                            }).toList();
+                          }
 
-                return SingleChildScrollView(
-                  padding: EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTotalBadge(totalSkills, context), // ← ADDED
-                      SizedBox(height: 20),                   // ← ADDED
-                      ...swapsList.map((swap) {
-                        return _LearningCard(swap: swap);
-                      }).toList(),
-                      SizedBox(height: 32),
-                      Text('Performance Insights',
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 16),
-                      _buildInsights(swapsList, uid),
-                      SizedBox(height: 32),
-                      Text('Weekly Engagement',
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 16),
-                      _buildEngagementChart(swapsList),
-                      SizedBox(height: 40),
-                    ],
-                  ),
+                          if (swapsList.isEmpty) {
+                            return _buildEmptyState();
+                          }
+
+                          return SingleChildScrollView(
+                            padding: EdgeInsets.all(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildTotalBadge(totalSkills, context), // ← ADDED
+                                SizedBox(height: 20),                   // ← ADDED
+                                ...swapsList.map((swap) {
+                                  return _LearningCard(swap: swap);
+                                }).toList(),
+                                SizedBox(height: 32),
+                                Text('Performance Insights',
+                                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                                SizedBox(height: 16),
+                                _buildInsights(analyticsData),
+                                SizedBox(height: 32),
+                                Text('Weekly Engagement',
+                                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                                SizedBox(height: 16),
+                                _buildEngagementChart(analyticsData),
+                                SizedBox(height: 40),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -178,11 +190,13 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
     );
   }
 
-  Widget _buildInsights(List<SwapModel> swaps, String uid) {
-    final completedSwaps = swaps.where((s) => s.status.toLowerCase() == 'completed').length;
-    final totalCompletedSessions = swaps.fold<int>(0, (total, s) => total + s.completedSessions);
-    final xp = 500 + (completedSwaps * 1000) + (totalCompletedSessions * 100);
-    final totalHours = (totalCompletedSessions * 1.5).toStringAsFixed(1);
+  Widget _buildInsights(AnalyticsData data) {
+    final completedSwaps = data.completedSwaps;
+    final xp = data.totalXp;
+    final totalHours = data.learningHours.toStringAsFixed(1);
+    final growthText = data.weeklyGrowthPercentage >= 0 
+        ? '+${data.weeklyGrowthPercentage.toStringAsFixed(0)}% this week' 
+        : '${data.weeklyGrowthPercentage.toStringAsFixed(0)}% this week';
 
     return Container(
       padding: EdgeInsets.all(20),
@@ -198,7 +212,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('XP / Skills Learned: $completedSwaps',
+                  Text('XP / Skills Learned: ${data.skillsLearnedCount}',
                       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
                   SizedBox(height: 4),
                   Row(
@@ -209,8 +223,12 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                               fontSize: 24,
                               fontWeight: FontWeight.bold)),
                       SizedBox(width: 8),
-                      Text('+12% this week',
-                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10)),
+                      Text(growthText,
+                          style: TextStyle(
+                              color: data.weeklyGrowthPercentage >= 0 
+                                  ? Theme.of(context).colorScheme.primary 
+                                  : Colors.redAccent, 
+                              fontSize: 10)),
                     ],
                   ),
                 ],
@@ -232,7 +250,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
           Row(
             children: [
               _StatItem(
-                  label: 'TOTAL HOURS',
+                  label: 'Total Hours',
                   value: totalHours,
                   icon: Icons.timer_outlined,
                   color: Theme.of(context).colorScheme.primary),
@@ -243,12 +261,13 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
     );
   }
 
-  Widget _buildEngagementChart(List<SwapModel> swaps) {
+  Widget _buildEngagementChart(AnalyticsData analyticsData) {
+    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final Map<int, int> dayCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
-
-    for (final s in swaps) {
-      final date = s.lastSessionAt ?? s.createdAt;
-      dayCounts[date.weekday] = (dayCounts[date.weekday] ?? 0) + 1 + s.completedSessions;
+    
+    for (int i = 0; i < labels.length; i++) {
+      final label = labels[i];
+      dayCounts[i + 1] = analyticsData.weeklyActivity[label] ?? 0;
     }
 
     final maxCount = dayCounts.values.fold(0, (max, count) => count > max ? count : max);
@@ -272,13 +291,13 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _Bar(height: getHeight(1), day: 'MON', active: currentWeekday == 1),
-              _Bar(height: getHeight(2), day: 'TUE', active: currentWeekday == 2),
-              _Bar(height: getHeight(3), day: 'WED', active: currentWeekday == 3),
-              _Bar(height: getHeight(4), day: 'THU', active: currentWeekday == 4),
-              _Bar(height: getHeight(5), day: 'FRI', active: currentWeekday == 5),
-              _Bar(height: getHeight(6), day: 'SAT', active: currentWeekday == 6),
-              _Bar(height: getHeight(7), day: 'SUN', active: currentWeekday == 7),
+              _Bar(height: getHeight(1), day: 'Mon', active: currentWeekday == 1),
+              _Bar(height: getHeight(2), day: 'Tue', active: currentWeekday == 2),
+              _Bar(height: getHeight(3), day: 'Wed', active: currentWeekday == 3),
+              _Bar(height: getHeight(4), day: 'Thu', active: currentWeekday == 4),
+              _Bar(height: getHeight(5), day: 'Fri', active: currentWeekday == 5),
+              _Bar(height: getHeight(6), day: 'Sat', active: currentWeekday == 6),
+              _Bar(height: getHeight(7), day: 'Sun', active: currentWeekday == 7),
             ],
           ),
         ],
@@ -414,7 +433,7 @@ class _LearningCardState extends State<_LearningCard> {
                       context,
                       MaterialPageRoute(builder: (_) => SkillDetailScreen(swap: widget.swap)),
                     ),
-                    child: Text('View Details >', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: Text('View Details ›', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

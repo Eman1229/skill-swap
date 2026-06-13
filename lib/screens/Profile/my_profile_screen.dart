@@ -4,9 +4,10 @@ import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:skill_swap/models/analytics_data.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/screens/Profile/edit_profile_screen.dart';
-import 'package:skill_swap/services/skill_exchange_service.dart';
+import 'package:skill_swap/services/analytics_service.dart';
 
 class MyProfileScreen extends StatelessWidget {
   const MyProfileScreen({super.key});
@@ -31,11 +32,11 @@ class MyProfileScreen extends StatelessWidget {
       body: uid == null
           ? const _StateMessage(
               icon: Icons.lock_outline_rounded,
-              title: 'Profile unavailable',
-              message: 'Sign in again to view your profile.',
+              title: 'Profile Unavailable',
+              message: 'Sign In Again To View Your Profile.',
             )
-          : StreamBuilder<_ProfileData>(
-              stream: _ProfileDataService().watch(uid),
+          : StreamBuilder<AnalyticsData>(
+              stream: AnalyticsService().watchAnalytics(uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return _LoadingProfile();
@@ -43,7 +44,7 @@ class MyProfileScreen extends StatelessWidget {
                 if (snapshot.hasError) {
                   return _StateMessage(
                     icon: Icons.error_outline_rounded,
-                    title: 'Could not load profile',
+                    title: 'Could Not Load Profile',
                     message: snapshot.error.toString(),
                   );
                 }
@@ -52,8 +53,8 @@ class MyProfileScreen extends StatelessWidget {
                 if (data == null) {
                   return const _StateMessage(
                     icon: Icons.person_search_rounded,
-                    title: 'No profile data yet',
-                    message: 'Create a skill listing to start building your profile.',
+                    title: 'No Profile Data Yet',
+                    message: 'Create A Skill Listing To Start Building Your Profile.',
                   );
                 }
 
@@ -114,8 +115,8 @@ class _ProgressView extends StatelessWidget {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
 
-    return StreamBuilder<_ProfileData>(
-      stream: _ProfileDataService().watch(uid),
+    return StreamBuilder<AnalyticsData>(
+      stream: AnalyticsService().watchAnalytics(uid),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _LoadingProfile();
@@ -177,8 +178,8 @@ class _BadgesViewState extends State<_BadgesView> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
 
-    return StreamBuilder<_ProfileData>(
-      stream: _ProfileDataService().watch(uid),
+    return StreamBuilder<AnalyticsData>(
+      stream: AnalyticsService().watchAnalytics(uid),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return _LoadingProfile();
         if (snapshot.hasError) return _StateMessage(icon: Icons.error, title: 'Error', message: snapshot.error.toString());
@@ -204,7 +205,7 @@ class _BadgesViewState extends State<_BadgesView> {
               const _SectionHeader(title: 'Unlocked Badges'),
               const SizedBox(height: 10),
               if (unlocked.isEmpty)
-                const _EmptyCard(message: 'Your unlocked badges will appear here.')
+                const _EmptyCard(message: 'Your Unlocked Badges Will Appear Here.')
               else
                 ...unlocked.map((badge) => _BadgeTile(badge: badge)),
               const SizedBox(height: 18),
@@ -218,7 +219,7 @@ class _BadgesViewState extends State<_BadgesView> {
     );
   }
 
-  Future<void> _syncBadgeNotifications(String uid, _ProfileData data, List<_BadgeStatus> unlocked) async {
+  Future<void> _syncBadgeNotifications(String uid, AnalyticsData data, List<_BadgeStatus> unlocked) async {
     final db = FirebaseFirestore.instance;
     for (final badge in unlocked) {
       if (_syncing.contains(badge.id)) continue;
@@ -239,8 +240,8 @@ class _BadgesViewState extends State<_BadgesView> {
           'senderProfilePic': '',
           'receiverId': uid,
           'type': 'system',
-          'title': 'Badge unlocked',
-          'body': 'You unlocked ${badge.title}.',
+          'title': 'Badge Unlocked',
+          'body': 'You Unlocked ${badge.title}.',
           'data': {
             'badgeId': badge.id,
             'badgeTitle': badge.title,
@@ -262,7 +263,7 @@ class _BadgesViewState extends State<_BadgesView> {
 }
 
 class _ProfileContent extends StatelessWidget {
-  final _ProfileData data;
+  final AnalyticsData data;
 
   const _ProfileContent({required this.data});
 
@@ -279,7 +280,7 @@ class _ProfileContent extends StatelessWidget {
             _MetricGrid(
               items: [
                 _MetricItem('Rating', data.rating.toStringAsFixed(1), Icons.star_rounded),
-                _MetricItem('Total Swaps', '${data.totalSwaps}', Icons.swap_horiz_rounded),
+                _MetricItem('Total Swaps', '${data.completedSwaps}', Icons.swap_horiz_rounded),
                 _MetricItem('Skills Learned', '${data.skillsLearnedCount}', Icons.school_rounded),
                 _MetricItem('Skills Teaching', '${data.skillsTeachingCount}', Icons.record_voice_over_rounded),
               ],
@@ -325,7 +326,7 @@ class _ProfileContent extends StatelessWidget {
 }
 
 class _ProfileHeader extends StatelessWidget {
-  final _ProfileData data;
+  final AnalyticsData data;
 
   const _ProfileHeader({required this.data});
 
@@ -382,7 +383,7 @@ class _ProfileHeader extends StatelessWidget {
 }
 
 class _ProgressHero extends StatelessWidget {
-  final _ProfileData data;
+  final AnalyticsData data;
 
   const _ProgressHero({required this.data});
 
@@ -443,7 +444,7 @@ class _ProgressHero extends StatelessWidget {
 }
 
 class _ProfilePhoto extends StatelessWidget {
-  final _ProfileData data;
+  final AnalyticsData data;
   final double size;
 
   const _ProfilePhoto({required this.data, required this.size});
@@ -489,7 +490,7 @@ class _ProfilePhoto extends StatelessWidget {
 }
 
 class _Initials extends StatelessWidget {
-  final _ProfileData data;
+  final AnalyticsData data;
 
   const _Initials({required this.data});
 
@@ -890,7 +891,7 @@ class _SkillChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (skills.isEmpty) {
-      return const _EmptyCard(message: 'No skills available yet.');
+      return const _EmptyCard(message: 'No Skills Available Yet.');
     }
     return Container(
       width: double.infinity,
@@ -1132,263 +1133,10 @@ class _MetricItem {
   const _MetricItem(this.label, this.value, this.icon);
 }
 
-class _ProfileData {
-  final String uid;
-  final String name;
-  final String username;
-  final String initials;
-  final String? imageUrl;
-  final double rating;
-  final int totalSwaps;
-  final int completedSwaps;
-  final int xp;
-  final int level;
-  final double levelProgress;
-  final double successRate;
-  final List<String> skillsLearned;
-  final List<String> skillsTeaching;
-  final Map<String, int> weeklyActivity;
-  final Map<String, int> monthlyActivity;
-  final Map<String, double> skillGrowth;
-  final DateTime? firstActivityAt;
-  final DateTime? firstCompletedSwapAt;
 
-  const _ProfileData({
-    required this.uid,
-    required this.name,
-    required this.username,
-    required this.initials,
-    required this.imageUrl,
-    required this.rating,
-    required this.totalSwaps,
-    required this.completedSwaps,
-    required this.xp,
-    required this.level,
-    required this.levelProgress,
-    required this.successRate,
-    required this.skillsLearned,
-    required this.skillsTeaching,
-    required this.weeklyActivity,
-    required this.monthlyActivity,
-    required this.skillGrowth,
-    required this.firstActivityAt,
-    required this.firstCompletedSwapAt,
-  });
-
-  int get skillsLearnedCount => skillsLearned.length;
-  int get skillsTeachingCount => skillsTeaching.length;
-}
-
-class _ProfileDataService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final SkillExchangeService _exchangeService = SkillExchangeService();
-
-  Stream<_ProfileData> watch(String uid) {
-    late StreamController<_ProfileData> controller;
-    final subscriptions = <StreamSubscription>[];
-    DocumentSnapshot<Map<String, dynamic>>? userDoc;
-    QuerySnapshot<Map<String, dynamic>>? listingsSnap;
-    QuerySnapshot<Map<String, dynamic>>? swapsSnap;
-    QuerySnapshot<Map<String, dynamic>>? requestsSnap;
-    var rebalanceStarted = false;
-
-    void emit() {
-      if (listingsSnap == null || swapsSnap == null || requestsSnap == null || controller.isClosed) return;
-      controller.add(_buildProfileData(uid, userDoc, listingsSnap!, swapsSnap!, requestsSnap!));
-    }
-
-    controller = StreamController<_ProfileData>.broadcast(
-      onListen: () {
-        if (!rebalanceStarted) {
-          rebalanceStarted = true;
-          _exchangeService.rebalanceUser(uid).catchError((e) {
-            debugPrint('Error rebalancing profile skills: $e');
-          });
-        }
-        subscriptions.add(_db.collection('users').doc(uid).snapshots().listen((snap) {
-          userDoc = snap;
-          emit();
-        }, onError: controller.addError));
-        subscriptions.add(_db
-            .collection('swapListings')
-            .where('userId', isEqualTo: uid)
-            .snapshots()
-            .listen((snap) {
-          listingsSnap = snap;
-          emit();
-        }, onError: controller.addError));
-        subscriptions.add(_db
-            .collection('swaps')
-            .where('participants', arrayContains: uid)
-            .snapshots()
-            .listen((snap) {
-          swapsSnap = snap;
-          emit();
-        }, onError: controller.addError));
-        subscriptions.add(_db
-            .collection('swap_requests')
-            .where('participants', arrayContains: uid)
-            .snapshots()
-            .listen((snap) {
-          requestsSnap = snap;
-          emit();
-        }, onError: controller.addError));
-      },
-      onCancel: () async {
-        for (final sub in subscriptions) {
-          await sub.cancel();
-        }
-      },
-    );
-
-    return controller.stream;
-  }
-
-  _ProfileData _buildProfileData(
-    String uid,
-    DocumentSnapshot<Map<String, dynamic>>? userDoc,
-    QuerySnapshot<Map<String, dynamic>> listingsSnap,
-    QuerySnapshot<Map<String, dynamic>> swapsSnap,
-    QuerySnapshot<Map<String, dynamic>> requestsSnap,
-  ) {
-    final user = _auth.currentUser;
-    final userData = userDoc?.data() ?? {};
-    final listingMaps = listingsSnap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
-    final swapMaps = swapsSnap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
-    final requestMaps = requestsSnap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
-
-    String name = _stringValue(userData['name']);
-    if (name.isEmpty && listingMaps.isNotEmpty) name = _stringValue(listingMaps.first['name']);
-    if (name.isEmpty) name = user?.displayName ?? user?.email?.split('@').first ?? 'User';
-
-    String? imageUrl = _nullableString(userData['imageUrl']);
-    if ((imageUrl == null || imageUrl.isEmpty) && listingMaps.isNotEmpty) {
-      imageUrl = _nullableString(listingMaps.first['imageUrl']);
-    }
-    imageUrl ??= user?.photoURL;
-
-    final username = _username(userData, user);
-    final teachingSet = <String>{};
-    final learnedSet = <String>{};
-    final progressBySkill = <String, List<double>>{};
-    final activityDates = <DateTime>[];
-
-    for (final listing in listingMaps) {
-      final offering = _stringValue(listing['offering']);
-      if (offering.isNotEmpty) {
-        progressBySkill.putIfAbsent(offering, () => []).add(0.35);
-      }
-      final createdAt = _dateValue(listing['createdAt']);
-      if (createdAt != null) activityDates.add(createdAt);
-    }
-
-    final completedPairs = <String, List<Map<String, dynamic>>>{};
-    for (final swap in swapMaps) {
-      final skill = _stringValue(swap['skillName']);
-      final progress = _numValue(swap['progress']).clamp(0.0, 1.0).toDouble();
-      final status = _stringValue(swap['status']).toLowerCase();
-      if (skill.isNotEmpty) progressBySkill.putIfAbsent(skill, () => []).add(progress);
-      if (status == 'completed' || progress >= 1.0) {
-        completedPairs.putIfAbsent(_exchangeId(swap), () => []).add(swap);
-      }
-
-      final lastSessionAt = _dateValue(swap['lastSessionAt']);
-      final createdAt = _dateValue(swap['createdAt']);
-      if (lastSessionAt != null) activityDates.add(lastSessionAt);
-      if (createdAt != null) activityDates.add(createdAt);
-    }
-
-    int acceptedRequests = 0;
-    int closedRequests = 0;
-    for (final request in requestMaps) {
-      final status = _stringValue(request['status']).toLowerCase();
-      if (status == 'accepted' || status == 'completed') acceptedRequests++;
-      if (status == 'accepted' || status == 'completed' || status == 'rejected' || status == 'cancelled') {
-        closedRequests++;
-      }
-      final createdAt = _dateValue(request['createdAt']);
-      if (createdAt != null) activityDates.add(createdAt);
-    }
-
-    final completedExchangeIds = <String>{};
-    for (final entry in completedPairs.entries) {
-      final learned = entry.value
-          .where((swap) => _stringValue(swap['learnerId']) == uid)
-          .map((swap) => _stringValue(swap['skillName']))
-          .where((skill) => skill.isNotEmpty)
-          .toSet();
-      final taught = entry.value
-          .where((swap) => _stringValue(swap['mentorId']) == uid)
-          .map((swap) => _stringValue(swap['skillName']))
-          .where((skill) => skill.isNotEmpty)
-          .toSet();
-
-      if (learned.isNotEmpty && taught.isNotEmpty) {
-        learnedSet.add(learned.first);
-        teachingSet.add(taught.first);
-        completedExchangeIds.add(entry.key);
-      }
-    }
-
-    final balancedCount = math.min(learnedSet.length, teachingSet.length);
-    final learnedList = learnedSet.toList()..sort();
-    final teachingList = teachingSet.toList()..sort();
-    final balancedLearned = learnedList.take(balancedCount).toList();
-    final balancedTeaching = teachingList.take(balancedCount).toList();
-
-    final ratings = listingMaps.map((listing) => _numValue(listing['Rating'])).where((rating) => rating > 0).toList();
-    final rating = ratings.isEmpty ? 0.0 : ratings.reduce((a, b) => a + b) / ratings.length;
-    final totalSessions = swapMaps.fold<int>(0, (acc, swap) => acc + _intValue(swap['completedSessions']));
-    final totalSwaps = swapMaps.map(_exchangeId).toSet().length;
-    final completedSwaps = completedExchangeIds.length;
-    final xp = completedSwaps * 250 +
-        totalSessions * 60 +
-        acceptedRequests * 40 +
-        balancedTeaching.length * 90 +
-        balancedLearned.length * 110;
-    final level = (xp ~/ 1000) + 1;
-    final levelProgress = (xp % 1000) / 1000;
-    final successRate = closedRequests == 0 ? 0.0 : (acceptedRequests / closedRequests) * 100;
-    final skillGrowth = progressBySkill.map((skill, values) {
-      final average = values.isEmpty ? 0.0 : values.reduce((a, b) => a + b) / values.length;
-      return MapEntry(skill, average.clamp(0.0, 1.0).toDouble());
-    });
-
-    activityDates.sort();
-    final firstCompleted = swapMaps
-        .where((swap) => _stringValue(swap['status']).toLowerCase() == 'completed' || _numValue(swap['progress']) >= 1.0)
-        .map((swap) => _dateValue(swap['lastSessionAt']) ?? _dateValue(swap['createdAt']))
-        .whereType<DateTime>()
-        .toList()
-      ..sort();
-
-    return _ProfileData(
-      uid: uid,
-      name: name,
-      username: username,
-      initials: _initials(name),
-      imageUrl: imageUrl,
-      rating: rating,
-      totalSwaps: totalSwaps,
-      completedSwaps: completedSwaps,
-      xp: xp,
-      level: level,
-      levelProgress: levelProgress,
-      successRate: successRate.clamp(0.0, 100.0).toDouble(),
-      skillsLearned: balancedLearned,
-      skillsTeaching: balancedTeaching,
-      weeklyActivity: _weeklyActivity(activityDates),
-      monthlyActivity: _monthlyActivity(activityDates),
-      skillGrowth: skillGrowth,
-      firstActivityAt: activityDates.isEmpty ? null : activityDates.first,
-      firstCompletedSwapAt: firstCompleted.isEmpty ? null : firstCompleted.first,
-    );
-  }
-}
 
 class _BadgeCatalog {
-  static List<_BadgeStatus> evaluate(_ProfileData data) {
+  static List<_BadgeStatus> evaluate(AnalyticsData data) {
     final badges = [
       _BadgeRule(
         id: 'first_swap',
@@ -1518,7 +1266,7 @@ BoxDecoration _cardDecoration(BuildContext context) {
   );
 }
 
-Future<void> _openEditProfile(BuildContext context, _ProfileData data) async {
+Future<void> _openEditProfile(BuildContext context, AnalyticsData data) async {
   final db = FirebaseFirestore.instance;
   final snap = await db.collection('swapListings').where('userId', isEqualTo: data.uid).limit(1).get();
   if (!context.mounted) return;
@@ -1533,7 +1281,7 @@ Future<void> _openEditProfile(BuildContext context, _ProfileData data) async {
   await Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfileScreen(swap: fallback)));
 }
 
-SwapListing _swapFromProfile(_ProfileData data) {
+SwapListing _swapFromProfile(AnalyticsData data) {
   return SwapListing(
     id: data.uid,
     name: data.name,
@@ -1542,86 +1290,18 @@ SwapListing _swapFromProfile(_ProfileData data) {
     offering: data.skillsTeaching.isNotEmpty ? data.skillsTeaching.first : '',
     wanting: data.skillsLearned.isNotEmpty ? data.skillsLearned.first : '',
     rating: data.rating,
-    reviews: data.totalSwaps,
+    reviews: data.completedSwaps,
     category: 'All',
     userId: data.uid,
     imageUrl: data.imageUrl,
   );
 }
 
-String _username(Map<String, dynamic> userData, User? user) {
-  final stored = _stringValue(userData['username']);
-  if (stored.isNotEmpty) return stored.startsWith('@') ? stored : '@$stored';
-  final emailName = user?.email?.split('@').first ?? '';
-  if (emailName.isNotEmpty) return '@$emailName';
-  return '@skillswapper';
-}
-
-String _initials(String name) {
-  final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-  if (parts.isEmpty) return '?';
-  if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-  return '${parts.first.substring(0, 1)}${parts[1].substring(0, 1)}'.toUpperCase();
-}
-
 String _stringValue(dynamic value) => value?.toString().trim() ?? '';
-
-String _exchangeId(Map<String, dynamic> swap) {
-  final explicit = _stringValue(swap['exchangeId']);
-  if (explicit.isNotEmpty) return explicit;
-  final requestId = _stringValue(swap['requestId']);
-  if (requestId.isNotEmpty) return requestId;
-  return _stringValue(swap['id']);
-}
-
-String? _nullableString(dynamic value) {
-  final text = _stringValue(value);
-  return text.isEmpty ? null : text;
-}
 
 double _numValue(dynamic value) {
   if (value is num) return value.toDouble();
   return double.tryParse(value?.toString() ?? '') ?? 0.0;
-}
-
-int _intValue(dynamic value) => _numValue(value).round();
-
-DateTime? _dateValue(dynamic value) {
-  if (value is Timestamp) return value.toDate();
-  if (value is DateTime) return value;
-  if (value is String) return DateTime.tryParse(value);
-  return null;
-}
-
-Map<String, int> _weeklyActivity(List<DateTime> dates) {
-  const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  final now = DateTime.now();
-  final start = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
-  final result = {for (final label in labels) label: 0};
-  for (final date in dates) {
-    final day = DateTime(date.year, date.month, date.day);
-    final diff = day.difference(start).inDays;
-    if (diff >= 0 && diff < 7) {
-      result[labels[diff]] = result[labels[diff]]! + 1;
-    }
-  }
-  return result;
-}
-
-Map<String, int> _monthlyActivity(List<DateTime> dates) {
-  final now = DateTime.now();
-  final result = <String, int>{};
-  for (int i = 5; i >= 0; i--) {
-    final month = DateTime(now.year, now.month - i, 1);
-    result[_monthLabel(month.month)] = 0;
-  }
-  for (final date in dates) {
-    final key = _monthLabel(date.month);
-    if (result.containsKey(key) && DateTime(now.year, now.month - 5, 1).isBefore(DateTime(date.year, date.month + 1, 1))) {
-      result[key] = result[key]! + 1;
-    }
-  }
-  return result;
 }
 
 String _monthLabel(int month) {

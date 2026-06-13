@@ -228,7 +228,7 @@ class _StatMini extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value.toUpperCase(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.bold)),
+        Text(value, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.bold)),
         SizedBox(height: 4),
         Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 10)),
       ],

@@ -219,23 +219,6 @@ class SessionInviteCard extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(BuildContext context, String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return Colors.orangeAccent;
-      case 'accepted':
-        return Theme.of(context).colorScheme.primary;
-      case 'completed':
-        return Colors.greenAccent;
-      case 'rejected':
-        return Colors.redAccent;
-      case 'cancelled':
-        return Colors.redAccent;
-      default:
-        return Colors.grey;
-    }
-  }
-
   Future<void> _openMeetingLink(
     BuildContext context,
     String meetingLink,
