@@ -43,7 +43,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('sessions'.tr(),
+                      Text('Sessions'.tr(),
                           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
                       if (isMentor)
                         GestureDetector(
@@ -61,7 +61,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                               children: [
                                 Icon(Icons.add, color: Theme.of(context).colorScheme.primary, size: 16),
                                 SizedBox(width: 4),
-                                Text('add_session'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                                Text('Add Session'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
@@ -123,7 +123,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('overall_progress'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
+              Text('Overall Progress'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
               Text('${(widget.swap.progress * 100).toInt()}%', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 18, fontWeight: FontWeight.bold)),
             ],
           ),
@@ -141,11 +141,11 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _StatMini(label: 'completed'.tr(), value: widget.swap.completedSessions.toString()),
+              _StatMini(label: 'Completed'.tr(), value: widget.swap.completedSessions.toString()),
               Container(width: 1, height: 30, color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6)),
-              _StatMini(label: 'total'.tr(), value: widget.swap.totalSessions.toString()),
+              _StatMini(label: 'Total'.tr(), value: widget.swap.totalSessions.toString()),
               Container(width: 1, height: 30, color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6)),
-              _StatMini(label: 'status'.tr(), value: widget.swap.status),
+              _StatMini(label: 'Status'.tr(), value: widget.swap.status),
             ],
           ),
         ],
@@ -157,7 +157,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('details'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+        Text('Details'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
         SizedBox(height: 16),
         StreamBuilder<ChatUserProfile>(
           stream: ChatUserService().getUserProfile(widget.swap.mentorId),
@@ -166,7 +166,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
             if (snapshot.hasData && snapshot.data!.name.isNotEmpty && snapshot.data!.name != 'Unknown User') {
               mentorName = snapshot.data!.name;
             }
-            return _InfoRow(label: 'mentor'.tr(), value: mentorName);
+            return _InfoRow(label: 'Mentor'.tr(), value: mentorName);
           },
         ),
         SizedBox(height: 12),
@@ -177,11 +177,11 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
             if (snapshot.hasData && snapshot.data!.name.isNotEmpty && snapshot.data!.name != 'Unknown User') {
               learnerName = snapshot.data!.name;
             }
-            return _InfoRow(label: 'learner'.tr(), value: learnerName);
+            return _InfoRow(label: 'Learner'.tr(), value: learnerName);
           },
         ),
         SizedBox(height: 12),
-        _InfoRow(label: 'started'.tr(), value: 'May 12, 2026'),
+        _InfoRow(label: 'Started'.tr(), value: 'May 12, 2026'),
       ],
     );
   }
@@ -201,7 +201,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
 
         final docs = snapshot.data?.docs ?? [];
         if (docs.isEmpty) {
-          return Center(child: Text('no_sessions_yet'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65))));
+          return Center(child: Text('No Sessions Yet'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65))));
         }
 
         return ListView.separated(

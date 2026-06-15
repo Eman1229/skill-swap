@@ -173,7 +173,8 @@ class _PrimaryBtn extends StatelessWidget {
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         ),
-        child: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
+        child: Text(label, style: TextStyle(color:
+        Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
       ),
     );
   }

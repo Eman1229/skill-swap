@@ -15,6 +15,68 @@ import 'package:skill_swap/services/notification_repository.dart';
 import 'package:skill_swap/models/session_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+// ─────────────────────────────────────────────────────────────────────
+// ANIMATED GRADIENT BORDER WIDGET
+// ─────────────────────────────────────────────────────────────────────
+class AnimatedGradientBorder extends StatefulWidget {
+  final Widget child;
+  const AnimatedGradientBorder({super.key, required this.child});
+
+  @override
+  State<AnimatedGradientBorder> createState() => _AnimatedGradientBorderState();
+}
+
+class _AnimatedGradientBorderState extends State<AnimatedGradientBorder>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (_, __) {
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: SweepGradient(
+              transform: GradientRotation(_controller.value * 6.2832),
+              colors: const [
+                Color(0xFF3B82F6),  // blue
+                Color(0xFF6A5CFF),  // medium purple
+                Color(0xFF4B0082),  // deep purple
+                Color(0xFF6A5CFF),  // medium purple
+                Color(0xFF3B82F6),  // blue
+              ],
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(1.7),
+            child: widget.child,
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// SWAP LISTING MODEL
+// ─────────────────────────────────────────────────────────────────────
 class SwapListing {
   final String id;
   final String name;
@@ -61,7 +123,7 @@ class SwapListing {
         : (parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?');
     final Color color = d['avatarColor'] != null
         ? Color(d['avatarColor'] as int)
-        : Color(0xFF6B8AFF);
+        : const Color(0xFF6B8AFF);
 
     return SwapListing(
       id: doc.id,
@@ -84,6 +146,9 @@ class SwapListing {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// MAIN SCREEN
+// ─────────────────────────────────────────────────────────────────────
 class SwappingAvailable extends StatefulWidget {
   SwappingAvailable({Key? key}) : super(key: key);
 
@@ -100,9 +165,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   String _userName = 'User';
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-
   String? _cachedImageUrl;
-
   List<SwapListing> _allSwaps = [];
 
   final List<String> _categories = [
@@ -223,7 +286,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('No skill listing found for your profile.'),
+          content: const Text('No skill listing found for your profile.'),
           backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
@@ -239,6 +302,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // BUILD
+  // ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final double screenHeight = MediaQuery.of(context).size.height;
@@ -254,7 +320,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         body: _buildBody(screenHeight),
         bottomNavigationBar: BottomAppBar(
           color: Theme.of(context).colorScheme.surface,
-          shape: CircularNotchedRectangle(),
+          shape: const CircularNotchedRectangle(),
           notchMargin: 10,
           child: SizedBox(
             height: 60,
@@ -275,7 +341,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   selected: _selectedIndex == 1,
                   onTap: () => setState(() => _selectedIndex = 1),
                 ),
-                SizedBox(width: 48),
+                const SizedBox(width: 48),
                 _NavItem(
                   icon: Icons.swap_vert_rounded,
                   activeIcon: Icons.swap_vert_rounded,
@@ -299,7 +365,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             gradient: LinearGradient(
               colors: [
                 Theme.of(context).colorScheme.primary,
-                Color(0xFF6B8AFF),
+                const Color(0xFF6B8AFF),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -315,7 +381,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             },
             backgroundColor: Colors.transparent,
             elevation: 0,
-            shape: CircleBorder(),
+            shape: const CircleBorder(),
             child: Icon(
               Icons.add,
               color: Theme.of(context).colorScheme.onSurface,
@@ -328,6 +394,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // BODY
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildBody(double screenHeight) {
     switch (_selectedIndex) {
       case 1:
@@ -341,7 +410,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         return SafeArea(
           child: Column(
             children: [
-              // ── Header (profile stream) ──────────────────────────────
+              // ── Header ──────────────────────────────────────────
               StreamBuilder<DocumentSnapshot?>(
                 stream: _myListingStream,
                 builder: (context, snapshot) {
@@ -349,11 +418,11 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   String liveInitials = _initials;
 
                   if (snapshot.hasData && snapshot.data != null) {
-                    final data = snapshot.data!.data() as Map<String, dynamic>?;
-                    _userName =
-                        (data?['name'] as String?) ??
-                            _auth.currentUser?.email?.split('@').first ??
-                            'User';
+                    final data =
+                    snapshot.data!.data() as Map<String, dynamic>?;
+                    _userName = (data?['name'] as String?) ??
+                        _auth.currentUser?.email?.split('@').first ??
+                        'User';
                     liveImageUrl = data?['imageUrl'] as String?;
                     _handleImageUrlChange(liveImageUrl);
 
@@ -370,7 +439,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                 },
               ),
 
-              // ── Swaps list (stable stream) ───────────────────────────
+              // ── Swaps list ───────────────────────────────────────
               Expanded(
                 child: StreamBuilder<List<SwapListing>>(
                   stream: _categoryStream,
@@ -388,41 +457,37 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                         child: Text(
                           'Error: ${snapshot.error}',
                           style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
                           ),
                         ),
                       );
                     }
 
                     _allSwaps = snapshot.data ?? [];
-
                     final swaps = _filteredSwaps;
 
                     return SingleChildScrollView(
-                      physics: BouncingScrollPhysics(),
-                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(height: 22),
-
-                          // SEARCH BAR
+                          const SizedBox(height: 22),
                           _buildSearchBar(),
-                          SizedBox(height: 20),
-
-                          // CATEGORY CHIPS
+                          const SizedBox(height: 20),
                           _buildCategoryChips(),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
 
-                          // AI RECOMMENDATION CARD
+                          // ✅ AI CARD WITH ANIMATED BORDER
                           _buildAIRecommendationCard(),
-                          SizedBox(height: 26),
+                          const SizedBox(height: 26),
 
                           if (swaps.isNotEmpty) ...[
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
                               children: [
                                 _SectionTitle(title: 'Featured Swaps'),
                                 GestureDetector(
@@ -435,9 +500,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                                   child: Text(
                                     'See all',
                                     style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -445,55 +510,79 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                                 ),
                               ],
                             ),
-                            SizedBox(height: 14),
-
-                            // HORIZONTAL SWAP CARDS
+                            const SizedBox(height: 14),
                             SizedBox(
-                              height: 250,
+                              height: 230,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: swaps.length,
                                 separatorBuilder: (_, __) =>
-                                    SizedBox(width: 14),
+                                const SizedBox(width: 14),
                                 itemBuilder: (_, i) =>
                                     HorizontalSwapCard(swap: swaps[i]),
                               ),
                             ),
-
-                            SizedBox(height: 30),
+                            const SizedBox(height: 30),
                             _SectionTitle(title: 'Active Swap Sessions'),
-                            SizedBox(height: 14),
+                            const SizedBox(height: 14),
                             StreamBuilder<List<SessionModel>>(
                               stream: _acceptedSessionsStream,
                               builder: (context, sessionSnapshot) {
                                 if (sessionSnapshot.hasError) {
                                   return Container(
-                                    padding: EdgeInsets.all(16),
+                                    padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primary.withAlpha(25),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: Theme.of(context).colorScheme.primary.withAlpha(76)),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withAlpha(25),
+                                      borderRadius:
+                                      BorderRadius.circular(16),
+                                      border: Border.all(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                              .withAlpha(76)),
                                     ),
                                     child: Column(
                                       children: [
-                                        Icon(Icons.info_outline_rounded, color: Theme.of(context).colorScheme.primary),
-                                        SizedBox(height: 8),
-                                        Text('Preparing sessions...', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
-                                        SizedBox(height: 4),
-                                        Text('Your sessions will appear here shortly once database indexing is complete. ${sessionSnapshot.error}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12), textAlign: TextAlign.center),
+                                        Icon(Icons.info_outline_rounded,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Preparing sessions...',
+                                          style: TextStyle(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Your sessions will appear here shortly once database indexing is complete. ${sessionSnapshot.error}',
+                                          style: TextStyle(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                              fontSize: 12),
+                                          textAlign: TextAlign.center,
+                                        ),
                                       ],
                                     ),
                                   );
                                 }
-                                final sessions = sessionSnapshot.data ?? [];
+                                final sessions =
+                                    sessionSnapshot.data ?? [];
                                 if (sessionSnapshot.connectionState ==
                                     ConnectionState.waiting &&
                                     !sessionSnapshot.hasData) {
                                   return Center(
                                     child: CircularProgressIndicator(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
                                     ),
                                   );
                                 }
@@ -504,8 +593,10 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                                   children: sessions
                                       .map(
                                         (s) => Padding(
-                                      padding: EdgeInsets.only(bottom: 12),
-                                      child: _LiveSessionCard(session: s),
+                                      padding: const EdgeInsets.only(
+                                          bottom: 12),
+                                      child: _LiveSessionCard(
+                                          session: s),
                                     ),
                                   )
                                       .toList(),
@@ -513,11 +604,11 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                               },
                             ),
                           ] else ...[
-                            SizedBox(height: 40),
+                            const SizedBox(height: 40),
                             _buildEmptyHomeState(),
                           ],
 
-                          SizedBox(height: 100),
+                          const SizedBox(height: 100),
                         ],
                       ),
                     );
@@ -530,50 +621,31 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     }
   }
 
-  // ── AI RECOMMENDATION CARD ──────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────
+  //  AI RECOMMENDATION CARD — animated border + blue icon + blue link
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildAIRecommendationCard() {
-    // Gradient colours used throughout the card
-    const Color gradStart = Color(0xFF3B82F6); // blue
-    const Color gradEnd   = Color(0xFF8B5CF6); // purple
-
-    return Container(
-      width: double.infinity,
-      // Gradient border via outer Container + inner Container trick
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          colors: [gradStart, gradEnd],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+    return AnimatedGradientBorder(
       child: Container(
-        margin: const EdgeInsets.all(1.5), // border thickness
+        width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(17),
-          color: const Color(0xFF111827),
+          borderRadius: BorderRadius.circular(18),
+          color: const Color(0xFF101827),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                // Bot / robot icon
-                ShaderMask(
-                  shaderCallback: (bounds) => LinearGradient(
-                    colors: [gradStart, gradEnd],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ).createShader(bounds),
-                  child: Icon(
-                    Icons.smart_toy_rounded,
-                    color: Colors.white, // masked by shader
-                    size: 22,
-                  ),
+                //  Solid blue robot icon
+                const Icon(
+                  Icons.smart_toy_rounded,
+                  color: Color(0xFF2EA7FF),
+                  size: 24,
                 ),
-                SizedBox(width: 8),
-                Text(
+                const SizedBox(width: 8),
+                const Text(
                   'AI Smart Match',
                   style: TextStyle(
                     color: Colors.white,
@@ -581,53 +653,38 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     fontSize: 15,
                   ),
                 ),
-                Spacer(),
-                // Gradient-border accuracy badge
+                const Spacer(),
+                //  Dark pill accuracy badge
                 Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: LinearGradient(
-                      colors: [gradStart, gradEnd],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
                   ),
-                  child: Container(
-                    margin: const EdgeInsets.all(1.2),
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(19),
-                      color: const Color(0xFF111827),
-                    ),
-                    child: ShaderMask(
-                      shaderCallback: (bounds) => LinearGradient(
-                        colors: [gradStart, gradEnd],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ).createShader(bounds),
-                      child: Text(
-                        '96% ACCURACY',
-                        style: TextStyle(
-                          color: Colors.white, // masked by shader
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1F2937),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    '96% ACCURACY',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 12),
-            Text(
+            const SizedBox(height: 12),
+            const Text(
               'We analyzed your profile and found 3 perfect mentors for your current learning path.',
               style: TextStyle(
                 color: Colors.white70,
                 fontSize: 12,
               ),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
+            //  Solid blue link
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -635,19 +692,12 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   MaterialPageRoute(builder: (_) => SeeAllScreen()),
                 );
               },
-              child: ShaderMask(
-                shaderCallback: (bounds) => LinearGradient(
-                  colors: [gradStart, gradEnd],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ).createShader(bounds),
-                child: Text(
-                  'View AI Recommendations →',
-                  style: TextStyle(
-                    color: Colors.white, // masked by shader
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
+              child: const Text(
+                'View AI Recommendations →',
+                style: TextStyle(
+                  color: Color(0xFF2EA7FF),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
                 ),
               ),
             ),
@@ -657,6 +707,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // EMPTY HOME STATE
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildEmptyHomeState() {
     return Center(
       child: Column(
@@ -667,7 +720,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             color: Theme.of(context).colorScheme.primary,
             size: 64,
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Text(
             'No swaps available',
             style: TextStyle(
@@ -676,13 +729,14 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'Check back later or offer a skill yourself!',
             style: TextStyle(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurfaceVariant
+                  .withOpacity(0.65),
               fontSize: 14,
             ),
           ),
@@ -691,22 +745,29 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     );
   }
 
-  Widget _buildHeader(double screenHeight, String? imageUrl, String initials) {
+  // ─────────────────────────────────────────────────────────────────
+  // HEADER
+  // ─────────────────────────────────────────────────────────────────
+  Widget _buildHeader(
+      double screenHeight, String? imageUrl, String initials) {
     return Container(
       width: double.infinity,
       height: screenHeight * 0.16,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
+          colors: [
+            Theme.of(context).colorScheme.primary,
+            const Color(0xFF6B8AFF),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.only(
+        borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(28),
           bottomRight: Radius.circular(28),
         ),
       ),
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -714,7 +775,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const MyProfileScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const MyProfileScreen()),
               );
             },
             child: Row(
@@ -737,7 +799,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     child: Text(
                       initials,
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
+                        color:
+                        Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
@@ -752,7 +815,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                       fit: BoxFit.cover,
                       cacheWidth: 300,
                       cacheHeight: 300,
-                      loadingBuilder: (context, child, loadingProgress) {
+                      loadingBuilder:
+                          (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
                         return Center(
                           child: SizedBox(
@@ -760,9 +824,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface,
                             ),
                           ),
                         );
@@ -771,9 +835,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                         child: Text(
                           initials,
                           style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface,
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
                           ),
@@ -782,7 +846,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     ),
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -797,10 +861,10 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
-                    Text(
+                    const Text(
                       'Keep growing every day!',
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: Colors.white,
                         fontSize: 12,
                       ),
                     ),
@@ -809,12 +873,13 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               ],
             ),
           ),
-          Spacer(),
+          const Spacer(),
           GestureDetector(
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const NotificationsScreen()),
               );
             },
             child: Stack(
@@ -823,9 +888,10 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withAlpha(51),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withAlpha(51),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -848,7 +914,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                           color: const Color(0xFFEF4444),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Theme.of(context).scaffoldBackgroundColor,
+                            color: Theme.of(context)
+                                .scaffoldBackgroundColor,
                             width: 1.5,
                           ),
                         ),
@@ -877,6 +944,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // SEARCH BAR
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildSearchBar() {
     return Container(
       height: 50,
@@ -889,7 +959,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       ),
       child: TextField(
         controller: _searchController,
-        onChanged: (value) => setState(() => _searchQuery = value.trim()),
+        onChanged: (value) =>
+            setState(() => _searchQuery = value.trim()),
         style: TextStyle(
           color: Theme.of(context).colorScheme.onSurface,
           fontSize: 14,
@@ -897,9 +968,10 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         decoration: InputDecoration(
           hintText: 'Search skills or topic...',
           hintStyle: TextStyle(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+            color: Theme.of(context)
+                .colorScheme
+                .onSurfaceVariant
+                .withOpacity(0.65),
             fontSize: 14,
           ),
           prefixIcon: Icon(
@@ -910,7 +982,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               ? IconButton(
             icon: Icon(
               Icons.close,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color:
+              Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             onPressed: () {
               _searchController.clear();
@@ -919,19 +992,23 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           )
               : null,
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: 18, vertical: 14),
         ),
       ),
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // CATEGORY CHIPS
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildCategoryChips() {
     return SizedBox(
       height: 36,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _categories.length,
-        separatorBuilder: (_, __) => SizedBox(width: 10),
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final selected = _selectedCategory == index;
           return GestureDetector(
@@ -943,25 +1020,31 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               });
             },
             child: AnimatedContainer(
-              duration: Duration(milliseconds: 200),
-              padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
                 gradient: selected
                     ? LinearGradient(
                   colors: [
                     Theme.of(context).colorScheme.primary,
-                    Color(0xFF6B8AFF),
+                    const Color(0xFF6B8AFF),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
                     : null,
-                color: selected ? null : Theme.of(context).colorScheme.surface,
+                color: selected
+                    ? null
+                    : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: selected
                       ? Colors.transparent
-                      : Theme.of(context).colorScheme.primary.withOpacity(0.25),
+                      : Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withOpacity(0.25),
                 ),
               ),
               child: Text(
@@ -971,7 +1054,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                       ? Theme.of(context).colorScheme.onSurface
                       : Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 13,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: selected
+                      ? FontWeight.w600
+                      : FontWeight.normal,
                 ),
               ),
             ),
@@ -981,15 +1066,19 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // EMPTY SESSIONS
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildEmptySessions() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: 32),
+      padding: const EdgeInsets.symmetric(vertical: 32),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+          color:
+          Theme.of(context).colorScheme.primary.withOpacity(0.15),
         ),
       ),
       child: Column(
@@ -1001,24 +1090,28 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: [
-                  Theme.of(context).colorScheme.primary.withOpacity(0.15),
-                  Color(0xFF6B8AFF).withOpacity(0.15),
+                  Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withOpacity(0.15),
+                  const Color(0xFF6B8AFF).withOpacity(0.15),
                 ],
               ),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.downloading_outlined,
               color: Color(0xFF6B8AFF),
               size: 26,
             ),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
             'Nothing live yet',
             style: TextStyle(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurfaceVariant
+                  .withOpacity(0.65),
               fontSize: 13,
             ),
           ),
@@ -1029,11 +1122,10 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// HORIZONTAL SWAP CARD (NEW)
+// HORIZONTAL SWAP CARD
 // ─────────────────────────────────────────────────────────────────────
 class HorizontalSwapCard extends StatelessWidget {
   final SwapListing swap;
-
   const HorizontalSwapCard({super.key, required this.swap});
 
   @override
@@ -1047,7 +1139,7 @@ class HorizontalSwapCard extends StatelessWidget {
       },
       child: Container(
         width: 180,
-        padding: EdgeInsets.all(14),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(18),
@@ -1056,16 +1148,16 @@ class HorizontalSwapCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).colorScheme.primary.withAlpha(13),
+              color:
+              Theme.of(context).colorScheme.primary.withAlpha(13),
               blurRadius: 16,
-              offset: Offset(0, 6),
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Avatar
             Container(
               width: 44,
               height: 44,
@@ -1084,8 +1176,9 @@ class HorizontalSwapCard extends StatelessWidget {
                     child: Text(
                       swap.initials,
                       style: TextStyle(
-                        color:
-                        Theme.of(context).colorScheme.onSurface,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -1097,17 +1190,15 @@ class HorizontalSwapCard extends StatelessWidget {
                 child: Text(
                   swap.initials,
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color:
+                    Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
                 ),
               ),
             ),
-
-            SizedBox(height: 12),
-
-            // Name
+            const SizedBox(height: 12),
             Text(
               swap.name,
               maxLines: 1,
@@ -1118,36 +1209,31 @@ class HorizontalSwapCard extends StatelessWidget {
                 fontSize: 14,
               ),
             ),
-
-            SizedBox(height: 4),
-
-            // Offering
+            const SizedBox(height: 4),
             Row(
               children: [
                 Icon(
                   Icons.school_rounded,
                   size: 12,
-                  color:
-                  Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     swap.offering,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant,
                       fontSize: 11,
                     ),
                   ),
                 ),
               ],
             ),
-
-            SizedBox(height: 10),
-
-            // Wanting label
+            const SizedBox(height: 10),
             Text(
               'Looking for:',
               style: TextStyle(
@@ -1158,10 +1244,7 @@ class HorizontalSwapCard extends StatelessWidget {
                 fontSize: 11,
               ),
             ),
-
-            SizedBox(height: 4),
-
-            // Wanting value
+            const SizedBox(height: 4),
             Text(
               swap.wanting,
               maxLines: 2,
@@ -1171,18 +1254,15 @@ class HorizontalSwapCard extends StatelessWidget {
                 fontSize: 12,
               ),
             ),
-
-            Spacer(),
-
-            // Rating row
+            const Spacer(),
             Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.star_rounded,
                   color: Color(0xFFFBBF24),
                   size: 16,
                 ),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text(
                   swap.rating.toStringAsFixed(1),
                   style: TextStyle(
@@ -1191,7 +1271,7 @@ class HorizontalSwapCard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text(
                   '(${swap.reviews})',
                   style: TextStyle(
@@ -1203,7 +1283,7 @@ class HorizontalSwapCard extends StatelessWidget {
                   ),
                 ),
                 if (swap.isLive) ...[
-                  Spacer(),
+                  const Spacer(),
                   _LiveBadge(),
                 ],
               ],
@@ -1220,7 +1300,7 @@ class HorizontalSwapCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────
 class _LiveSessionCard extends StatelessWidget {
   final SessionModel session;
-  _LiveSessionCard({required this.session});
+  const _LiveSessionCard({required this.session});
 
   String _formatDateTime(BuildContext context) {
     return '${session.date.day}/${session.date.month}/${session.date.year} at ${TimeOfDay.fromDateTime(session.date).format(context)}';
@@ -1229,28 +1309,24 @@ class _LiveSessionCard extends StatelessWidget {
   Future<void> _openMeetingLink(BuildContext context) async {
     final meetingLink = session.meetingLink.trim();
     if (meetingLink.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('No meeting link available.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No meeting link available.')));
       return;
     }
-
     final uri = Uri.tryParse(
       meetingLink.contains('://') ? meetingLink : 'https://$meetingLink',
     );
     if (uri == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Invalid meeting link.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid meeting link.')));
       return;
     }
-
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    final launched =
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!context.mounted) return;
     if (!launched) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Could not open meeting link.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open meeting link.')));
     }
   }
 
@@ -1265,14 +1341,16 @@ class _LiveSessionCard extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.25),
+          color:
+          Theme.of(context).colorScheme.primary.withOpacity(0.25),
         ),
       ),
       child: InkWell(
         onTap: () => _openMeetingLink(context),
         borderRadius: BorderRadius.circular(18),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
               Container(
@@ -1293,7 +1371,7 @@ class _LiveSessionCard extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1306,11 +1384,13 @@ class _LiveSessionCard extends StatelessWidget {
                         fontSize: 13,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       '${_formatDateTime(context)} - ${session.meetingLink}',
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurfaceVariant,
                         fontSize: 11,
                       ),
                       maxLines: 1,
@@ -1332,18 +1412,20 @@ class _LiveSessionCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// SHARED SMALL WIDGETS
+// LIVE BADGE
 // ─────────────────────────────────────────────────────────────────────
 class _LiveBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+        color:
+        Theme.of(context).colorScheme.primary.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
+          color:
+          Theme.of(context).colorScheme.primary.withOpacity(0.4),
         ),
       ),
       child: Row(
@@ -1357,7 +1439,7 @@ class _LiveBadge extends StatelessWidget {
               shape: BoxShape.circle,
             ),
           ),
-          SizedBox(width: 4),
+          const SizedBox(width: 4),
           Text(
             'Live',
             style: TextStyle(
@@ -1372,17 +1454,23 @@ class _LiveBadge extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// GRADIENT BUTTON
+// ─────────────────────────────────────────────────────────────────────
 class _GradientButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  _GradientButton({required this.label, required this.onTap});
+  const _GradientButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
+          colors: [
+            Theme.of(context).colorScheme.primary,
+            const Color(0xFF6B8AFF),
+          ],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
@@ -1391,7 +1479,8 @@ class _GradientButton extends StatelessWidget {
       child: TextButton(
         onPressed: onTap,
         style: TextButton.styleFrom(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
@@ -1413,7 +1502,7 @@ class _GradientButton extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────
 class _SectionTitle extends StatelessWidget {
   final String title;
-  _SectionTitle({required this.title});
+  const _SectionTitle({required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -1426,7 +1515,7 @@ class _SectionTitle extends StatelessWidget {
             gradient: LinearGradient(
               colors: [
                 Theme.of(context).colorScheme.primary,
-                Color(0xFF6B8AFF),
+                const Color(0xFF6B8AFF),
               ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -1434,7 +1523,7 @@ class _SectionTitle extends StatelessWidget {
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        SizedBox(width: 10),
+        const SizedBox(width: 10),
         Text(
           title,
           style: TextStyle(
@@ -1458,7 +1547,7 @@ class _NavItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  _NavItem({
+  const _NavItem({
     required this.icon,
     required this.activeIcon,
     required this.label,
@@ -1478,22 +1567,25 @@ class _NavItem extends StatelessWidget {
             selected ? activeIcon : icon,
             color: selected
                 ? Theme.of(context).colorScheme.primary
-                : Theme.of(
-              context,
-            ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+                : Theme.of(context)
+                .colorScheme
+                .onSurfaceVariant
+                .withOpacity(0.65),
             size: 24,
           ),
-          SizedBox(height: 3),
+          const SizedBox(height: 3),
           Text(
             label,
             style: TextStyle(
               color: selected
                   ? Theme.of(context).colorScheme.primary
-                  : Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+                  : Theme.of(context)
+                  .colorScheme
+                  .onSurfaceVariant
+                  .withOpacity(0.65),
               fontSize: 10,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              fontWeight:
+              selected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
         ],

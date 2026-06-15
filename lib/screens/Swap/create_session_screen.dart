@@ -131,7 +131,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('session_invite_sent'.tr()),
+            content: Text('Session Invite Sent'.tr()),
             backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
@@ -173,7 +173,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel('session_title'.tr(), required: true),
+                      _buildLabel('Session Title'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildTextField(
                         _titleController,
@@ -185,7 +185,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                       ),
                       SizedBox(height: 20),
 
-                      _buildLabel('duration'.tr(), required: true),
+                      _buildLabel('Duration'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildTextField(
                         _durationController,
@@ -209,14 +209,14 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                       ),
                       SizedBox(height: 20),
 
-                      _buildLabel('date_and_time'.tr(), required: true),
+                      _buildLabel('Date and Time'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildDateTimePicker(),
                       SizedBox(height: 20),
 
                       _buildLabel('Session Agenda'),
                       SizedBox(height: 8),
-                      // ✅ Stack places icon exactly where text cursor starts
+                      //Stack places icon exactly where text cursor starts
                       Stack(
                         children: [
                           _buildAgendaField(),
@@ -275,7 +275,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           ),
           SizedBox(width: 14),
           Text(
-            'create_session'.tr(),
+            'Create Session'.tr(),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontSize: 18,
@@ -354,8 +354,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       ),
     );
   }
-
-  // ✅ No prefixIcon — icon is placed via Stack, left:44 pushes text past icon
   Widget _buildAgendaField() {
     return TextFormField(
       controller: _agendaController,
@@ -372,7 +370,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         ),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface,
-        // ✅ left:44 = 14(icon left) + 20(icon size) + 10(gap)
+
         contentPadding: EdgeInsets.only(top: 14, bottom: 14, left: 44, right: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -468,7 +466,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               padding: EdgeInsets.symmetric(vertical: 14),
             ),
             child: Text(
-              'cancel'.tr(),
+              'Cancel'.tr(),
               style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 14),
@@ -496,7 +494,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                 padding: EdgeInsets.symmetric(vertical: 14),
               ),
               child: Text(
-                'send_invitation'.tr(),
+                'Send Invitation'.tr(),
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.bold,
