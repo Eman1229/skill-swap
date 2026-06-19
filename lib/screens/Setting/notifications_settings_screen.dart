@@ -3,7 +3,7 @@ import 'package:skill_swap/screens/Setting/app_settings.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class NotificationsSettingsScreen extends StatefulWidget {
-  NotificationsSettingsScreen({super.key});
+  const NotificationsSettingsScreen({super.key});
 
   @override
   State<NotificationsSettingsScreen> createState() => _NotificationsSettingsScreenState();

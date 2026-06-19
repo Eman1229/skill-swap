@@ -10,7 +10,7 @@ import 'package:skill_swap/screens/sign%20up/sign%20up.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class SignInScreen extends StatefulWidget {
-  SignInScreen({super.key});
+ const SignInScreen({super.key});
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();

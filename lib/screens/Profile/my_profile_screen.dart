@@ -1297,17 +1297,6 @@ SwapListing _swapFromProfile(AnalyticsData data) {
   );
 }
 
-String _stringValue(dynamic value) => value?.toString().trim() ?? '';
-
-double _numValue(dynamic value) {
-  if (value is num) return value.toDouble();
-  return double.tryParse(value?.toString() ?? '') ?? 0.0;
-}
-
-String _monthLabel(int month) {
-  const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return labels[(month - 1).clamp(0, 11).toInt()];
-}
 
 String _shortDate(DateTime date) {
   return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';

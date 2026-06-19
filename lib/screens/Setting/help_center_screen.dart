@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HelpCenterScreen extends StatefulWidget {
-  HelpCenterScreen({super.key});
+  const HelpCenterScreen({super.key});   // add const
 
   @override
   State<HelpCenterScreen> createState() => _HelpCenterScreenState();
@@ -34,7 +36,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
     },
     {
       'q': 'How do I change my offered skills?',
-      'a': 'Go to Settings, tap on "Profile Information". From there you can edit your current listings, offer new skills, or update your experience details.'
+      'a': 'To update or delete an offered skill, go to the Home Screen and tap See All. Open the skill listing you want to manage to view its details, then tap the three-dot menu in the top-right corner. From there, select Edit Skill to make changes or Delete Skill to remove the listing.'
     },
     {
       'q': 'What should I do if a user is offensive or inactive?',
@@ -360,8 +362,35 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
     );
   }
 
-  void _submitTicket() {
-    if (_formKey.currentState!.validate()) {
+  Future<void> _submitTicket() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      await FirebaseFirestore.instance.collection('support_tickets').add({
+        'userId': user?.uid ?? '',
+        'userName': user?.displayName ?? '',
+        'userEmail': user?.email ?? '',
+        'category': _selectedCategory,
+        'subject': _subjectController.text.trim(),
+        'message': _messageController.text.trim(),
+        'status': 'Open',
+        'adminReply': '',
+        'priority': 'Normal',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'isReadByAdmin': false,
+        'isReadByUser': true,
+        'devicePlatform': 'Android',
+        'appVersion': '1.0.0',
+      });
+
+      _subjectController.clear();
+      _messageController.clear();
+
+      if (!mounted) return;
+
       showDialog(
         context: context,
         builder: (context) {
@@ -391,7 +420,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
                 ),
                 SizedBox(height: 10),
                 Text(
-                  'Your query has been logged under Reference #${(100000 + (DateTime.now().millisecond * 8)).toString()}.\n\nOur team will contact you at your registered email address shortly.',
+                  'Your support ticket has been submitted successfully.\n\nOur team will contact you at your registered email address shortly.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.4),
                 ),
@@ -412,6 +441,11 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
             ),
           );
         },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
       );
     }
   }

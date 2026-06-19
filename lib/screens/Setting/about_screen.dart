@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class AboutScreen extends StatelessWidget {
-  AboutScreen({super.key});
+ const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
