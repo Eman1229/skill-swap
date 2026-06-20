@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/screens/Add%20skill/offer%20skill.dart';
 import 'package:skill_swap/screens/Home%20Screens/see%20all.dart';
-import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Chat/chat_screen.dart';
 import 'package:skill_swap/screens/Profile/edit_profile_screen.dart';
 import 'package:skill_swap/screens/Profile/my_profile_screen.dart';
@@ -498,7 +497,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                                     ),
                                   ),
                                   child: Text(
-                                    'See all',
+                                    'See All',
                                     style: TextStyle(
                                       color: Theme.of(context)
                                           .colorScheme
@@ -722,7 +721,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No swaps available',
+            'No Swaps Available',
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontSize: 18,
@@ -731,7 +730,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Check back later or offer a skill yourself!',
+            'Check Back Later Or Offer A Skill Yourself!',
             style: TextStyle(
               color: Theme.of(context)
                   .colorScheme
@@ -1106,7 +1105,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Nothing live yet',
+            'Nothing Live Yet',
             style: TextStyle(
               color: Theme.of(context)
                   .colorScheme
@@ -1235,7 +1234,7 @@ class HorizontalSwapCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Looking for:',
+              'Looking For:',
               style: TextStyle(
                 color: Theme.of(context)
                     .colorScheme

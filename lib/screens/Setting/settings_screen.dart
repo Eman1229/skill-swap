@@ -37,7 +37,7 @@ class SettingsScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: ListView(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         children: [
           _buildSection(context, 'account'.tr()),
           _buildSettingTile(
@@ -63,7 +63,7 @@ class SettingsScreen extends StatelessWidget {
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('No skill listing found.'.tr())),
+                    SnackBar(content: Text('No Skill Listing Found.'.tr())),
                   );
                 }
               }
@@ -80,7 +80,7 @@ class SettingsScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => NotificationsSettingsScreen(),
+                      builder: (_) => const NotificationsSettingsScreen(),
                     ),
                   );
                 },
@@ -113,12 +113,12 @@ class SettingsScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PrivacySecurityScreen(),
+                  builder: (_) => const PrivacySecurityScreen(),
                 ),
               );
             },
           ),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
           _buildSection(context, 'app_preferences'.tr()),
           ValueListenableBuilder<String>(
             valueListenable: _settings.currentLanguage,
@@ -159,7 +159,7 @@ class SettingsScreen extends StatelessWidget {
               );
             },
           ),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
           _buildSection(context, 'support'.tr()),
           _buildSettingTile(
             context: context,
@@ -168,7 +168,7 @@ class SettingsScreen extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => HelpCenterScreen()),
+                MaterialPageRoute(builder: (_) => const HelpCenterScreen()),
               );
             },
           ),
@@ -179,11 +179,11 @@ class SettingsScreen extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => AboutScreen()),
+                MaterialPageRoute(builder: (_) => const AboutScreen()),
               );
             },
           ),
-          SizedBox(height: 40),
+          const SizedBox(height: 40),
           _LogoutButton(),
         ],
       ),
@@ -193,9 +193,9 @@ class SettingsScreen extends StatelessWidget {
   Widget _buildSection(BuildContext context, String title) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.only(left: 4, bottom: 12),
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
-        title.toUpperCase(),
+        title,
         style: TextStyle(
           color: colorScheme.secondary,
           fontSize: 11,
@@ -226,12 +226,12 @@ class SettingsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: colorScheme.primary.withOpacity(0.1)),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.1)),
         boxShadow: isDark
             ? null
             : [
                 BoxShadow(
-                  color: colorScheme.primary.withOpacity(0.05),
+                  color: colorScheme.primary.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -281,7 +281,7 @@ class _LogoutButton extends StatelessWidget {
           if (context.mounted) {
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (_) => SignInScreen()),
+              MaterialPageRoute(builder: (_) => const SignInScreen()),
               (route) => false,
             );
           }
@@ -291,7 +291,7 @@ class _LogoutButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          padding: EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 16),
         ),
         child: Text(
           'log_out'.tr(),

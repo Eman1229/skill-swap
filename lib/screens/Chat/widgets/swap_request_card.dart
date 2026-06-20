@@ -2,22 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/models/swap_request.dart';
 import 'package:skill_swap/services/swap_request_repository.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class SwapRequestCard extends StatelessWidget {
   final String requestId;
   final bool isMine;
 
   const SwapRequestCard({
-    Key? key,
+    super.key,
     required this.requestId,
     required this.isMine,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    final SwapRequestRepository _repo = SwapRequestRepository();
+    final SwapRequestRepository repo = SwapRequestRepository();
 
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
@@ -37,12 +35,12 @@ class SwapRequestCard extends StatelessWidget {
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: _getStatusColor(context, request.status).withOpacity(0.3),
+              color: _getStatusColor(context, request.status).withValues(alpha: 0.3),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -55,7 +53,7 @@ class SwapRequestCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(context, request.status).withOpacity(0.1),
+                  color: _getStatusColor(context, request.status).withValues(alpha: 0.1),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
                 ),
                 child: Row(
@@ -98,7 +96,7 @@ class SwapRequestCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -126,7 +124,7 @@ class SwapRequestCard extends StatelessWidget {
                             child: _ActionButton(
                               label: 'Reject',
                               color: Colors.redAccent,
-                              onPressed: () => _repo.updateRequestStatus(
+                              onPressed: () => repo.updateRequestStatus(
                                 requestId, SwapRequestStatus.rejected),
                             ),
                           ),
@@ -136,7 +134,7 @@ class SwapRequestCard extends StatelessWidget {
                               label: 'Accept',
                               color: Theme.of(context).colorScheme.primary,
                               isPrimary: true,
-                              onPressed: () => _repo.updateRequestStatus(
+                              onPressed: () => repo.updateRequestStatus(
                                 requestId, SwapRequestStatus.accepted),
                             ),
                           ),
@@ -183,7 +181,7 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.2),
+        color: Colors.black.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -212,7 +210,7 @@ class _SkillColumn extends StatelessWidget {
     return Column(
       crossAxisAlignment: isRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6), fontSize: 10)),
+        Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6), fontSize: 10)),
         const SizedBox(height: 4),
         Text(
           skill,

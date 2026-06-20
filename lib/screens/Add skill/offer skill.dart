@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // ✅ Supabase instead of Firebase Storage
+import 'package:supabase_flutter/supabase_flutter.dart'; //  Supabase instead of Firebase Storage
 import 'dart:io';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
@@ -17,7 +17,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final _supabase = Supabase.instance.client; // ✅ Supabase client
+  final _supabase = Supabase.instance.client; // Supabase client
 
   final _titleController = TextEditingController();
   final _lookingForController = TextEditingController();

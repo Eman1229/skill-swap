@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
+import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/services/chat_user_service.dart';
 import 'package:skill_swap/services/chat_repository.dart';
 import 'package:skill_swap/screens/Chat/widgets/swap_request_card.dart';
@@ -12,7 +12,7 @@ import 'package:skill_swap/screens/widgets/report_user_dialog.dart';
 
 class ConversationScreen extends StatefulWidget {
   final SwapListing swap;
-  const ConversationScreen({Key? key, required this.swap}) : super(key: key);
+  const ConversationScreen({super.key, required this.swap});
 
   @override
   State<ConversationScreen> createState() => _ConversationScreenState();
@@ -407,7 +407,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                                 itemCount: docs.length + 1,
                                 itemBuilder: (_, i) {
                                   if (i == 0) {
-                                    return const _DateChip(label: 'TODAY');
+                                    return const _DateChip(label: 'Today');
                                   }
                                   final d = docs[i - 1].data() as Map<String, dynamic>;
                                   final isMine = d['senderId'] == uid;
@@ -421,9 +421,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
                                   }
 
                                   if (type == 'session_invite') {
-                                    debugPrint("=== SESSION INVITE FOUND ===");
-                                    debugPrint("sessionId = ${d['sessionId']}");
-                                    debugPrint("swapId = ${d['swapId']}");
                                     return SessionInviteCard(
                                       sessionId: d['sessionId'] ?? '',
                                       swapId: d['swapId'] ?? '',
@@ -455,7 +452,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(bottom: BorderSide(color: const Color(0xFF00C2FF).withOpacity(0.1))),
+        border: Border(bottom: BorderSide(color: const Color(0xFF00C2FF).withValues(alpha: 0.1))),
       ),
       child: Row(
         children: [
@@ -463,7 +460,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
             onTap: _navigateBack,
             child: Container(
               width: 36, height: 36,
-              decoration: BoxDecoration(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08), shape: BoxShape.circle),
               child: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface, size: 16),
             ),
           ),
@@ -477,10 +474,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 Text('Typing...', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontStyle: FontStyle.italic)),
               if (!_otherTyping)
                 Row(children: [
-                  Container(width: 6, height: 6, margin: const EdgeInsets.only(right: 5), decoration: BoxDecoration(color: profile.isOnline ? const Color(0xFF22C55E) : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), shape: BoxShape.circle)),
-                  Text(profile.isOnline ? 'Online' : profile.relativeLastSeen, style: TextStyle(color: profile.isOnline ? const Color(0xFF22C55E) : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 11)),
+                  Container(width: 6, height: 6, margin: const EdgeInsets.only(right: 5), decoration: BoxDecoration(color: profile.isOnline ? const Color(0xFF22C55E) : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), shape: BoxShape.circle)),
+                  Text(profile.isOnline ? 'Online' : profile.relativeLastSeen, style: TextStyle(color: profile.isOnline ? const Color(0xFF22C55E) : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), fontSize: 11)),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(widget.swap.offering, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 11), overflow: TextOverflow.ellipsis)),
+                  Expanded(child: Text(widget.swap.offering, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), fontSize: 11), overflow: TextOverflow.ellipsis)),
                 ]),
             ]),
           ),
@@ -506,7 +503,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 value: 'report',
                 child: Row(
                   children: [
-                    Icon(Icons.report_gmailerrorred_rounded, color: Colors.redAccent, size: 20),
+                    const Icon(Icons.report_gmailerrorred_rounded, color: Colors.redAccent, size: 20),
                     const SizedBox(width: 12),
                     Text('Report User', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
                   ],
@@ -522,9 +519,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
   Widget _buildEmptyChat() {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 70, height: 70, decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.surface, border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.2))), child: Icon(Icons.chat_bubble_outline_rounded, color: Theme.of(context).colorScheme.primary, size: 30)),
+        Container(width: 70, height: 70, decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.surface, border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2))), child: Icon(Icons.chat_bubble_outline_rounded, color: Theme.of(context).colorScheme.primary, size: 30)),
         const SizedBox(height: 14),
-        Text('Start chatting with ${widget.swap.name}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
+        Text('Start Chatting With ${widget.swap.name}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
       ]),
     );
   }
@@ -534,18 +531,18 @@ class _ConversationScreenState extends State<ConversationScreen> {
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.1))),
+        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1))),
       ),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(24), border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.2))),
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(24), border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2))),
               child: TextField(
                 controller: _msgController,
                 onChanged: _onMessageChanged,
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
-                decoration: InputDecoration(hintText: 'Type a message...', hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
+                decoration: InputDecoration(hintText: 'Type A Message...', hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), fontSize: 13), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
                 onSubmitted: sendMessage,
               ),
             ),
@@ -570,7 +567,7 @@ class _DateChip extends StatelessWidget {
   const _DateChip({required this.label});
   @override
   Widget build(BuildContext context) {
-    return Center(child: Container(margin: const EdgeInsets.symmetric(vertical: 12), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.15))), child: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5))));
+    return Center(child: Container(margin: const EdgeInsets.symmetric(vertical: 12), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15))), child: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5))));
   }
 }
 
@@ -599,7 +596,7 @@ class _MessageBubble extends StatelessWidget {
               gradient: isMine ? LinearGradient(colors: [Theme.of(context).colorScheme.primary, const Color(0xFF6B8AFF)], begin: Alignment.topLeft, end: Alignment.bottomRight) : null,
               color: isMine ? null : Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.only(topLeft: const Radius.circular(18), topRight: const Radius.circular(18), bottomLeft: Radius.circular(isMine ? 18 : 4), bottomRight: Radius.circular(isMine ? 4 : 18)),
-              border: isMine ? null : Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
+              border: isMine ? null : Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
             ),
             child: Text(text, style: TextStyle(color: isMine ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.5)),
           ),
@@ -647,7 +644,7 @@ class _AvatarCircle extends StatelessWidget {
       children: [
         Container(
           width: size, height: size,
-          decoration: BoxDecoration(color: isDark ? const Color(0xFF2E3E5C) : Colors.grey[200], shape: BoxShape.circle, border: Border.all(color: isOnline ? const Color(0xFF22C55E) : const Color(0xFF00C2FF).withOpacity(0.2), width: isOnline ? 2 : 1.5)),
+          decoration: BoxDecoration(color: isDark ? const Color(0xFF2E3E5C) : Colors.grey[200], shape: BoxShape.circle, border: Border.all(color: isOnline ? const Color(0xFF22C55E) : const Color(0xFF00C2FF).withValues(alpha: 0.2), width: isOnline ? 2 : 1.5)),
           child: ClipOval(child: imageUrl != null && imageUrl!.isNotEmpty ? Image.network(imageUrl!, width: size, height: size, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildInitials(), loadingBuilder: (context, child, loadingProgress) => loadingProgress == null ? child : _buildInitials()) : _buildInitials()),
         ),
         if (isOnline)

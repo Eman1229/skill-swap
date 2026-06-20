@@ -58,7 +58,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await _supabase.storage.from('profile-images').upload(
         fileName,
         imageFile,
-        fileOptions: FileOptions(upsert: true),
+        fileOptions: const FileOptions(upsert: true),
       );
 
       return _supabase.storage.from('profile-images').getPublicUrl(fileName);

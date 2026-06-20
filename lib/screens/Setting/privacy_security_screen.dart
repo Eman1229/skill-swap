@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:skill_swap/screens/Setting/app_settings.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class PrivacySecurityScreen extends StatefulWidget {
-  PrivacySecurityScreen({super.key});
+  const PrivacySecurityScreen({super.key});
 
   @override
   State<PrivacySecurityScreen> createState() => _PrivacySecurityScreenState();
@@ -11,6 +14,41 @@ class PrivacySecurityScreen extends StatefulWidget {
 
 class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   final AppSettings _settings = AppSettings();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  String get uid => FirebaseAuth.instance.currentUser!.uid;
+
+  @override
+  void initState() {
+    super.initState();
+    loadSettings();
+  }
+
+  Future<void> loadSettings() async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+
+    _settings.profileVisibility.value = data['profileVisibility'] ?? 'Public';
+    _settings.showOnlineStatus.value = data['showOnlineStatus'] ?? true;
+    _settings.directMessagesEnabled.value = data['directMessagesEnabled'] ?? true;
+
+    setState(() {});
+  }
+
+  Future<void> updateUserSetting(String field, dynamic value) async {
+    await _firestore.collection('users').doc(uid).update({field: value});
+  }
+
+  Future<void> deleteAccount() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
+    await user.delete();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,19 +58,23 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'privacy_security_title'.tr(),
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+              fontSize: 18),
         ),
         centerTitle: true,
       ),
       body: ListView(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         children: [
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           _buildSectionTitle('profile_visibility'.tr()),
           ValueListenableBuilder<String>(
             valueListenable: _settings.profileVisibility,
@@ -43,25 +85,34 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                     title: 'visibility_public'.tr(),
                     description: 'visibility_public_desc'.tr(),
                     isSelected: visibility == 'Public',
-                    onTap: () => setState(() => _settings.profileVisibility.value = 'Public'),
+                    onTap: () async {
+                      setState(() => _settings.profileVisibility.value = 'Public');
+                      await updateUserSetting('profileVisibility', 'Public');
+                    },
                   ),
                   _buildVisibilityTile(
                     title: 'visibility_swappers'.tr(),
                     description: 'visibility_swappers_desc'.tr(),
                     isSelected: visibility == 'Swappers Only',
-                    onTap: () => setState(() => _settings.profileVisibility.value = 'Swappers Only'),
+                    onTap: () async {
+                      setState(() => _settings.profileVisibility.value = 'Swappers Only');
+                      await updateUserSetting('profileVisibility', 'Swappers Only');
+                    },
                   ),
                   _buildVisibilityTile(
                     title: 'visibility_private'.tr(),
                     description: 'visibility_private_desc'.tr(),
                     isSelected: visibility == 'Private',
-                    onTap: () => setState(() => _settings.profileVisibility.value = 'Private'),
+                    onTap: () async {
+                      setState(() => _settings.profileVisibility.value = 'Private');
+                      await updateUserSetting('profileVisibility', 'Private');
+                    },
                   ),
                 ],
               );
             },
           ),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
           _buildSectionTitle('preferences'.tr()),
           ValueListenableBuilder<bool>(
             valueListenable: _settings.showOnlineStatus,
@@ -71,7 +122,10 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 title: 'show_online_status'.tr(),
                 description: 'show_online_status_desc'.tr(),
                 value: enabled,
-                onChanged: (v) => setState(() => _settings.showOnlineStatus.value = v),
+                onChanged: (v) async {
+                  setState(() => _settings.showOnlineStatus.value = v);
+                  await updateUserSetting('showOnlineStatus', v);
+                },
               );
             },
           ),
@@ -83,14 +137,17 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 title: 'direct_msg_from_anyone'.tr(),
                 description: 'direct_msg_from_anyone_desc'.tr(),
                 value: enabled,
-                onChanged: (v) => setState(() => _settings.directMessagesEnabled.value = v),
+                onChanged: (v) async {
+                  setState(() => _settings.directMessagesEnabled.value = v);
+                  await updateUserSetting('directMessagesEnabled', v);
+                },
               );
             },
           ),
-          SizedBox(height: 32),
+          const SizedBox(height: 32),
           _buildSectionTitle('danger_zone'.tr()),
           _buildDangerZoneCard(),
-          SizedBox(height: 40),
+          const SizedBox(height: 40),
         ],
       ),
     );
@@ -98,7 +155,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: EdgeInsets.only(left: 4, bottom: 12),
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
         title,
         style: TextStyle(
@@ -128,12 +185,22 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? Theme.of(context).colorScheme.primary : (isDark ? Colors.transparent : Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3)),
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : (isDark
+                ? Colors.transparent
+                : Theme.of(context)
+                .colorScheme
+                .outlineVariant
+                .withValues(alpha: 0.3)),
             width: 1.5,
           ),
-          boxShadow: isDark ? null : [
+          boxShadow: isDark
+              ? null
+              : [
             BoxShadow(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+              color:
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -143,8 +210,12 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              isSelected ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
-              color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
+              isSelected
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_off_rounded,
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.outlineVariant,
               size: 20,
             ),
             const SizedBox(width: 14),
@@ -155,7 +226,9 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                   Text(
                     title,
                     style: TextStyle(
-                      color: isSelected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -163,7 +236,13 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                   const SizedBox(height: 4),
                   Text(
                     description,
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12, height: 1.3),
+                    style: TextStyle(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurfaceVariant
+                            .withValues(alpha: 0.65),
+                        fontSize: 12,
+                        height: 1.3),
                   ),
                 ],
               ),
@@ -187,34 +266,49 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
-        boxShadow: isDark ? null : [
+        border: Border.all(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
+        boxShadow: isDark
+            ? null
+            : [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+            color:
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
+          child: Icon(icon,
+              color: Theme.of(context).colorScheme.primary, size: 20),
         ),
         title: Text(
           title,
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+          style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w600),
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             description,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12, height: 1.3),
+            style: TextStyle(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant
+                    .withValues(alpha: 0.65),
+                fontSize: 12,
+                height: 1.3),
           ),
         ),
         trailing: Switch(
@@ -227,69 +321,110 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
 
   Widget _buildDangerZoneCard() {
     return Container(
-      padding: EdgeInsets.all(18),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Color(0xFF1E1F30), // subtle reddish tint
+        color: const Color(0xFF1E1F30),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFFF3B3B).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFFFF3B3B).withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Color(0xFFFF3B3B).withOpacity(0.8), size: 22),
-              SizedBox(width: 10),
+              Icon(Icons.warning_amber_rounded,
+                  color: const Color(0xFFFF3B3B).withValues(alpha: 0.8), size: 22),
+              const SizedBox(width: 10),
               Text(
                 'high_risk_actions'.tr(),
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14),
               ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('clear_cache'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w600)),
-                    SizedBox(height: 2),
-                    Text('clear_cache_desc'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3), fontSize: 11)),
+                    Text('clear_cache'.tr(),
+                        style: TextStyle(
+                            color:
+                            Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text('clear_cache_desc'.tr(),
+                        style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.3),
+                            fontSize: 11)),
                   ],
                 ),
               ),
               OutlinedButton(
                 onPressed: _showClearCacheDialog,
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  side: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
-                child: Text('clear'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                child: Text('clear'.tr(),
+                    style: TextStyle(
+                        color:
+                        Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12)),
               ),
             ],
           ),
-          Divider(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6), height: 24),
+          Divider(
+              color:
+              Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6),
+              height: 24),
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('delete_account'.tr(), style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13, fontWeight: FontWeight.w600)),
-                    SizedBox(height: 2),
-                    Text('delete_account_desc'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3), fontSize: 11)),
+                    Text('delete_account'.tr(),
+                        style: TextStyle(
+                            color: const Color(0xFFFF3B3B),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text('delete_account_desc'.tr(),
+                        style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.3),
+                            fontSize: 11)),
                   ],
                 ),
               ),
               ElevatedButton(
                 onPressed: _showDeleteAccountDialog,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFFF3B3B),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  backgroundColor: const Color(0xFFFF3B3B),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
-                child: Text('delete'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 12, fontWeight: FontWeight.bold)),
+                child: Text('delete'.tr(),
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -304,27 +439,44 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Theme.of(context).colorScheme.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('clear_cache'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('clear_cache'.tr(),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.bold)),
           content: Text(
             'clear_cache_confirm'.tr(),
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14, height: 1.4),
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 14,
+                height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('cancel'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65))),
+              child: Text('cancel'.tr(),
+                  style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant
+                          .withValues(alpha: 0.65))),
             ),
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(context);
+                await DefaultCacheManager().emptyCache();
                 _showSuccessSnackBar('cache_cleared'.tr());
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
               ),
-              child: Text('clear_now'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
+              child: Text('clear_now'.tr(),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -337,34 +489,50 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Color(0xFF1E1F30),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: const Color(0xFF1E1F30),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(
             children: [
-              Icon(Icons.warning_rounded, color: Color(0xFFFF3B3B)),
-              SizedBox(width: 10),
-              Text('delete_account'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
+              const Icon(Icons.warning_rounded, color: Color(0xFFFF3B3B)),
+              const SizedBox(width: 10),
+              Text('delete_account'.tr(),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.bold)),
             ],
           ),
           content: Text(
             'delete_account_confirm'.tr(),
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14, height: 1.4),
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 14,
+                height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('cancel'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65))),
+              child: Text('cancel'.tr(),
+                  style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant
+                          .withValues(alpha: 0.65))),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                _showSuccessSnackBar('Mock Deletion: Account deleted. Signing out...');
+                await deleteAccount();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFFFF3B3B),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                backgroundColor: const Color(0xFFFF3B3B),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
               ),
-              child: Text('delete_permanently'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
+              child: Text('delete_permanently'.tr(),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -377,14 +545,19 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       SnackBar(
         content: Row(
           children: [
-            Icon(Icons.check_circle_outline_rounded, color: Theme.of(context).colorScheme.onSurface),
-            SizedBox(width: 10),
-            Expanded(child: Text(text, style: TextStyle(color: Theme.of(context).colorScheme.onSurface))),
+            Icon(Icons.check_circle_outline_rounded,
+                color: Theme.of(context).colorScheme.onSurface),
+            const SizedBox(width: 10),
+            Expanded(
+                child: Text(text,
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface))),
           ],
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
