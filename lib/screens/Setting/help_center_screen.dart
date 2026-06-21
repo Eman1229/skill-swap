@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class HelpCenterScreen extends StatefulWidget {
-  const HelpCenterScreen({super.key});   // add const
+  const HelpCenterScreen({super.key});
 
   @override
   State<HelpCenterScreen> createState() => _HelpCenterScreenState();
@@ -15,36 +15,36 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
-  String _selectedCategory = 'General Inquiry';
+  String _selectedCategoryKey = 'general_inquiry';
 
-  final List<String> _categories = [
-    'General Inquiry',
-    'Technical Issue',
-    'Swap Dispute',
-    'Account & Security',
-    'Feedback & Suggestion',
+  final List<String> _categoryKeys = [
+    'general_inquiry',
+    'technical_issue',
+    'swap_dispute',
+    'account_security',
+    'feedback_suggestion',
   ];
 
   final List<Map<String, String>> _faqs = [
     {
-      'q': 'How do I swap skills?',
-      'a': 'Browse through the listings on the Home Screen. If you see a skill you want to learn, tap on it and select "Propose Swap". Start a conversation with the user to outline what you will teach each other, and tap "Confirm Swap" once both parties agree!'
+      'q': 'faq_q1',
+      'a': 'faq_a1'
     },
     {
-      'q': 'Is Skill Swap completely free?',
-      'a': 'Yes, absolutely! Skill Swap is built on a direct barter peer-to-peer learning model. You share your expertise in exchange for learning something new. No financial transactions are involved.'
+      'q': 'faq_q2',
+      'a': 'faq_a2'
     },
     {
-      'q': 'How do I change my offered skills?',
-      'a': 'To update or delete an offered skill, go to the Home Screen and tap See All. Open the skill listing you want to manage to view its details, then tap the three-dot menu in the top-right corner. From there, select Edit Skill to make changes or Delete Skill to remove the listing.'
+      'q': 'faq_q3',
+      'a': 'faq_a3'
     },
     {
-      'q': 'What should I do if a user is offensive or inactive?',
-      'a': 'You can open the user\'s profile or chat, click the options menu (three dots), and select "Report User". Our support team monitors reports and takes appropriate action within 24 hours to keep the community safe.'
+      'q': 'faq_q4',
+      'a': 'faq_a4'
     },
     {
-      'q': 'Can I offer multiple skills at the same time?',
-      'a': 'Yes, you can list as many skills as you want. Simply tap the "+" FAB button on the home screen to create additional offer cards.'
+      'q': 'faq_q5',
+      'a': 'faq_a5'
     },
   ];
 
@@ -118,7 +118,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
           ),
         ),
         SizedBox(height: 14),
-        ..._faqs.map((faq) => _buildFAQTile(faq['q']!, faq['a']!)),
+        ..._faqs.map((faq) => _buildFAQTile(faq['q']!.tr(), faq['a']!.tr())),
         SizedBox(height: 40),
       ],
     );
@@ -219,16 +219,16 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
             _buildTextField(
               controller: _subjectController,
               label: 'subject'.tr(),
-              hint: 'e.g. Chat is not loading',
-              validator: (v) => v == null || v.trim().isEmpty ? 'Subject is required' : null,
+              hint: 'subject_hint'.tr(),
+              validator: (v) => v == null || v.trim().isEmpty ? 'subject_required'.tr() : null,
             ),
             SizedBox(height: 16),
             _buildTextField(
               controller: _messageController,
               label: 'message_description'.tr(),
-              hint: 'Describe your issue in detail...',
+              hint: 'message_hint'.tr(),
               maxLines: 5,
-              validator: (v) => v == null || v.trim().isEmpty ? 'Please describe your query' : null,
+              validator: (v) => v == null || v.trim().isEmpty ? 'message_required'.tr() : null,
             ),
             SizedBox(height: 32),
             _buildSubmitButton(),
@@ -257,20 +257,20 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: _selectedCategory,
+              value: _selectedCategoryKey,
               dropdownColor: Theme.of(context).colorScheme.surface,
               style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
               icon: Icon(Icons.keyboard_arrow_down_rounded, color: Theme.of(context).colorScheme.primary),
               isExpanded: true,
               onChanged: (String? newValue) {
                 if (newValue != null) {
-                  setState(() => _selectedCategory = newValue);
+                  setState(() => _selectedCategoryKey = newValue);
                 }
               },
-              items: _categories.map<DropdownMenuItem<String>>((String value) {
+              items: _categoryKeys.map<DropdownMenuItem<String>>((String key) {
                 return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
+                  value: key,
+                  child: Text(key.tr()),
                 );
               }).toList(),
             ),
@@ -372,7 +372,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
         'userId': user?.uid ?? '',
         'userName': user?.displayName ?? '',
         'userEmail': user?.email ?? '',
-        'category': _selectedCategory,
+        'category': _selectedCategoryKey.tr(), // Use translated name for DB or keep key? Usually better to keep key for DB, but the previous code used the value.
         'subject': _subjectController.text.trim(),
         'message': _messageController.text.trim(),
         'status': 'Open',
@@ -420,7 +420,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
                 ),
                 SizedBox(height: 10),
                 Text(
-                  'Your support ticket has been submitted successfully.\n\nOur team will contact you at your registered email address shortly.',
+                  'ticket_success_msg'.tr(),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.4),
                 ),

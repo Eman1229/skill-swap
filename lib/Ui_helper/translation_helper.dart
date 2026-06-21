@@ -1,8 +1,8 @@
-import 'package:skill_swap/screens/Setting/app_settings.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 class AppTranslations {
   static const Map<String, Map<String, String>> _localizedValues = {
-    'English': {
+    'en': {
       'appTitle': 'SkillSwapX',
       'lightMode': 'Light Mode',
       'signIn': 'Sign In',
@@ -71,6 +71,9 @@ class AppTranslations {
       'account_created': 'Account Created Successfully',
       'choose_teach_skills': 'Choose Up To 5 Skills\nYou Can Teach Others.',
       'choose_learn_skills': 'Choose Up To 5 Skills\nYou Want To Learn.',
+      'what_can_teach_others': 'What Can You Teach\nOthers?',
+      'what_want_learn': 'What Do You Want\nTo Learn?',
+      'skill_name': 'Skill Name',
       'next': 'Next',
       'my_swaps': 'My Swaps',
       'my_learning': 'My Learning',
@@ -148,13 +151,74 @@ class AppTranslations {
       'description_label': 'Description',
       'add_skill': 'Add Skill',
       'no_sessions_yet': 'No Sessions Yet.',
+      'sessions': 'Sessions',
+      'add_session': 'Add Session',
+      'overall_progress': 'Overall Progress',
+      'completed': 'Completed',
+      'total': 'Total',
+      'status': 'Status',
+      'details': 'Details',
+      'mentor': 'Mentor',
+      'learner': 'Learner',
+      'started': 'Started',
+      'session_details': 'Session Details',
+      'date': 'Date',
+      'time': 'Time',
+      'duration': 'Duration',
+      'enter_meeting_room': 'Enter Meeting Room',
+      'go_back': 'Go Back',
+      'create_session': 'Create Session',
+      'session_title': 'Session Title',
+      'session_title_hint': 'What will this session cover?',
+      'duration_hint': 'e.g. 1 hour',
+      'meeting_link': 'Meeting Link',
+      'meeting_link_hint': 'Zoom, Google Meet, Teams, or other URL',
+      'date_and_time': 'Date and Time',
+      'session_agenda': 'Session Agenda',
+      'session_agenda_hint': 'What would you like to focus on...',
+      'required_field': 'Required field',
+      'send_invitation': 'Send Invitation',
+      'session_invite_sent': 'Session Invite Sent',
+      'cannot_swap_with_yourself': 'You cannot swap with yourself!',
+      'confirm_swap': 'Confirm Swap',
+      'swap_request_sent': 'Swap request sent to',
+      'swap_with_person': 'Swap with this person?',
+      'review_details': 'Review the details before sending your swap request.',
+      'swaps_count': 'swaps',
+      'they_offer': 'They Offer',
+      'they_want': 'They Want',
+      'message': 'Message',
       'something_went_wrong': 'Something Went Wrong',
       'clear_all_notifications': 'Clear All Notifications?',
       'clear_all_notifications_desc': 'This Will Permanently Delete Your Notification History.',
       'check_back_later': 'Check Back Later For Updates.',
       'no_notifications': 'No Notifications Here',
+      'general_inquiry': 'General Inquiry',
+      'technical_issue': 'Technical Issue',
+      'swap_dispute': 'Swap Dispute',
+      'account_security': 'Account & Security',
+      'feedback_suggestion': 'Feedback & Suggestion',
+      'subject_hint': 'e.g. Chat is not loading',
+      'subject_required': 'Subject is required',
+      'message_hint': 'Describe your issue in detail...',
+      'message_required': 'Please describe your query',
+      'ticket_success_msg': 'Your support ticket has been submitted successfully.\n\nOur team will contact you at your registered email address shortly.',
+      'mission_statement': 'Skill Swap is an innovative peer-to-peer knowledge barter platform designed to bring learners and mentors together. We believe that everyone is an expert in something and a student in another.\n\nOur mission is to bypass financial barriers in career growth, hobbies, and educational pursuits by establishing a direct value exchange—helping you teach what you love to learn what you need.',
+      'terms_of_service_content': 'Welcome to Skill Swap! These Terms of Service ("Terms") govern your use of the Skill Swap mobile application and related platform.\n\n1. ACCEPTANCE OF TERMS\nBy downloading or using the App, you agree to comply with and be bound by these Terms. If you do not agree, please do not use the application.\n\n2. DESCRIPTION OF SERVICE\nSkill Swap is a direct-barter educational exchange application allowing users to offer skills to teach in exchange for learning other skills from peer users.\n\n3. USER ACCOUNTS AND SECURITY\nYou must create a valid account to publish swap listings. You are solely responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.\n\n4. USER CONDUCT & PROHIBITED CONTENT\nUsers must maintain respect during chat sessions. You may not publish content that is misleading, fraudulent, defamatory, adult, or otherwise inappropriate. We reserve the absolute right to terminate accounts that violate this clause.\n\n5. NO GUARANTEES OR WARRANTIES\nSkill Swap is a peer-to-peer connection service. We do not evaluate or certify the credentials of any users or listings. Swaps are arranged at your own risk.\n\n6. LIMITATION OF LIABILITY\nSkill Swap and its developers shall not be liable for any direct or indirect damages arising out of your connections or meetings scheduled through the application.\n\n7. AMENDMENTS\nWe reserve the right to modify these Terms at any time. Your continued use of the platform constitutes your agreement to such modifications.',
+      'privacy_policy_content': 'Your privacy is extremely important to us. This Privacy Policy describes how Skill Swap collects, protects, and handles your information.\n\n1. INFORMATION WE COLLECT\n- Account Data: Name, email address, password, profile photo, and biography.\n- Skills Listing Data: Details of the skills you offer and want.\n- Chat Data: Chat messages and connection requests to coordinate swaps.\n- App Usage Data: Analytics regarding popular categories.\n\n2. HOW WE USE YOUR INFORMATION\n- To facilitate connections and exchange messaging between swapping partners.\n- To personalize your home screen matching feeds.\n- To secure and authenticate your account through Firebase Auth.\n\n3. DATA RETENTION\nWe store your profile data on Google Firebase and Supabase for as long as your account remains active. You can trigger mock account deletion or contact support to request permanent deletion at any time.\n\n4. THIRD-PARTY SERVICES\nWe utilize third-party SDKs including Google Firebase (Authentication, Storage, Firestore) and Supabase to host listings and perform platform analytics. These services operate under their respective privacy policies.\n\n5. SECURITY\nWe apply industry-standard cloud protection policies to protect your data. However, no database transmission is 100% secure. Please choose strong, unique credentials.',
+      'open_source_licenses_content': 'Skill Swap is made possible by the incredible open-source community! Below are primary frameworks and libraries used:\n\n■ Flutter SDK\nCopyright 2014 The Flutter Authors. All rights reserved.\nLicensed under the BSD 3-Clause License.\n\n■ Firebase Core & Auth\nCopyright 2020 Google LLC. All rights reserved.\nLicensed under the Apache License, Version 2.0.\n\n■ Cloud Firestore\nCopyright 2020 Google LLC. All rights reserved.\nLicensed under the Apache License, Version 2.0.\n\n■ Supabase Flutter\nCopyright (c) 2021 Supabase. All rights reserved.\nLicensed under the MIT License.\n\n■ Connectivity Plus\nCopyright 2020 The Chromium Authors. All rights reserved.\nLicensed under the BSD-style License.\n\n■ Cupertino Icons\nCopyright 2020 The Flutter Authors. All rights reserved.\nLicensed under the MIT License.',
+      'faq_q1': 'How do I swap skills?',
+      'faq_a1': 'Browse through the listings on the Home Screen. If you see a skill you want to learn, tap on it and select "Request Swap". Start a conversation with the user to outline what you will teach each other, and tap "Confirm Swap" once both parties agree!',
+      'faq_q2': 'Is Skill Swap completely free?',
+      'faq_a2': 'Yes, absolutely! Skill Swap is built on a direct barter peer-to-peer learning model. You share your expertise in exchange for learning something new. No financial transactions are involved.',
+      'faq_q3': 'How do I change my offered skills?',
+      'faq_a3': 'To update or delete an offered skill, go to the Home Screen and tap See All. Open the skill listing you want to manage to view its details, then tap the three-dot menu in the top-right corner. From there, select Edit Skill to make changes or Delete Skill to remove the listing.',
+      'faq_q4': 'What should I do if a user is offensive or inactive?',
+      'faq_a4': 'You can open the user\'s profile or chat, click the options menu (three dots), and select "Report User". Our support team monitors reports and takes appropriate action within 24 hours to keep the community safe.',
+      'faq_q5': 'Can I offer multiple skills at the same time?',
+      'faq_a5': 'Yes, you can list as many skills as you want. Simply tap the "+" FAB button on the home screen to create additional offer cards.',
     },
-    'Spanish': {
+    'es': {
       'settings': 'Ajustes',
       'account': 'Cuenta',
       'profile_info': 'Información Del Perfil',
@@ -301,8 +365,22 @@ class AppTranslations {
       'clear_all_notifications_desc': 'Esto Borrará Permanentemente Su Historial De Notificaciones.',
       'check_back_later': 'Vuelva Más Tarde Para Ver Las Actualizaciones.',
       'no_notifications': 'No Hay Notificaciones Aquí',
+      'general_inquiry': 'Consulta General',
+      'technical_issue': 'Problema Técnico',
+      'swap_dispute': 'Disputa De Intercambio',
+      'account_security': 'Cuenta Y Seguridad',
+      'feedback_suggestion': 'Comentarios Y Sugerencias',
+      'subject_hint': 'Ej. El chat no carga',
+      'subject_required': 'El asunto es obligatorio',
+      'message_hint': 'Describa su problema en detalle...',
+      'message_required': 'Por favor describa su consulta',
+      'ticket_success_msg': 'Su ticket de soporte ha sido enviado exitosamente.\n\nNuestro equipo se pondrá en contacto con usted a su dirección de correo electrónico registrada en breve.',
+      'mission_statement': 'Skill Swap es una plataforma innovadora de intercambio de conocimientos diseñada para unir a estudiantes y mentores. Creemos que todos son expertos en algo y estudiantes en otro.\n\nNuestra misión es superar las barreras financieras en el crecimiento profesional, pasatiempos y búsquedas educativas estableciendo un intercambio de valor directo, ayudándote a enseñar lo que amas para aprender lo que necesitas.',
+      'terms_of_service_content': '¡Bienvenido a Skill Swap! Estos Términos de Servicio ("Términos") rigen el uso de la aplicación móvil Skill Swap y la plataforma relacionada.\n\n1. ACEPTACIÓN DE TÉRMINOS\nAl descargar o usar la aplicación, usted acepta cumplir y estar sujeto a estos Términos. Si no está de acuerdo, no use la aplicación.\n\n2. DESCRIPCIÓN DEL SERVICIO\nSkill Swap es una aplicación de intercambio educativo de trueque directo que permite a los usuarios ofrecer habilidades para enseñar a cambio de aprender otras habilidades de usuarios pares.\n\n3. CUENTAS DE USUARIO Y SEGURIDAD\nDebe crear una cuenta válida para publicar anuncios de intercambio. Usted es el único responsable de mantener la confidencialidad de sus credenciales de cuenta y de todas las actividades que ocurran bajo su cuenta.\n\n4. CONDUCTA DEL USUARIO Y CONTENIDO PROHIBIDO\nLos usuarios deben mantener el respeto durante las sesiones de chat. No puede publicar contenido que sea engañoso, fraudulento, difamatorio, para adultos o de otra manera inapropiado. Nos reservamos el derecho absoluto de cancelar las cuentas que violen esta cláusula.\n\n5. SIN GARANTÍAS\nSkill Swap es un servicio de conexión entre pares. No evaluamos ni certificamos las credenciales de ningún usuario o anuncio. Los intercambios se organizan bajo su propio riesgo.\n\n6. LIMITACIÓN DE RESPONSABILIDAD\nSkill Swap y sus desarrolladores no serán responsables de ningún daño directo o indirecto que surja de sus conexiones o reuniones programadas a través de la aplicación.\n\n7. ENMIENDAS\nNos reservamos el derecho de modificar estos Términos en cualquier momento. Su uso continuado de la plataforma constituye su aceptación de dichas modificaciones.',
+      'privacy_policy_content': 'Su privacidad es extremadamente importante para nosotros. Esta Política de Privacidad describe cómo Skill Swap recopila, protege y maneja su información.\n\n1. INFORMACIÓN QUE RECOPILAMOS\n- Datos de la cuenta: nombre, dirección de correo electrónico, contraseña, foto de perfil y biografía.\n- Datos de anuncios de habilidades: detalles de las habilidades que ofrece y desea.\n- Datos de chat: mensajes de chat y solicitudes de conexión para coordinar intercambios.\n- Datos de uso de la aplicación: análisis sobre categorías populares.\n\n2. CÓMO UTILIZAMOS SU INFORMACIÓN\n- Para facilitar las conexiones y el intercambio de mensajes entre socios de intercambio.\n- Para personalizar sus feeds de coincidencias en la pantalla de inicio.\n- Para asegurar y autenticar su cuenta a través de Firebase Auth.\n\n3. RETENCIÓN DE DATOS\nAlmacenamos los datos de su perfil en Google Firebase y Supabase mientras su cuenta permanezca activa. Puede solicitar la eliminación de la cuenta o ponerse en contacto con el soporte para solicitar la eliminación permanente en cualquier momento.\n\n4. SERVICIOS DE TERCEROS\nUtilizamos SDK de terceros, incluidos Google Firebase (Autenticación, Almacenamiento, Firestore) y Supabase para alojar anuncios y realizar análisis de la plataforma. Estos servicios operan bajo sus respectivas políticas de privacidad.\n\n5. SEGURIDAD\nAplicamos políticas de protección en la nube estándar de la industria para proteger sus datos. Sin embargo, ninguna transmisión de base de datos es 100% segura. Elija credenciales sólidas y únicas.',
+      'open_source_licenses_content': '¡Skill Swap es posible gracias a la increíble comunidad de código abierto! A continuación se muestran los marcos y bibliotecas principales utilizados:\n\n■ Flutter SDK\nCopyright 2014 The Flutter Authors. All rights reserved.\nLicensed under the BSD 3-Clause License.\n\n■ Firebase Core & Auth\nCopyright 2020 Google LLC. All rights reserved.\nLicensed under the Apache License, Version 2.0.\n\n■ Cloud Firestore\nCopyright 2020 Google LLC. All rights reserved.\nLicensed under the Apache License, Version 2.0.\n\n■ Supabase Flutter\nCopyright (c) 2021 Supabase. All rights reserved.\nLicensed under the MIT License.\n\n■ Connectivity Plus\nCopyright 2020 The Chromium Authors. All rights reserved.\nLicensed under the BSD-style License.\n\n■ Cupertino Icons\nCopyright 2020 The Flutter Authors. All rights reserved.\nLicensed under the MIT License.',
     },
-    'Arabic': {
+    'ar': {
       'settings': 'الإعدادات',
       'account': 'الحساب',
       'profile_info': 'معلومات الملف الشخصي',
@@ -360,7 +438,7 @@ class AppTranslations {
       'check_back_later': 'تحقق مرة أخرى لاحقا للحصول على التحديثات.',
       'no_notifications': 'لا توجد إخطارات هنا',
     },
-    'French': {
+    'fr': {
       'settings': 'Paramètres',
       'account': 'Compte',
       'profile_info': 'Informations Du Profil',
@@ -508,7 +586,7 @@ class AppTranslations {
       'check_back_later': 'Revenez Plus Tard Pour Les Mises À Jour.',
       'no_notifications': 'Aucune Notification Ici',
     },
-    'German': {
+    'de': {
       'settings': 'Einstellungen',
       'account': 'Konto',
       'profile_info': 'Profilinformationen',
@@ -656,7 +734,7 @@ class AppTranslations {
       'check_back_later': 'Schauen Sie Später Wieder Vorbei, Um Updates Zu Erhalten.',
       'no_notifications': 'Keine Benachrichtigungen Hier',
     },
-    'Chinese': {
+    'zh': {
       'settings': '设置',
       'account': '账户',
       'profile_info': '个人信息',
@@ -804,7 +882,7 @@ class AppTranslations {
       'check_back_later': '稍后再回来查看更新。',
       'no_notifications': '这里没有通知',
     },
-    'Japanese': {
+    'ja': {
       'settings': '設定',
       'account': 'アカウント',
       'profile_info': 'プロフィール情報',
@@ -952,7 +1030,7 @@ class AppTranslations {
       'check_back_later': '後でまたチェックして更新を確認してください。',
       'no_notifications': 'ここには通知がありません',
     },
-    'Russian': {
+    'ru': {
       'settings': 'Настройки',
       'account': 'Аккаунт',
       'profile_info': 'Информация Профиля',
@@ -1100,7 +1178,7 @@ class AppTranslations {
       'check_back_later': 'Зайдите Позже, Чтобы Проверить Наличие Обновлений.',
       'no_notifications': 'Здесь Нет Уведомлений',
     },
-    'Portuguese': {
+    'pt': {
       'settings': 'Configurações',
       'account': 'Conta',
       'profile_info': 'Informações Do Perfil',
@@ -1248,7 +1326,7 @@ class AppTranslations {
       'check_back_later': 'Volte Mais Tarde Para Atualizações.',
       'no_notifications': 'Nenhuma Notificação Aqui',
     },
-    'Italian': {
+    'it': {
       'settings': 'Impostazioni',
       'account': 'Account',
       'profile_info': 'Profilo Personale',
@@ -1333,7 +1411,7 @@ class AppTranslations {
       'help_center_title': 'Centro Assistenza',
       'faqs': 'FAQ',
       'contact_support': 'Contatta Il Supporto',
-      'frequently_asked': 'Domande Frequenti',
+      'frequently_asked': 'Domande Fréquenti',
       'search_questions': 'Cerca Domande O Parole Chiave...',
       'submit_ticket': 'Invia Un Ticket Di Supporto',
       'help_desk_reply': 'Il Nostro Team Risponderà Entro 12-24 Ore.',
@@ -1357,7 +1435,7 @@ class AppTranslations {
       'show_online_status_desc': 'Consenti Ad Altri Di Vedere Quando Sei Attivo',
       'direct_msg_from_anyone': 'Messaggi Diretti Da Chiunque',
       'direct_msg_from_anyone_desc': 'Consenti Messaggi Senza Richiesta Di Scambio',
-      'high_risk_actions': 'Azioni Ad Alto Rischio',
+      'high_risk_actions': 'Azioni Ad Alto Risco',
       'clear_cache': 'Svuota Cache App',
       'clear_cache_desc': 'Libera Spazio Eliminando File Temporanei',
       'clear': 'Svuota',
@@ -1396,7 +1474,7 @@ class AppTranslations {
       'check_back_later': 'Torna Più Tardi Per Gli Aggiornamenti.',
       'no_notifications': 'Nessuna Notifica Qui',
     },
-    'Urdu': {
+    'ur': {
       'appTitle': 'SkillSwapX',
       'lightMode': 'Light Mode',
       'signIn': 'Sign In',
@@ -1548,7 +1626,7 @@ class AppTranslations {
       'check_back_later': 'اپ ڈیٹس کے لیے بعد میں دوبارہ چیک کریں۔',
       'no_notifications': 'یہاں کوئی اطلاعات نہیں ہیں۔',
     },
-    'Hindi': {
+    'hi': {
       'settings': 'सेटिंग्स',
       'account': 'खाता',
       'profile_info': 'प्रोफ़ाइल जानकारी',
@@ -1590,9 +1668,9 @@ class AppTranslations {
       'sign_up': 'साइन अप करें',
       'allow_push': 'पुश नोटिफिकेशन की अनुमति दें',
       'allow_push_desc': 'स्किल स्वैप से आने वाली सभी नोटिफिकेशन चालू या बंद करें',
-      'master_controls': 'मास्टर नियंत्रण',
+      'master_controls': 'माстер नियंत्रण',
       'notification_types': 'नोटिफिकेशन के प्रकार',
-      'swap_proposals': 'स्वैप प्रस्ताव',
+      'swap_proposals': 'स्वैپ प्रस्ताव',
       'swap_proposals_desc': 'स्वैप प्रस्तावित या स्वीकृत होने पर सूचित करें',
       'direct_messages': 'सीधे संदेश',
       'direct_messages_desc': 'चैट में संदेश मिलने पर तुरंत सूचित करें',
@@ -1688,7 +1766,7 @@ class AppTranslations {
       'looking_for': 'मैं तलाश रहा हूँ',
       'portfolio': 'पोर्टफोलियो',
       'description_label': 'विवरण',
-      'add_skill': 'कौशल जोड़ें',
+      'add_skill': 'कооशल जोड़ें',
       'no_sessions_yet': 'अभी तक कोई सत्र नहीं.',
       'something_went_wrong': 'कुछ गलत हो गया',
       'clear_all_notifications': 'सभी सूचनाएं साफ़ करें?',
@@ -1698,13 +1776,13 @@ class AppTranslations {
     },
   };
 
-  static String translate(String key, String activeLanguage) {
-    final Map<String, String>? localized = _localizedValues[activeLanguage];
+  static String translate(String key, String activeLanguageCode) {
+    final Map<String, String>? localized = _localizedValues[activeLanguageCode];
     if (localized != null && localized.containsKey(key)) {
       return localized[key]!;
     }
     // Fallback to English
-    final Map<String, String>? english = _localizedValues['English'];
+    final Map<String, String>? english = _localizedValues['en'];
     if (english != null && english.containsKey(key)) {
       return english[key]!;
     }
@@ -1714,7 +1792,7 @@ class AppTranslations {
 
 extension TranslationExtension on String {
   String tr() {
-    final language = AppSettings().currentLanguage.value;
-    return AppTranslations.translate(this, language);
+    final languageCode = LanguageProvider.instance.languageCode;
+    return AppTranslations.translate(this, languageCode);
   }
 }

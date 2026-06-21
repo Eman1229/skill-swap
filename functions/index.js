@@ -8,6 +8,15 @@ const { sendSwapProposalNotification } = require('./sendSwapProposalNotification
 const { sendDirectMessageNotification } = require('./sendDirectMessageNotification');
 const { sendWeeklyTips } = require('./sendWeeklyTips');
 
+// ── AI Recommendation Ecosystem ────────────────────────────────────────
+const { getEmbedding } = require('./ai_proxy');
+const { generateCareerRecommendation } = require('./career_compass');
+const { generateLearningRoadmap } = require('./learning_roadmap');
+exports.getEmbedding = getEmbedding;
+exports.generateCareerRecommendation = generateCareerRecommendation;
+exports.generateLearningRoadmap = generateLearningRoadmap;
+// ──────────────────────────────────────────────────────────────────────
+
 const db = admin.firestore();
 const fieldValue = admin.firestore.FieldValue;
 const DEFAULT_TOTAL_SESSIONS = 8;

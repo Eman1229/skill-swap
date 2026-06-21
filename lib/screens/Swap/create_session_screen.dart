@@ -131,7 +131,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Session Invite Sent'.tr()),
+            content: Text('session_invite_sent'.tr()),
             backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
@@ -173,7 +173,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel('Session Title'.tr(), required: true),
+                      _buildLabel('session_title'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildTextField(
                         _titleController,
@@ -185,7 +185,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                       ),
                       SizedBox(height: 20),
 
-                      _buildLabel('Duration'.tr(), required: true),
+                      _buildLabel('duration'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildTextField(
                         _durationController,
@@ -197,11 +197,11 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                       ),
                       SizedBox(height: 20),
 
-                      _buildLabel('Meeting Link', required: true),
+                      _buildLabel('meeting_link'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildTextField(
                         _meetingLinkController,
-                        'Zoom, Google Meet, Teams, or other URL',
+                        'meeting_link_hint'.tr(),
                         Icons.link_rounded,
                         validator: (v) => v == null || v.trim().isEmpty
                             ? 'required_field'.tr()
@@ -209,12 +209,12 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                       ),
                       SizedBox(height: 20),
 
-                      _buildLabel('Date and Time'.tr(), required: true),
+                      _buildLabel('date_and_time'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildDateTimePicker(),
                       SizedBox(height: 20),
 
-                      _buildLabel('Session Agenda'),
+                      _buildLabel('session_agenda'.tr()),
                       SizedBox(height: 8),
                       //Stack places icon exactly where text cursor starts
                       Stack(
@@ -275,7 +275,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           ),
           SizedBox(width: 14),
           Text(
-            'Create Session'.tr(),
+            'create_session'.tr(),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontSize: 18,
@@ -363,7 +363,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         fontSize: 14,
       ),
       decoration: InputDecoration(
-        hintText: 'What would you like to focus on...',
+        hintText: 'session_agenda_hint'.tr(),
         hintStyle: TextStyle(
           color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
           fontSize: 13,
@@ -466,7 +466,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               padding: EdgeInsets.symmetric(vertical: 14),
             ),
             child: Text(
-              'Cancel'.tr(),
+              'cancel'.tr(),
               style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 14),
@@ -494,7 +494,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                 padding: EdgeInsets.symmetric(vertical: 14),
               ),
               child: Text(
-                'Send Invitation'.tr(),
+                'send_invitation'.tr(),
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.bold,

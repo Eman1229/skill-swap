@@ -7,6 +7,7 @@ class LanguageProvider extends ChangeNotifier {
 
   static final LanguageProvider instance = LanguageProvider._();
   static const String _storageKey = 'selected_locale_code';
+  static const String _legacyStorageKey = 'language_code';
 
   static const Locale english = Locale('en');
   static const Locale spanish = Locale('es');
@@ -85,9 +86,13 @@ class LanguageProvider extends ChangeNotifier {
 
   Future<void> loadSavedLocale() async {
     final prefs = await SharedPreferences.getInstance();
-    final code = prefs.getString(_storageKey) ?? english.languageCode;
-    _locale = _localeFromCode(code);
+    final saved = prefs.getString(_storageKey) ??
+        prefs.getString(_legacyStorageKey) ??
+        english.languageCode;
+    _locale = _localeFromSavedValue(saved);
     AppSettings().currentLanguage.value = languageName;
+    await prefs.setString(_storageKey, _locale.languageCode);
+    notifyListeners();
   }
 
   Future<void> setLocale(Locale locale) async {
@@ -115,5 +120,12 @@ class LanguageProvider extends ChangeNotifier {
       (locale) => locale.languageCode == code,
       orElse: () => english,
     );
+  }
+
+  Locale _localeFromSavedValue(String value) {
+    final normalized = value.trim();
+    final byCode = _localeFromCode(normalized);
+    if (byCode.languageCode == normalized) return byCode;
+    return localeForLanguageName(normalized);
   }
 }

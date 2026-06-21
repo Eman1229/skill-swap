@@ -7,6 +7,7 @@ import 'package:skill_swap/firebase_options.dart';
 import 'package:skill_swap/l10n/app_localizations.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 import 'package:skill_swap/providers/notification_provider.dart';
+import 'package:skill_swap/providers/ai/ai_recommendation_provider.dart';
 import 'package:skill_swap/screens/offline/offlinescreen.dart';
 import 'package:skill_swap/screens/splash/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -54,6 +55,7 @@ Future<void> main() async {
           ChangeNotifierProvider<ConnectivityService>.value(
             value: ConnectivityService(),
           ),
+          ChangeNotifierProvider<AIRecommendationProvider>(create: (_) => AIRecommendationProvider()),
         ],
         child: const MyApp(),
       ),

@@ -46,19 +46,19 @@ class AboutScreen extends StatelessWidget {
               context: context,
               icon: Icons.article_outlined,
               title: 'terms_of_service'.tr(),
-              content: _termsText,
+              content: 'terms_of_service_content'.tr(),
             ),
             _buildLegalTile(
               context: context,
               icon: Icons.privacy_tip_outlined,
               title: 'privacy_policy'.tr(),
-              content: _privacyText,
+              content: 'privacy_policy_content'.tr(),
             ),
             _buildLegalTile(
               context: context,
               icon: Icons.code_rounded,
               title: 'open_source_licenses'.tr(),
-              content: _licensesText,
+              content: 'open_source_licenses_content'.tr(),
             ),
             SizedBox(height: 40),
           ],
@@ -110,7 +110,7 @@ class AboutScreen extends StatelessWidget {
           ),
           SizedBox(height: 10),
           Text(
-            'Skill Swap is an innovative peer-to-peer knowledge barter platform designed to bring learners and mentors together. We believe that everyone is an expert in something and a student in another.\n\nOur mission is to bypass financial barriers in career growth, hobbies, and educational pursuits by establishing a direct value exchange—helping you teach what you love to learn what you need.',
+            'mission_statement'.tr(),
             style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.5),
           ),
         ],
@@ -208,81 +208,4 @@ class AboutScreen extends StatelessWidget {
       },
     );
   }
-
-  static String _termsText = '''
-Welcome to Skill Swap! These Terms of Service ("Terms") govern your use of the Skill Swap mobile application and related platform.
-
-1. ACCEPTANCE OF TERMS
-By downloading or using the App, you agree to comply with and be bound by these Terms. If you do not agree, please do not use the application.
-
-2. DESCRIPTION OF SERVICE
-Skill Swap is a direct-barter educational exchange application allowing users to offer skills to teach in exchange for learning other skills from peer users.
-
-3. USER ACCOUNTS AND SECURITY
-You must create a valid account to publish swap listings. You are solely responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.
-
-4. USER CONDUCT & PROHIBITED CONTENT
-Users must maintain respect during chat sessions. You may not publish content that is misleading, fraudulent, defamatory, adult, or otherwise inappropriate. We reserve the absolute right to terminate accounts that violate this clause.
-
-5. NO GUARANTEES OR WARRANTIES
-Skill Swap is a peer-to-peer connection service. We do not evaluate or certify the credentials of any users or listings. Swaps are arranged at your own risk.
-
-6. LIMITATION OF LIABILITY
-Skill Swap and its developers shall not be liable for any direct or indirect damages arising out of your connections or meetings scheduled through the application.
-
-7. AMENDMENTS
-We reserve the right to modify these Terms at any time. Your continued use of the platform constitutes your agreement to such modifications.
-''';
-
-  static String _privacyText = '''
-Your privacy is extremely important to us. This Privacy Policy describes how Skill Swap collects, protects, and handles your information.
-
-1. INFORMATION WE COLLECT
-- Account Data: Name, email address, password, profile photo, and biography.
-- Skills Listing Data: Details of the skills you offer and want.
-- Chat Data: Chat messages and connection requests to coordinate swaps.
-- App Usage Data: Analytics regarding popular categories.
-
-2. HOW WE USE YOUR INFORMATION
-- To facilitate connections and exchange messaging between swapping partners.
-- To personalize your home screen matching feeds.
-- To secure and authenticate your account through Firebase Auth.
-
-3. DATA RETENTION
-We store your profile data on Google Firebase and Supabase for as long as your account remains active. You can trigger mock account deletion or contact support to request permanent deletion at any time.
-
-4. THIRD-PARTY SERVICES
-We utilize third-party SDKs including Google Firebase (Authentication, Storage, Firestore) and Supabase to host listings and perform platform analytics. These services operate under their respective privacy policies.
-
-5. SECURITY
-We apply industry-standard cloud protection policies to protect your data. However, no database transmission is 100% secure. Please choose strong, unique credentials.
-''';
-
-  static String _licensesText = '''
-Skill Swap is made possible by the incredible open-source community! Below are primary frameworks and libraries used:
-
-■ Flutter SDK
-Copyright 2014 The Flutter Authors. All rights reserved.
-Licensed under the BSD 3-Clause License.
-
-■ Firebase Core & Auth
-Copyright 2020 Google LLC. All rights reserved.
-Licensed under the Apache License, Version 2.0.
-
-■ Cloud Firestore
-Copyright 2020 Google LLC. All rights reserved.
-Licensed under the Apache License, Version 2.0.
-
-■ Supabase Flutter
-Copyright (c) 2021 Supabase. All rights reserved.
-Licensed under the MIT License.
-
-■ Connectivity Plus
-Copyright 2020 The Chromium Authors. All rights reserved.
-Licensed under the BSD-style License.
-
-■ Cupertino Icons
-Copyright 2020 The Flutter Authors. All rights reserved.
-Licensed under the MIT License.
-''';
 }

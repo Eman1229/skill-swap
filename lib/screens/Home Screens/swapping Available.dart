@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/screens/Add%20skill/offer%20skill.dart';
 import 'package:skill_swap/screens/Home%20Screens/see%20all.dart';
+import 'package:skill_swap/screens/AI/ai_recommendation_center_screen.dart';
 import 'package:skill_swap/screens/Chat/chat_screen.dart';
 import 'package:skill_swap/screens/Profile/edit_profile_screen.dart';
 import 'package:skill_swap/screens/Profile/my_profile_screen.dart';
@@ -688,7 +689,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => SeeAllScreen()),
+                  MaterialPageRoute(builder: (_) => const AIRecommendationCenterScreen()),
                 );
               },
               child: const Text(

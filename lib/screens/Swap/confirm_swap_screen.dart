@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/services/swap_request_repository.dart';
-import 'package:skill_swap/services/chat_user_service.dart';
 
 class ConfirmSwapScreen extends StatefulWidget {
   final SwapListing swap;
