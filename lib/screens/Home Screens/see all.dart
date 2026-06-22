@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Profile/profile%20screen.dart';
 
@@ -26,9 +27,35 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
   ];
 
   Stream<List<SwapListing>> get _swapsStream {
-    return _db.collection('swapListings').snapshots().map(
-          (snap) => snap.docs.map(SwapListing.fromDoc).toList(),
-    );
+    return _db.collection('swapListings').snapshots().asyncMap((snap) async {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      final swapperIds = <String>{};
+
+      if (uid != null) {
+        try {
+          final swapsSnap = await _db
+              .collection('swaps')
+              .where('participants', arrayContains: uid)
+              .get();
+          for (final doc in swapsSnap.docs) {
+            swapperIds.addAll(List<String>.from(doc['participants'] ?? []));
+          }
+        } catch (e) {
+          debugPrint('Error fetching swapper IDs: $e');
+        }
+      }
+
+      return snap.docs
+          .map(SwapListing.fromDoc)
+          .where((s) {
+            if (s.userId == uid) return false;
+            final pv = s.profileVisibility.toLowerCase();
+            if (pv == 'private') return false;
+            if ((pv == 'swappers_only' || pv == 'swappers only') && !swapperIds.contains(s.userId)) return false;
+            return true;
+          })
+          .toList();
+    });
   }
 
   List<SwapListing> _applyFilters(List<SwapListing> all) {

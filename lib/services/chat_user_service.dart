@@ -99,28 +99,30 @@ class ChatUserService {
           imageUrl = latestData['imageUrl'] as String?;
         }
 
-        if (imageUrl == null || imageUrl.isEmpty) {
-          try {
-            final userDoc = await _db.collection('users').doc(userId).get();
-            if (userDoc.exists) {
-              final data = userDoc.data();
-              if (data != null) {
+        bool showOnlineStatus = true;
+        try {
+          final userDoc = await _db.collection('users').doc(userId).get();
+          if (userDoc.exists) {
+            final data = userDoc.data();
+            if (data != null) {
+              showOnlineStatus = data['showOnlineStatus'] ?? true;
+              if (imageUrl == null || imageUrl.isEmpty) {
                 imageUrl = (data['imageUrl'] ?? data['photoURL'] ?? data['profilePic'] ?? data['ProfilePic']) as String?;
-                final n = data['name'] as String?;
-                if (n != null && n.trim().isNotEmpty) {
-                  name = n;
-                }
+              }
+              final n = data['name'] as String?;
+              if (n != null && n.trim().isNotEmpty && name == 'Unknown User') {
+                name = n;
               }
             }
-          } catch (e) {
-            debugPrint("ChatUserService: Error fetching from users collection: $e");
           }
+        } catch (e) {
+          debugPrint("ChatUserService: Error fetching from users collection: $e");
         }
 
-        return {'name': name, 'imageUrl': imageUrl};
+        return {'name': name, 'imageUrl': imageUrl, 'showOnlineStatus': showOnlineStatus};
       }).catchError((e) {
         debugPrint("ChatUserService: Error fetching profile: $e");
-        return {'name': 'Unknown User', 'imageUrl': null};
+        return {'name': 'Unknown User', 'imageUrl': null, 'showOnlineStatus': true};
       });
     }
 
@@ -131,6 +133,7 @@ class ChatUserService {
   Stream<ChatUserProfile> _createProfileStream(String userId, DatabaseReference dbRef) async* {
     // Wait for the profile data to be fetched (or instantly resolve if cached)
     final profile = await _profileCache[userId]!;
+    final showOnlineStatus = (profile['showOnlineStatus'] as bool?) ?? true;
     
     // Yield the profile with offline status immediately if no latest profile exists
     final initialProfile = _latestProfiles[userId] ?? ChatUserProfile(
@@ -149,7 +152,7 @@ class ChatUserService {
       bool isOnline = false;
       Timestamp? lastSeen;
 
-      if (snap.exists && snap.value != null) {
+      if (snap.exists && snap.value != null && showOnlineStatus) {
         try {
           final val = snap.value as Map<dynamic, dynamic>;
           isOnline = (val['online'] as bool?) ?? false;

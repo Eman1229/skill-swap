@@ -183,9 +183,28 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
         }
       }
 
+      String profileVisibility = 'public';
+      if (user?.uid != null) {
+        try {
+          final userDoc = await _db.collection('users').doc(user!.uid).get();
+          if (userDoc.exists && userDoc.data() != null) {
+            final pv = userDoc.data()!['profileVisibility'] as String?;
+            if (pv != null) {
+              if (pv == 'Public') profileVisibility = 'public';
+              else if (pv == 'Swappers Only') profileVisibility = 'swappers_only';
+              else if (pv == 'Private') profileVisibility = 'private';
+              else profileVisibility = pv;
+            }
+          }
+        } catch (e) {
+          debugPrint('Error fetching profileVisibility: $e');
+        }
+      }
+
       await _db.collection('swapListings').add({
         'name': name,
         'imageUrl': imageUrl,
+        'profileVisibility': profileVisibility,
         'offering': _titleController.text.trim(),
         'wanting': _lookingForController.text.trim(),
         'Category': _mapCategory(_selectedCategory!),

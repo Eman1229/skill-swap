@@ -38,14 +38,65 @@ class _ConversationScreenState extends State<ConversationScreen> {
   bool _isTyping = false;
   bool _otherTyping = false;
   StreamSubscription? _typingSubscription;
+  bool _canSendMessage = true;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
-    _initConversation();
+    _initialize();
     // Listen for other user typing status
     _listenTypingStatus();
+  }
+
+  Future<void> _initialize() async {
+    await _initConversation();
+    await _checkMessagePermissions();
+  }
+
+  Future<void> _checkMessagePermissions() async {
+    final uid = _auth.currentUser?.uid;
+    final otherId = widget.swap.userId ?? '';
+    if (uid == null || otherId.isEmpty) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(otherId).get();
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null) {
+          final dmEnabled = data['directMessagesEnabled'] ?? true;
+          if (dmEnabled) {
+            if (!_canSendMessage) setState(() => _canSendMessage = true);
+            return;
+          }
+
+          // Check if they are swappers
+          final swapsSnap = await FirebaseFirestore.instance
+              .collection('swaps')
+              .where('participants', arrayContains: uid)
+              .get();
+              
+          final isSwapper = swapsSnap.docs.any((d) => List<String>.from(d['participants'] ?? []).contains(otherId));
+          if (isSwapper) {
+            if (!_canSendMessage) setState(() => _canSendMessage = true);
+            return;
+          }
+          
+          // Check if existing conversation has messages
+          if (_conversationId != null && _conversationId!.isNotEmpty) {
+            final msgs = await FirebaseFirestore.instance.collection('conversations').doc(_conversationId).collection('messages').limit(1).get();
+            if (msgs.docs.isNotEmpty) {
+               if (!_canSendMessage) setState(() => _canSendMessage = true);
+               return;
+            }
+          }
+          
+          if (_canSendMessage) setState(() => _canSendMessage = false);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error checking message permissions: $e");
+    }
   }
 
   void _listenTypingStatus() {
@@ -527,6 +578,22 @@ class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   Widget _buildInputBar() {
+    if (!_canSendMessage) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          border: Border(top: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1))),
+        ),
+        child: Text(
+          'This user is not accepting direct messages from everyone.',
+          style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13, fontStyle: FontStyle.italic),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       decoration: BoxDecoration(

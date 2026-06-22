@@ -42,7 +42,7 @@ class AppSettings {
 
   // Privacy & Security Settings
   final ValueNotifier<String> profileVisibility = ValueNotifier<String>(
-    'Public',
+    'public',
   );
   final ValueNotifier<bool> showOnlineStatus = ValueNotifier<bool>(true);
   final ValueNotifier<bool> directMessagesEnabled = ValueNotifier<bool>(true);

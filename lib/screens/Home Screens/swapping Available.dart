@@ -94,6 +94,7 @@ class SwapListing {
   final String description;
   final String experience;
   final String? imageUrl;
+  final String profileVisibility;
 
   SwapListing({
     required this.id,
@@ -112,6 +113,7 @@ class SwapListing {
     this.description = '',
     this.experience = '',
     this.imageUrl,
+    this.profileVisibility = 'public',
   });
 
   factory SwapListing.fromDoc(DocumentSnapshot doc) {
@@ -142,6 +144,7 @@ class SwapListing {
       description: (d['description'] as String?) ?? '',
       experience: (d['experienceLevel'] as String?) ?? '',
       imageUrl: d['imageUrl'] as String?,
+      profileVisibility: (d['profileVisibility'] as String?) ?? 'public',
     );
   }
 }
@@ -187,12 +190,36 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     if (categoryIndex != 0) {
       query = query.where('Category', isEqualTo: _categories[categoryIndex]);
     }
-    return query.snapshots().map(
-          (snap) => snap.docs
+
+    return query.snapshots().asyncMap((snap) async {
+      final uid = _auth.currentUser?.uid;
+      final swapperIds = <String>{};
+
+      if (uid != null) {
+        try {
+          final swapsSnap = await _db
+              .collection('swaps')
+              .where('participants', arrayContains: uid)
+              .get();
+          for (final doc in swapsSnap.docs) {
+            swapperIds.addAll(List<String>.from(doc['participants'] ?? []));
+          }
+        } catch (e) {
+          debugPrint('Error fetching swapper IDs: $e');
+        }
+      }
+
+      return snap.docs
           .map(SwapListing.fromDoc)
-          .where((s) => s.userId != _auth.currentUser?.uid)
-          .toList(),
-    );
+          .where((s) {
+            if (s.userId == uid) return false;
+            final pv = s.profileVisibility.toLowerCase();
+            if (pv == 'private') return false;
+            if ((pv == 'swappers_only' || pv == 'swappers only') && !swapperIds.contains(s.userId)) return false;
+            return true;
+          })
+          .toList();
+    });
   }
 
   List<SwapListing> get _filteredSwaps {

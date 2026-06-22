@@ -31,7 +31,11 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
 
     final data = doc.data()!;
 
-    _settings.profileVisibility.value = data['profileVisibility'] ?? 'Public';
+    var visibility = data['profileVisibility'] ?? 'public';
+    if (visibility == 'Public') visibility = 'public';
+    if (visibility == 'Swappers Only') visibility = 'swappers_only';
+    if (visibility == 'Private') visibility = 'private';
+    _settings.profileVisibility.value = visibility;
     _settings.showOnlineStatus.value = data['showOnlineStatus'] ?? true;
     _settings.directMessagesEnabled.value = data['directMessagesEnabled'] ?? true;
 
@@ -39,7 +43,19 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   }
 
   Future<void> updateUserSetting(String field, dynamic value) async {
-    await _firestore.collection('users').doc(uid).update({field: value});
+    try {
+      await _firestore.collection('users').doc(uid).set({field: value}, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error updating user setting: $e');
+    }
+    if (field == 'profileVisibility') {
+      final listings = await _firestore.collection('swapListings').where('userId', isEqualTo: uid).get();
+      final batch = _firestore.batch();
+      for (final doc in listings.docs) {
+        batch.update(doc.reference, {'profileVisibility': value});
+      }
+      await batch.commit();
+    }
   }
 
   Future<void> deleteAccount() async {
@@ -84,28 +100,28 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                   _buildVisibilityTile(
                     title: 'visibility_public'.tr(),
                     description: 'visibility_public_desc'.tr(),
-                    isSelected: visibility == 'Public',
+                    isSelected: visibility == 'public',
                     onTap: () async {
-                      setState(() => _settings.profileVisibility.value = 'Public');
-                      await updateUserSetting('profileVisibility', 'Public');
+                      setState(() => _settings.profileVisibility.value = 'public');
+                      await updateUserSetting('profileVisibility', 'public');
                     },
                   ),
                   _buildVisibilityTile(
                     title: 'visibility_swappers'.tr(),
                     description: 'visibility_swappers_desc'.tr(),
-                    isSelected: visibility == 'Swappers Only',
+                    isSelected: visibility == 'swappers_only',
                     onTap: () async {
-                      setState(() => _settings.profileVisibility.value = 'Swappers Only');
-                      await updateUserSetting('profileVisibility', 'Swappers Only');
+                      setState(() => _settings.profileVisibility.value = 'swappers_only');
+                      await updateUserSetting('profileVisibility', 'swappers_only');
                     },
                   ),
                   _buildVisibilityTile(
                     title: 'visibility_private'.tr(),
                     description: 'visibility_private_desc'.tr(),
-                    isSelected: visibility == 'Private',
+                    isSelected: visibility == 'private',
                     onTap: () async {
-                      setState(() => _settings.profileVisibility.value = 'Private');
-                      await updateUserSetting('profileVisibility', 'Private');
+                      setState(() => _settings.profileVisibility.value = 'private');
+                      await updateUserSetting('profileVisibility', 'private');
                     },
                   ),
                 ],
