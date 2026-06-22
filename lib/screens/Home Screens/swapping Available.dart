@@ -14,6 +14,9 @@ import 'package:skill_swap/screens/Setting/settings_screen.dart';
 import 'package:skill_swap/services/notification_repository.dart';
 import 'package:skill_swap/models/session_model.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 // ─────────────────────────────────────────────────────────────────────
 // ANIMATED GRADIENT BORDER WIDGET
@@ -334,6 +337,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   // ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return PopScope(
@@ -357,14 +361,14 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                 _NavItem(
                   icon: Icons.home_outlined,
                   activeIcon: Icons.home_rounded,
-                  label: 'Home',
+                  label: 'home'.tr(),
                   selected: _selectedIndex == 0,
                   onTap: () => setState(() => _selectedIndex = 0),
                 ),
                 _NavItem(
                   icon: Icons.chat_bubble_outline_rounded,
                   activeIcon: Icons.chat_bubble_rounded,
-                  label: 'Chat',
+                  label: 'chat'.tr(),
                   selected: _selectedIndex == 1,
                   onTap: () => setState(() => _selectedIndex = 1),
                 ),
@@ -372,14 +376,14 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                 _NavItem(
                   icon: Icons.swap_vert_rounded,
                   activeIcon: Icons.swap_vert_rounded,
-                  label: 'Swaps',
+                  label: 'swaps'.tr(),
                   selected: _selectedIndex == 2,
                   onTap: () => setState(() => _selectedIndex = 2),
                 ),
                 _NavItem(
                   icon: Icons.settings_outlined,
                   activeIcon: Icons.settings_rounded,
-                  label: 'Settings',
+                  label: 'settings'.tr(),
                   selected: _selectedIndex == 3,
                   onTap: () => setState(() => _selectedIndex = 3),
                 ),
@@ -879,7 +883,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '$_greeting, $_userName',
+                      '${'Good $_greeting'.tr()}, $_userName',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 17,
@@ -888,8 +892,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
-                    const Text(
-                      'Keep growing every day!',
+                    Text(
+                      'keep_growing'.tr(),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -993,7 +997,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           fontSize: 14,
         ),
         decoration: InputDecoration(
-          hintText: 'Search skills or topic...',
+          hintText: 'search_skills'.tr(),
           hintStyle: TextStyle(
             color: Theme.of(context)
                 .colorScheme

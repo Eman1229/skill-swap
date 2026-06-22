@@ -8,6 +8,8 @@ import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
 import 'package:skill_swap/services/chat_user_service.dart';
 import 'package:skill_swap/services/analytics_service.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 class MyLearningScreen extends StatefulWidget {
   MyLearningScreen({Key? key}) : super(key: key);
@@ -33,6 +35,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final uid = _auth.currentUser?.uid;
 
     return Scaffold(
@@ -186,7 +189,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Text('No learning swaps found.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+      child: Text('no_listings_found'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
     );
   }
 

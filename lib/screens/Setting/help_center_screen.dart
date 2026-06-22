@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
@@ -64,6 +66,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(

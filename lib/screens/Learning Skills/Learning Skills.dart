@@ -3,6 +3,8 @@ import 'package:skill_swap/screens/Learning%20Skills/Learning%20Skills1.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/screens/SkillsChoose/skill_selection_layout.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 class LearningSkillsScreen extends StatefulWidget {
   LearningSkillsScreen({Key? key}) : super(key: key);
@@ -29,6 +31,7 @@ class _LearningSkillsScreenState extends State<LearningSkillsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return SkillSelectionScaffold(
       title: "choose_learn_skills".tr(),
       selectedSkills: selectedSkills,

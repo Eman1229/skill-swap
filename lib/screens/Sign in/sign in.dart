@@ -8,6 +8,8 @@ import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/screens/reset/Reset.dart';
 import 'package:skill_swap/screens/sign%20up/sign%20up.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 class SignInScreen extends StatefulWidget {
  const SignInScreen({super.key});
@@ -185,6 +187,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(

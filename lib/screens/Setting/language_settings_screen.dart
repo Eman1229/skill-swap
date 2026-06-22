@@ -46,6 +46,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>(); // Triggers rebuild on language change
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(

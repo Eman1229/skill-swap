@@ -9,6 +9,7 @@ import 'package:skill_swap/screens/Profile/my_profile_screen.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 import '../Add skill/offer skill.dart';
 
@@ -108,6 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
@@ -587,7 +589,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _NavItem(
                 icon: Icons.person_outline_rounded,
                 activeIcon: Icons.person_rounded,
-                label: 'Profile',
+                label: 'account'.tr(),
                 selected: _selectedIndex == 3,
                 onTap: () => setState(() => _selectedIndex = 3),
               ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 class SkillOption {
   const SkillOption({
@@ -41,6 +43,7 @@ class SkillSelectionScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -130,6 +133,7 @@ class _SkillTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final colorScheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
@@ -212,6 +216,7 @@ class OtherSkillScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(

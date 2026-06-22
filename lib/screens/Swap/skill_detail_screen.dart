@@ -7,6 +7,8 @@ import 'package:skill_swap/screens/Swap/create_session_screen.dart';
 import 'package:skill_swap/screens/Swap/session_detail_screen.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/services/chat_user_service.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 class SkillDetailScreen extends StatefulWidget {
   final SwapModel swap;
@@ -22,6 +24,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final uid = _auth.currentUser?.uid;
     final isMentor = uid == widget.swap.mentorId;
 

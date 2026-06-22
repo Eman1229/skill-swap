@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Setting/app_settings.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 class NotificationsSettingsScreen extends StatefulWidget {
   const NotificationsSettingsScreen({super.key});
@@ -20,6 +22,7 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return ValueListenableBuilder<bool>(
       valueListenable: _settings.isLoading,
       builder: (context, loading, _) {
