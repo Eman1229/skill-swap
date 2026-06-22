@@ -14,15 +14,15 @@ class SkillOption {
 }
 
 const List<SkillOption> skillSelectionOptions = [
-  SkillOption(name: 'AI', icon: Icons.auto_awesome, color: Color(0xFFFF5B7F)),
-  SkillOption(name: 'Coding', icon: Icons.code, color: Color(0xFF8B5CF6)),
-  SkillOption(name: 'Drawing', icon: Icons.palette, color: Color(0xFFFFC928)),
-  SkillOption(name: 'Data Analysis', icon: Icons.storage, color: Color(0xFF5EDCD5)),
-  SkillOption(name: 'Digital Marketing', icon: Icons.code, color: Color(0xFFFFC928)),
-  SkillOption(name: 'Design', icon: Icons.design_services, color: Color(0xFF5EDCD5)),
-  SkillOption(name: 'Music', icon: Icons.music_note, color: Color(0xFFFF5B7F)),
-  SkillOption(name: 'Photos', icon: Icons.camera_alt, color: Color(0xFF8B5CF6)),
-  SkillOption(name: 'Others', icon: Icons.more_horiz, color: Color(0xFF5EDCD5)),
+  SkillOption(name: 'AI', icon: Icons.auto_awesome, color: Color(0xFFE05A5A)),
+  SkillOption(name: 'Coding', icon: Icons.code, color: Color(0xFF9B59B6)),
+  SkillOption(name: 'Drawing', icon: Icons.brush, color: Color(0xFFE6B800)),
+  SkillOption(name: 'Data Analysis', icon: Icons.storage, color: Color(0xFF00BFA5)),
+  SkillOption(name: 'Digital Marketing', icon: Icons.campaign, color: Color(0xFFE6B800)),
+  SkillOption(name: 'Design', icon: Icons.design_services, color: Color(0xFF00BFA5)),
+  SkillOption(name: 'Music', icon: Icons.music_note, color: Color(0xFFE05A5A)),
+  SkillOption(name: 'Photos', icon: Icons.camera_alt, color: Color(0xFF9B59B6)),
+  SkillOption(name: 'Others', icon: Icons.more_horiz, color: Color(0xFF00BFA5)),
 ];
 
 class SkillSelectionScaffold extends StatelessWidget {

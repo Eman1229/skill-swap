@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
-import 'package:skill_swap/screens/SkillsChoose/Selecting Skills.dart';
 
 import '../../Ui_helper/Ui_helper.dart';
 
