@@ -656,13 +656,15 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   //  AI RECOMMENDATION CARD — animated border + blue icon + blue link
   // ─────────────────────────────────────────────────────────────────
   Widget _buildAIRecommendationCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return AnimatedGradientBorder(
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          color: const Color(0xFF101827),
+          color: isDark ? const Color(0xFF101827) : Colors.white,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -676,10 +678,10 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   size: 24,
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'AI Smart Match',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: isDark ? Colors.white : Colors.black87,
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                   ),
@@ -692,13 +694,13 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1F2937),
+                    color: isDark ? const Color(0xFF1F2937) : Colors.grey[200],
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
+                  child: Text(
                     '96% ACCURACY',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: isDark ? Colors.white : Colors.black87,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -707,10 +709,10 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               ],
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'We analyzed your profile and found 3 perfect mentors for your current learning path.',
               style: TextStyle(
-                color: Colors.white70,
+                color: isDark ? Colors.white70 : Colors.black54,
                 fontSize: 12,
               ),
             ),
