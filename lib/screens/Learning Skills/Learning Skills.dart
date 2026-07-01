@@ -14,7 +14,7 @@ class LearningSkillsScreen extends StatefulWidget {
 }
 
 class _LearningSkillsScreenState extends State<LearningSkillsScreen> {
-  List<String> selectedSkills = [];
+  Set<String> selectedSkills = {};
 
   final List<Map<String, dynamic>> skills = [
     {

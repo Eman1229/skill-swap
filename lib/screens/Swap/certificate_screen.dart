@@ -192,31 +192,25 @@ class CertificateScreen extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
+                  child: Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                  ) == null
-                      ? Container()
-                      : Container(
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: TextButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Downloading certificate...')),
-                              );
-                            },
-                            icon: const Icon(Icons.download_rounded, color: Colors.white),
-                            label: const Text(
-                              'Download',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
+                    child: TextButton.icon(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Downloading certificate...')),
+                        );
+                      },
+                      icon: const Icon(Icons.download_rounded, color: Colors.white),
+                      label: const Text(
+                        'Download',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

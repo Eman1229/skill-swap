@@ -228,20 +228,17 @@ class _ActionButton extends StatelessWidget {
   final Color color;
   final VoidCallback onPressed;
   final bool isPrimary;
-  final Color? textColor;
 
   const _ActionButton({
     required this.label,
     required this.color,
     required this.onPressed,
     this.isPrimary = false,
-    this.textColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final defaultTextColor = isPrimary ? Theme.of(context).colorScheme.onSurface : color;
-    final finalTextColor = textColor ?? defaultTextColor;
+    final finalTextColor = isPrimary ? Theme.of(context).colorScheme.onSurface : color;
 
     return SizedBox(
       height: 42, // Scaled down for card layout

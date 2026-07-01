@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class ReportUserDialog extends StatefulWidget {
   final String reportedUserId;

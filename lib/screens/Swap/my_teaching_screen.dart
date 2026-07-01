@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/models/analytics_data.dart';
@@ -17,7 +16,6 @@ class MyTeachingScreen extends StatefulWidget {
 }
 
 class _MyTeachingScreenState extends State<MyTeachingScreen> {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final SkillExchangeService _exchangeService = SkillExchangeService();
   String _selectedFilter = 'All';
@@ -196,7 +194,6 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
   }
 
   Widget _buildInsights(AnalyticsData data) {
-    final completedSwaps = data.completedSwaps;
     final xp = data.totalXp;
     final totalHours = data.teachingHours.toStringAsFixed(1);
     final rating = data.averageRating;

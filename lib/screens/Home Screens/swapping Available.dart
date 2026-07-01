@@ -7,7 +7,6 @@ import 'package:skill_swap/screens/Add%20skill/offer%20skill.dart';
 import 'package:skill_swap/screens/Home%20Screens/see%20all.dart';
 import 'package:skill_swap/screens/AI/ai_recommendation_center_screen.dart';
 import 'package:skill_swap/screens/Chat/chat_screen.dart';
-import 'package:skill_swap/screens/Profile/edit_profile_screen.dart';
 import 'package:skill_swap/screens/Profile/my_profile_screen.dart';
 import 'package:skill_swap/screens/Profile/profile%20screen.dart';
 import 'package:skill_swap/screens/Swap/my_swaps_screen.dart';
@@ -328,35 +327,6 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     _searchController.dispose();
     _homeScrollController.dispose();
     super.dispose();
-  }
-
-  Future<void> _navigateToMyProfile() async {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) return;
-
-    final snap = await _db
-        .collection('swapListings')
-        .where('userId', isEqualTo: uid)
-        .limit(1)
-        .get();
-
-    if (!mounted) return;
-
-    if (snap.docs.isNotEmpty) {
-      final mySwap = SwapListing.fromDoc(snap.docs.first);
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => EditProfileScreen(swap: mySwap)),
-      );
-      if (result == true) setState(() {});
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('No skill listing found for your profile.'),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-        ),
-      );
-    }
   }
 
   void _handleImageUrlChange(String? newUrl) {

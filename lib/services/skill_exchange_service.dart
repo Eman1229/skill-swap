@@ -186,7 +186,7 @@ class SkillExchangeService {
       if (!freshSwap.exists || !freshSession.exists) return;
 
       final currentSwap = freshSwap.data() ?? {};
-      final currentSession = (freshSession.data() as Map<String, dynamic>?) ?? {};
+      final currentSession = freshSession.data() ?? {};
       if (_text(currentSession['status']).toLowerCase() == 'completed') return;
 
       final completed =

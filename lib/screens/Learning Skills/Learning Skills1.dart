@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/SkillsChoose/skill_selection_layout.dart';
