@@ -5,8 +5,9 @@ import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/services/notification_repository.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
+    import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/screens/Swap/confirm_swap_completion_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -337,6 +338,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   void _handleNotificationTap(NotificationModel notification) {
     _repo.markAsRead(notification.id);
+
+    if (notification.actionRoute == '/confirm_completion' || notification.data['type'] == 'completion_request') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ConfirmSwapCompletionScreen(swapId: notification.actionId ?? ''),
+        ),
+      );
+      return;
+    }
 
     final String actionId = notification.actionId ?? '';
     final String convoId = actionId.isNotEmpty

@@ -78,6 +78,10 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                           // Filter logic
                           if (_selectedFilter != 'All') {
                             swapsList = swapsList.where((swap) {
+                              if (_selectedFilter == 'Ongoing') {
+                                return swap.status.toLowerCase() == 'ongoing' ||
+                                    swap.status.toLowerCase() == 'completion_requested';
+                              }
                               return swap.status.toLowerCase() == _selectedFilter.toLowerCase();
                             }).toList();
                           }

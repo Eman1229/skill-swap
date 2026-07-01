@@ -9,6 +9,7 @@ import 'package:skill_swap/screens/Chat/conversation_screen.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Notifications/notifications_screen.dart';
 import 'package:skill_swap/models/notification_settings.dart';
+import 'package:skill_swap/screens/Swap/confirm_swap_completion_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -271,9 +272,17 @@ class FcmService {
 
   void _handleNotificationClick(Map<String, dynamic> data) {
     final type = data['type'] as String?;
+    final actionRoute = data['actionRoute'] as String?;
+    final swapId = data['actionId'] ?? data['swapId'] ?? '';
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (type == 'chat_message' || type == 'session' || type == 'swap_request') {
+      if (actionRoute == '/confirm_completion' || type == 'completion_request') {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => ConfirmSwapCompletionScreen(swapId: swapId),
+          ),
+        );
+      } else if (type == 'chat_message' || type == 'session' || type == 'swap_request') {
         _openChat(data);
       } else {
         navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
