@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/services/notification_service.dart';
+import 'package:skill_swap/utils/user_display_name.dart';
 
 class CreateSessionScreen extends StatefulWidget {
   final SwapModel swap;
@@ -19,7 +20,9 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _durationController = TextEditingController(text: '1 hour');
+  final TextEditingController _durationController = TextEditingController(
+    text: '1 hour',
+  );
   final TextEditingController _meetingLinkController = TextEditingController();
   final TextEditingController _agendaController = TextEditingController();
   DateTime _selectedDate = DateTime.now().add(Duration(days: 1));
@@ -42,6 +45,28 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           .doc(widget.swap.id)
           .collection('sessions')
           .doc();
+
+      final realMentorName = await UserDisplayName.resolve(
+        _db,
+        mentorId,
+        fallback: UserDisplayName.isUsable(widget.swap.mentorName)
+            ? widget.swap.mentorName.trim()
+            : '',
+        authDisplayName: uid == mentorId
+            ? _auth.currentUser?.displayName
+            : null,
+      );
+      final realLearnerName = await UserDisplayName.resolve(
+        _db,
+        learnerId,
+        fallback: UserDisplayName.isUsable(widget.swap.learnerName)
+            ? widget.swap.learnerName.trim()
+            : '',
+        authDisplayName: uid == learnerId
+            ? _auth.currentUser?.displayName
+            : null,
+      );
+
       await sessionRef.set({
         'sessionId': sessionRef.id,
         'swapId': widget.swap.id,
@@ -54,6 +79,8 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         'meetingLink': _meetingLinkController.text.trim(),
         'mentorId': mentorId,
         'learnerId': learnerId,
+        'mentorName': realMentorName, // ✅ saves mentor name
+        'learnerName': realLearnerName, // ✅ saves learner name
         'participantIds': [mentorId, learnerId],
         'status': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
@@ -68,8 +95,11 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
             .get();
 
         for (final doc in query.docs) {
-          final participants = List<String>.from(doc.data()['participants'] ?? []);
-          if (participants.contains(mentorId) && participants.contains(learnerId)) {
+          final participants = List<String>.from(
+            doc.data()['participants'] ?? [],
+          );
+          if (participants.contains(mentorId) &&
+              participants.contains(learnerId)) {
             conversationId = doc.id;
             await _db.collection('swaps').doc(widget.swap.id).update({
               'conversationId': conversationId,
@@ -85,19 +115,19 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
             .doc(conversationId)
             .collection('messages')
             .add({
-          'senderId': uid,
-          'type': 'session_invite',
-          'sessionId': sessionRef.id,
-          'swapId': widget.swap.id,
-          'title': _titleController.text.trim(),
-          'agenda': _agendaController.text.trim(),
-          'date': Timestamp.fromDate(_selectedDate),
-          'sessionDate': Timestamp.fromDate(_selectedDate),
-          'sessionTime': sessionTime,
-          'duration': _durationController.text.trim(),
-          'meetingLink': _meetingLinkController.text.trim(),
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+              'senderId': uid,
+              'type': 'session_invite',
+              'sessionId': sessionRef.id,
+              'swapId': widget.swap.id,
+              'title': _titleController.text.trim(),
+              'agenda': _agendaController.text.trim(),
+              'date': Timestamp.fromDate(_selectedDate),
+              'sessionDate': Timestamp.fromDate(_selectedDate),
+              'sessionTime': sessionTime,
+              'duration': _durationController.text.trim(),
+              'meetingLink': _meetingLinkController.text.trim(),
+              'timestamp': FieldValue.serverTimestamp(),
+            });
 
         await _db.collection('conversations').doc(conversationId).update({
           'lastMessage': 'Session Invite: ${_titleController.text.trim()}',
@@ -108,11 +138,18 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
             ? widget.swap.learnerId
             : widget.swap.mentorId;
 
+        final rawSenderName = uid == widget.swap.mentorId
+            ? realMentorName
+            : realLearnerName;
+        final senderName = UserDisplayName.isUsable(rawSenderName)
+            ? rawSenderName
+            : 'Someone';
+
         NotificationService().sendNotification(
           receiverId: otherId,
           type: 'session',
           title: 'New Session Invitation',
-          body: 'You received a new session invite: "${_titleController.text.trim()}"',
+          body: '$senderName sent you a class invitation.',
           deepLinkScreen: 'chat',
           referenceId: conversationId,
           actionRoute: '/chat',
@@ -121,7 +158,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
             'conversationId': conversationId,
             'sessionId': sessionRef.id,
             'swapId': widget.swap.id,
-            'senderName': widget.swap.mentorName,
+            'senderName': senderName,
             'type': 'session',
           },
         );
@@ -139,7 +176,10 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
@@ -184,7 +224,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                             : null,
                       ),
                       SizedBox(height: 20),
-
                       _buildLabel('duration'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildTextField(
@@ -196,7 +235,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                             : null,
                       ),
                       SizedBox(height: 20),
-
                       _buildLabel('meeting_link'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildTextField(
@@ -208,15 +246,12 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                             : null,
                       ),
                       SizedBox(height: 20),
-
                       _buildLabel('date_and_time'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildDateTimePicker(),
                       SizedBox(height: 20),
-
                       _buildLabel('session_agenda'.tr()),
                       SizedBox(height: 8),
-                      //Stack places icon exactly where text cursor starts
                       Stack(
                         children: [
                           _buildAgendaField(),
@@ -232,13 +267,12 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                         ],
                       ),
                       SizedBox(height: 36),
-
                       _loading
                           ? Center(
-                        child: CircularProgressIndicator(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      )
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            )
                           : _buildSubmitButton(),
                       SizedBox(height: 20),
                     ],
@@ -305,11 +339,11 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   }
 
   Widget _buildTextField(
-      TextEditingController controller,
-      String hint,
-      IconData icon, {
-        String? Function(String?)? validator,
-      }) {
+    TextEditingController controller,
+    String hint,
+    IconData icon, {
+    String? Function(String?)? validator,
+  }) {
     return TextFormField(
       controller: controller,
       validator: validator,
@@ -320,28 +354,37 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
+          color: Theme.of(
+            context,
+          ).colorScheme.onSurfaceVariant.withOpacity(0.65),
           fontSize: 13,
         ),
-        prefixIcon: Icon(icon,
-            color: Theme.of(context).colorScheme.primary, size: 20),
+        prefixIcon: Icon(
+          icon,
+          color: Theme.of(context).colorScheme.primary,
+          size: 20,
+        ),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface,
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary.withAlpha(51)),
+            color: Theme.of(context).colorScheme.primary.withAlpha(51),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary.withAlpha(51)),
+            color: Theme.of(context).colorScheme.primary.withAlpha(51),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary, width: 1.5),
+            color: Theme.of(context).colorScheme.primary,
+            width: 1.5,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -354,6 +397,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       ),
     );
   }
+
   Widget _buildAgendaField() {
     return TextFormField(
       controller: _agendaController,
@@ -365,27 +409,37 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       decoration: InputDecoration(
         hintText: 'session_agenda_hint'.tr(),
         hintStyle: TextStyle(
-          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
+          color: Theme.of(
+            context,
+          ).colorScheme.onSurfaceVariant.withOpacity(0.65),
           fontSize: 13,
         ),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface,
-
-        contentPadding: EdgeInsets.only(top: 14, bottom: 14, left: 44, right: 16),
+        contentPadding: EdgeInsets.only(
+          top: 14,
+          bottom: 14,
+          left: 44,
+          right: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary.withAlpha(51)),
+            color: Theme.of(context).colorScheme.primary.withAlpha(51),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary.withAlpha(51)),
+            color: Theme.of(context).colorScheme.primary.withAlpha(51),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary, width: 1.5),
+            color: Theme.of(context).colorScheme.primary,
+            width: 1.5,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -416,7 +470,11 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           if (time != null) {
             setState(() {
               _selectedDate = DateTime(
-                date.year, date.month, date.day, time.hour, time.minute,
+                date.year,
+                date.month,
+                date.day,
+                time.hour,
+                time.minute,
               );
             });
           }
@@ -433,8 +491,11 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today_rounded,
-                color: Theme.of(context).colorScheme.primary, size: 20),
+            Icon(
+              Icons.calendar_today_rounded,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
             SizedBox(width: 16),
             Text(
               '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year} at ${TimeOfDay.fromDateTime(_selectedDate).format(context)}',
@@ -444,8 +505,11 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               ),
             ),
             Spacer(),
-            Icon(Icons.edit_calendar_rounded,
-                color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
+            Icon(
+              Icons.edit_calendar_rounded,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -460,16 +524,19 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
             onPressed: () => Navigator.pop(context),
             style: OutlinedButton.styleFrom(
               side: BorderSide(
-                  color: Theme.of(context).colorScheme.primary.withAlpha(102)),
+                color: Theme.of(context).colorScheme.primary.withAlpha(102),
+              ),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30)),
+                borderRadius: BorderRadius.circular(30),
+              ),
               padding: EdgeInsets.symmetric(vertical: 14),
             ),
             child: Text(
               'cancel'.tr(),
               style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 14),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
             ),
           ),
         ),

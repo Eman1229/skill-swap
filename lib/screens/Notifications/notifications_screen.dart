@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:skill_swap/models/notification_model.dart';
 import 'package:skill_swap/screens/Chat/conversation_screen.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
+import 'package:skill_swap/screens/Swap/course_assets_screen.dart';
 import 'package:skill_swap/services/notification_repository.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:intl/intl.dart';
@@ -339,6 +340,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void _handleNotificationTap(NotificationModel notification) {
     _repo.markAsRead(notification.id);
 
+    if (notification.type == NotificationType.asset_upload) {
+      final courseId = notification.data['courseId'] ?? notification.data['swapId'] ?? '';
+      final assetId = notification.data['assetId'] ?? notification.actionId ?? '';
+      if (courseId.toString().isNotEmpty) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CourseAssetsScreen(
+              courseId: courseId.toString(),
+              highlightedAssetId: assetId.toString(),
+            ),
+          ),
+        );
+        return;
+      }
+    }
     if (notification.actionRoute == '/confirm_completion' || notification.data['type'] == 'completion_request') {
       Navigator.push(
         context,
@@ -635,6 +652,8 @@ class _NotificationTile extends StatelessWidget {
         return Icons.chat_bubble_outline_rounded;
       case NotificationType.session:
         return Icons.chat_bubble_outline_rounded;
+      case NotificationType.asset_upload:
+        return Icons.folder_copy_rounded;
       case NotificationType.system:
         return Icons.campaign_rounded;
     }
@@ -648,6 +667,8 @@ class _NotificationTile extends StatelessWidget {
         return const Color(0xFF6B8AFF);
       case NotificationType.session:
         return Colors.greenAccent;
+      case NotificationType.asset_upload:
+        return const Color(0xFF00C2FF);
       case NotificationType.system:
         return Colors.orangeAccent;
     }
@@ -661,6 +682,8 @@ class _NotificationTile extends StatelessWidget {
         return "CHAT";
       case NotificationType.session:
         return "SESSION";
+      case NotificationType.asset_upload:
+        return "ASSET";
       case NotificationType.system:
         return "ALERT";
     }

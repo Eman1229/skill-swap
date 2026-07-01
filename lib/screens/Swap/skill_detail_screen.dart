@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/models/session_model.dart';
 import 'package:skill_swap/screens/Swap/create_session_screen.dart';
+import 'package:skill_swap/screens/Swap/course_assets_screen.dart';
 import 'package:skill_swap/screens/Swap/session_detail_screen.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/services/chat_user_service.dart';
@@ -16,7 +17,8 @@ import 'package:skill_swap/screens/Swap/certificate_screen.dart';
 
 class SkillDetailScreen extends StatefulWidget {
   final SwapModel swap;
-  const SkillDetailScreen({super.key, required this.swap});
+  final String? highlightedAssetId;
+  const SkillDetailScreen({Key? key, required this.swap, this.highlightedAssetId}) : super(key: key);
 
   @override
   State<SkillDetailScreen> createState() => _SkillDetailScreenState();
@@ -55,6 +57,11 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                       _buildCompletionStatusSection(swap, isMentor, uid),
                       const SizedBox(height: 32),
                       _buildInfoSection(swap),
+                      const SizedBox(height: 32),
+                      CourseAssetsSection(
+                        course: swap,
+                        highlightedAssetId: widget.highlightedAssetId,
+                      ),
                       const SizedBox(height: 32),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -103,7 +110,10 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       pinned: true,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
+        icon: Icon(
+          Icons.arrow_back,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
         onPressed: () => Navigator.pop(context),
       ),
       flexibleSpace: FlexibleSpaceBar(
@@ -121,7 +131,13 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
               ),
             ),
             Center(
-              child: Icon(Icons.psychology_outlined, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2), size: 100),
+              child: Icon(
+                Icons.psychology_outlined,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.2),
+                size: 100,
+              ),
             ),
           ],
         ),
@@ -710,7 +726,11 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+          return Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          );
         }
 
         final docs = snapshot.data?.docs ?? [];
@@ -742,9 +762,24 @@ class _StatMini extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         SizedBox(height: 4),
-        Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 10)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+            fontSize: 10,
+          ),
+        ),
       ],
     );
   }
@@ -760,8 +795,21 @@ class _InfoRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
-        Text(value, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 14,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
@@ -777,25 +825,35 @@ class _SessionTile extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => SessionDetailScreen(session: session)),
+        MaterialPageRoute(
+          builder: (_) => SessionDetailScreen(session: session),
+        ),
       ),
       child: Container(
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.05),
+          ),
         ),
         child: Row(
           children: [
             Container(
               padding: EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: (isCompleted ? Colors.green : Colors.orange).withValues(alpha: 0.1),
+                color: (isCompleted ? Colors.green : Colors.orange).withValues(
+                  alpha: 0.1,
+                ),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                isCompleted ? Icons.check_circle_rounded : Icons.pending_actions_rounded,
+                isCompleted
+                    ? Icons.check_circle_rounded
+                    : Icons.pending_actions_rounded,
                 color: isCompleted ? Colors.green : Colors.orange,
                 size: 20,
               ),
@@ -805,13 +863,32 @@ class _SessionTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(session.title, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text(
+                    session.title,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
                   SizedBox(height: 4),
-                  Text('May 24, 10:00 AM • ${session.duration}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12)),
+                  Text(
+                    'May 24, 10:00 AM • ${session.duration}',
+                    style: TextStyle(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, color: Theme.of(context).colorScheme.outlineVariant, size: 14),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Theme.of(context).colorScheme.outlineVariant,
+              size: 14,
+            ),
           ],
         ),
       ),

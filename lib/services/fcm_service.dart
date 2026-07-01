@@ -8,8 +8,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Chat/conversation_screen.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Notifications/notifications_screen.dart';
+import 'package:skill_swap/screens/Swap/course_assets_screen.dart';
 import 'package:skill_swap/models/notification_settings.dart';
 import 'package:skill_swap/screens/Swap/confirm_swap_completion_screen.dart';
+import 'package:skill_swap/services/session_reminder_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -22,10 +24,14 @@ class FcmService {
   factory FcmService() => _instance;
   FcmService._internal();
 
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
-  
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
+
+  FlutterLocalNotificationsPlugin get localNotifications => _localNotifications;
+
   bool _initialized = false;
   String? currentActiveConvoId;
   final DateTime _listenerStartTime = DateTime.now();
@@ -35,21 +41,27 @@ class FcmService {
     if (_initialized) return;
 
     // 1. Initial Logic for permissions
-    await _fcm.requestPermission(
-      alert: true, badge: true, sound: true,
-    );
+    await _fcm.requestPermission(alert: true, badge: true, sound: true);
 
     // 2. Initialize local notifications
-    const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const AndroidInitializationSettings androidInit =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings iOSInit = DarwinInitializationSettings();
-    const InitializationSettings initSettings = InitializationSettings(android: androidInit, iOS: iOSInit);
+    const InitializationSettings initSettings = InitializationSettings(
+      android: androidInit,
+      iOS: iOSInit,
+    );
 
     await _localNotifications.initialize(
       settings: initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse res) {
-        if (res.payload != null) {
-          _handleNotificationClick(jsonDecode(res.payload!));
+        if (res.payload == null) return;
+        final data = jsonDecode(res.payload!) as Map<String, dynamic>;
+        if (data['type'] == 'session_reminder') {
+          SessionReminderService().handleNotificationTap(data);
+          return;
         }
+        _handleNotificationClick(data);
       },
     );
 
@@ -58,21 +70,25 @@ class FcmService {
 
     // 3. Listeners
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    
+
     // Foreground
     FirebaseMessaging.onMessage.listen((msg) async {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
       // Suppress if user is currently looking at this active conversation
-      final String? convoId = msg.data['conversationId'] ?? msg.data['data']?['conversationId'];
+      final String? convoId =
+          msg.data['conversationId'] ?? msg.data['data']?['conversationId'];
       if (convoId != null && convoId == currentActiveConvoId) {
-        debugPrint("FCM Service: Suppressed foreground notification for active chat $convoId");
+        debugPrint(
+          "FCM Service: Suppressed foreground notification for active chat $convoId",
+        );
         return;
       }
 
       // Deduplicate if already shown
-      if (msg.messageId != null && _shownNotificationIds.contains(msg.messageId)) {
+      if (msg.messageId != null &&
+          _shownNotificationIds.contains(msg.messageId)) {
         return;
       }
       if (msg.messageId != null) {
@@ -86,7 +102,7 @@ class FcmService {
           .collection('settings')
           .doc('notifications')
           .get();
-      
+
       final settings = NotificationSettingsModel.fromDoc(settingsDoc);
 
       if (!settings.pushEnabled) return;
@@ -99,8 +115,10 @@ class FcmService {
     });
 
     // Interaction listeners
-    FirebaseMessaging.onMessageOpenedApp.listen((msg) => _handleNotificationClick(msg.data));
-    
+    FirebaseMessaging.onMessageOpenedApp.listen(
+      (msg) => _handleNotificationClick(msg.data),
+    );
+
     _fcm.getInitialMessage().then((msg) {
       if (msg != null) {
         Future.delayed(const Duration(milliseconds: 1000), () {
@@ -110,12 +128,16 @@ class FcmService {
     });
 
     FirebaseAuth.instance.authStateChanges().listen((user) {
-      if (user != null) saveDeviceToken();
+      if (user != null) {
+        saveDeviceToken();
+        SessionReminderService().resyncAllAcceptedSessions();
+      }
     });
 
     _initialized = true;
     saveDeviceToken();
     _startNotificationsListener();
+    await SessionReminderService().init();
   }
 
   void _startNotificationsListener() {
@@ -128,43 +150,51 @@ class FcmService {
         .where('isRead', isEqualTo: false)
         .snapshots()
         .listen((snap) {
-      for (var change in snap.docChanges) {
-        if (change.type == DocumentChangeType.added) {
-          final data = change.doc.data() as Map<String, dynamic>;
-          
-          // Deduplicate if already processed
-          if (_shownNotificationIds.contains(change.doc.id)) {
-            continue;
-          }
+          for (var change in snap.docChanges) {
+            if (change.type == DocumentChangeType.added) {
+              final data = change.doc.data() as Map<String, dynamic>;
 
-          // Filter out historic notifications during startup to prevent initial-burst spam
-          final createdAtField = data['createdAt'];
-          DateTime? createdAt;
-          if (createdAtField is Timestamp) {
-            createdAt = createdAtField.toDate();
-          } else if (createdAtField is String) {
-            createdAt = DateTime.tryParse(createdAtField);
-          }
-          createdAt ??= DateTime.now();
+              // Deduplicate if already processed
+              if (_shownNotificationIds.contains(change.doc.id)) {
+                continue;
+              }
 
-          // Only alert if created after initialization (with a small 2s grace window)
-          if (createdAt.isAfter(_listenerStartTime.subtract(const Duration(seconds: 2)))) {
-            _shownNotificationIds.add(change.doc.id);
-            _showLocalNotificationFromMap(change.doc.id, data);
+              // Filter out historic notifications during startup to prevent initial-burst spam
+              final createdAtField = data['createdAt'];
+              DateTime? createdAt;
+              if (createdAtField is Timestamp) {
+                createdAt = createdAtField.toDate();
+              } else if (createdAtField is String) {
+                createdAt = DateTime.tryParse(createdAtField);
+              }
+              createdAt ??= DateTime.now();
+
+              // Only alert if created after initialization (with a small 2s grace window)
+              if (createdAt.isAfter(
+                _listenerStartTime.subtract(const Duration(seconds: 2)),
+              )) {
+                _shownNotificationIds.add(change.doc.id);
+                _showLocalNotificationFromMap(change.doc.id, data);
+              }
+            }
           }
-        }
-      }
-    });
+        });
   }
 
-  void _showLocalNotificationFromMap(String docId, Map<String, dynamic> data) async {
+  void _showLocalNotificationFromMap(
+    String docId,
+    Map<String, dynamic> data,
+  ) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
     // Suppress if actively viewing chat room
-    final String? convoId = data['conversationId'] ?? data['data']?['conversationId'];
+    final String? convoId =
+        data['conversationId'] ?? data['data']?['conversationId'];
     if (convoId != null && convoId == currentActiveConvoId) {
-      debugPrint("FCM Service: Suppressed Firestore-triggered notification for active chat $convoId");
+      debugPrint(
+        "FCM Service: Suppressed Firestore-triggered notification for active chat $convoId",
+      );
       return;
     }
 
@@ -174,7 +204,7 @@ class FcmService {
         .collection('settings')
         .doc('notifications')
         .get();
-    
+
     final settings = NotificationSettingsModel.fromDoc(settingsDoc);
     if (!settings.pushEnabled) return;
 
@@ -184,8 +214,9 @@ class FcmService {
 
     String title = data['title'] ?? 'Skill Swap';
     String body = data['body'] ?? '';
-    
-    if (data['type'] == 'chat_message' && (data['senderName'] != null || data['otherName'] != null)) {
+
+    if (data['type'] == 'chat_message' &&
+        (data['senderName'] != null || data['otherName'] != null)) {
       title = data['senderName'] ?? data['otherName'];
     }
 
@@ -211,13 +242,37 @@ class FcmService {
 
   void _createChannels() async {
     final List<AndroidNotificationChannel> channels = [
-      const AndroidNotificationChannel('chat_messages', 'Chat Messages', importance: Importance.max),
-      const AndroidNotificationChannel('swap_requests', 'Swap Proposals', importance: Importance.high),
-      const AndroidNotificationChannel('sessions', 'Mentoring Sessions', importance: Importance.high),
-      const AndroidNotificationChannel('system', 'System Announcements', importance: Importance.defaultImportance),
+      const AndroidNotificationChannel(
+        'chat_messages',
+        'Chat Messages',
+        importance: Importance.max,
+      ),
+      const AndroidNotificationChannel(
+        'swap_requests',
+        'Swap Proposals',
+        importance: Importance.high,
+      ),
+      const AndroidNotificationChannel(
+        'sessions',
+        'Mentoring Sessions',
+        importance: Importance.high,
+      ),
+      const AndroidNotificationChannel(
+        SessionReminderService.channelId,
+        SessionReminderService.channelName,
+        importance: Importance.max,
+      ),
+      const AndroidNotificationChannel(
+        'system',
+        'System Announcements',
+        importance: Importance.defaultImportance,
+      ),
     ];
 
-    final androidPlugin = _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin = _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (androidPlugin != null) {
       for (final channel in channels) {
         await androidPlugin.createNotificationChannel(channel);
@@ -225,7 +280,10 @@ class FcmService {
     }
   }
 
-  void _showLocalNotification(RemoteMessage msg, NotificationSettingsModel settings) {
+  void _showLocalNotification(
+    RemoteMessage msg,
+    NotificationSettingsModel settings,
+  ) {
     RemoteNotification? notification = msg.notification;
     String title = notification?.title ?? msg.data['title'] ?? 'Skill Swap';
     String body = notification?.body ?? msg.data['body'] ?? '';
@@ -251,11 +309,18 @@ class FcmService {
 
   String _getChannelId(String? type) {
     switch (type) {
-      case 'chat_message': return 'chat_messages';
-      case 'swap_request': return 'swap_requests';
-      case 'session': return 'sessions';
-      case 'system': return 'system';
-      default: return 'chat_messages';
+      case 'chat_message':
+        return 'chat_messages';
+      case 'swap_request':
+        return 'swap_requests';
+      case 'session':
+        return 'sessions';
+      case 'asset_upload':
+        return 'sessions';
+      case 'system':
+        return 'system';
+      default:
+        return 'chat_messages';
     }
   }
 
@@ -275,7 +340,27 @@ class FcmService {
     final actionRoute = data['actionRoute'] as String?;
     final swapId = data['actionId'] ?? data['swapId'] ?? '';
 
+    if (type == 'session_reminder') {
+      SessionReminderService().handleNotificationTap(data);
+      return;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (type == 'asset_upload') {
+        final courseId = data['courseId'] ?? data['swapId'] ?? '';
+        final assetId = data['assetId'] ?? data['actionId'] ?? '';
+        if (courseId.toString().isNotEmpty) {
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (_) => CourseAssetsScreen(
+                courseId: courseId.toString(),
+                highlightedAssetId: assetId.toString(),
+              ),
+            ),
+          );
+          return;
+        }
+      }
       if (actionRoute == '/confirm_completion' || type == 'completion_request') {
         navigatorKey.currentState?.push(
           MaterialPageRoute(
@@ -285,7 +370,9 @@ class FcmService {
       } else if (type == 'chat_message' || type == 'session' || type == 'swap_request') {
         _openChat(data);
       } else {
-        navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+        );
       }
     });
   }
@@ -300,12 +387,24 @@ class FcmService {
       } catch (_) {}
     }
 
-    final String conversationId = data['conversationId'] ?? data['referenceId'] ?? data['actionId'] ?? nestedData['conversationId'] ?? '';
-    final String otherUserId = data['otherUserId'] ?? data['senderId'] ?? nestedData['senderId'] ?? '';
-    final String otherName = data['otherName'] ?? data['senderName'] ?? nestedData['senderName'] ?? 'Chat';
+    final String conversationId =
+        data['conversationId'] ??
+        data['referenceId'] ??
+        data['actionId'] ??
+        nestedData['conversationId'] ??
+        '';
+    final String otherUserId =
+        data['otherUserId'] ?? data['senderId'] ?? nestedData['senderId'] ?? '';
+    final String otherName =
+        data['otherName'] ??
+        data['senderName'] ??
+        nestedData['senderName'] ??
+        'Chat';
 
     if (conversationId.isEmpty) {
-      navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+      );
       return;
     }
 
@@ -317,9 +416,13 @@ class FcmService {
       avatarColor: const Color(0xFF6B8AFF),
       offering: data['offering'] ?? nestedData['offering'] ?? '',
       wanting: data['wanting'] ?? nestedData['wanting'] ?? '',
-      rating: 0.0, reviews: 0, category: 'All',
+      rating: 0.0,
+      reviews: 0,
+      category: 'All',
     );
 
-    navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => ConversationScreen(swap: swap)));
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(builder: (_) => ConversationScreen(swap: swap)),
+    );
   }
 }

@@ -25,18 +25,18 @@ class MentorCompassScreen extends StatelessWidget {
       ),
       body: provider.isLoading
           ? Center(
-              child: CircularProgressIndicator(color: primaryColor),
-            )
+        child: CircularProgressIndicator(color: primaryColor),
+      )
           : provider.mentorRecommendations.isEmpty
-              ? _buildEmptyState(context, isDark)
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: provider.mentorRecommendations.length,
-                  itemBuilder: (context, index) {
-                    final mentor = provider.mentorRecommendations[index];
-                    return _buildMentorCard(context, mentor, index, isDark, primaryColor);
-                  },
-                ),
+          ? _buildEmptyState(context, isDark)
+          : ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: provider.mentorRecommendations.length,
+        itemBuilder: (context, index) {
+          final mentor = provider.mentorRecommendations[index];
+          return _buildMentorCard(context, mentor, index, isDark, primaryColor);
+        },
+      ),
     );
   }
 
@@ -70,18 +70,17 @@ class MentorCompassScreen extends StatelessWidget {
   }
 
   Widget _buildMentorCard(
-    BuildContext context,
-    MentorRecommendation mentor,
-    int index,
-    bool isDark,
-    Color primaryColor,
-  ) {
-    // Map to SwapListing so we can open the profile screen
+      BuildContext context,
+      MentorRecommendation mentor,
+      int index,
+      bool isDark,
+      Color primaryColor,
+      ) {
     final mappedListing = SwapListing(
       id: mentor.id,
       name: mentor.mentorName,
       initials: mentor.mentorInitials,
-      avatarColor: Colors.purple, // default
+      avatarColor: Colors.purple,
       offering: mentor.mentorSkill,
       wanting: mentor.mentorWantingSkill,
       rating: mentor.mentorStats.averageRating,
@@ -90,6 +89,7 @@ class MentorCompassScreen extends StatelessWidget {
       imageUrl: mentor.mentorImageUrl,
       userId: mentor.mentorId,
     );
+
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -105,18 +105,19 @@ class MentorCompassScreen extends StatelessWidget {
         boxShadow: isDark
             ? []
             : [
-                BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.08),
-                  spreadRadius: 1,
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.08),
+            spreadRadius: 1,
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Top Header Area ─────────────────────────────────────────
+
+          // ── Section 1: Header (Avatar + Name + Skills + Match Badge) ─
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
@@ -131,13 +132,13 @@ class MentorCompassScreen extends StatelessWidget {
                       : null,
                   child: mentor.mentorImageUrl == null
                       ? Text(
-                          mentor.mentorInitials,
-                          style: const TextStyle(
-                            color: Color(0xFF6B8AFF),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        )
+                    mentor.mentorInitials,
+                    style: const TextStyle(
+                      color: Color(0xFF6B8AFF),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  )
                       : null,
                 ),
                 const SizedBox(width: 14),
@@ -227,7 +228,9 @@ class MentorCompassScreen extends StatelessWidget {
                       Text(
                         '${mentor.matchScore.round()}%',
                         style: TextStyle(
-                          color: mentor.isBestSwap ? const Color(0xFF00C2FF) : (isDark ? Colors.white : Colors.black87),
+                          color: mentor.isBestSwap
+                              ? const Color(0xFF00C2FF)
+                              : (isDark ? Colors.white : Colors.black87),
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -247,51 +250,49 @@ class MentorCompassScreen extends StatelessWidget {
             ),
           ),
 
-          const Divider(height: 1, color: Colors.grey),
 
-          // ── Why AI Recommends ───────────────────────────────────────
+          // ── Section 2: Why AI Recommends ────────────────────────────
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'WHY AI RECOMMENDS',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.0,
-                    color: Colors.grey,
-                  ),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome,
+                      size: 16,
+                      color: Color(0xFF00C2FF),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'WHY AI RECOMMENDS',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
-                ...mentor.whyRecommended.map((reason) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.check_circle_outline_rounded,
-                              size: 14, color: Color(0xFF2EA7FF)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              reason,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark ? Colors.white70 : Colors.black87,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )),
+                Text(
+                  mentor.whyRecommended.isNotEmpty
+                      ? mentor.whyRecommended.first
+                      : 'Curated match based on your skill profile',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
               ],
             ),
           ),
 
-          const Divider(height: 1, color: Colors.grey),
 
-          // ── Skill Compatibility Bars ────────────────────────────────
+          // ── Section 3: Skill Compatibility Bars ─────────────────────
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -323,9 +324,10 @@ class MentorCompassScreen extends StatelessWidget {
                             Text(
                               '${(entry.value * 100).round()}%',
                               style: TextStyle(
-                                  fontSize: 12,
-                                  color: primaryColor,
-                                  fontWeight: FontWeight.bold),
+                                fontSize: 12,
+                                color: primaryColor,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -335,7 +337,9 @@ class MentorCompassScreen extends StatelessWidget {
                           child: LinearProgressIndicator(
                             value: entry.value,
                             minHeight: 6,
-                            backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                            backgroundColor: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0),
                             valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                           ),
                         ),
@@ -347,9 +351,10 @@ class MentorCompassScreen extends StatelessWidget {
             ),
           ),
 
-          // ── Footer CTAs ─────────────────────────────────────────────
+
+          // ── Section 4: Footer CTAs ───────────────────────────────────
           Padding(
-            padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
+            padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
                 Expanded(
@@ -411,6 +416,7 @@ class MentorCompassScreen extends StatelessWidget {
               ],
             ),
           ),
+
         ],
       ),
     );

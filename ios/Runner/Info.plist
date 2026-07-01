@@ -49,6 +49,11 @@
         <string>Allow access to take a profile photo</string>
         <key>NSPhotoLibraryUsageDescription</key>
         <string>Allow access to choose a profile photo</string>
+        <key>UIBackgroundModes</key>
+        <array>
+            <string>fetch</string>
+            <string>remote-notification</string>
+        </array>
 
 </dict>
 </plist>

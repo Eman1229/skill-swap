@@ -13,6 +13,8 @@ import 'package:skill_swap/screens/splash/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:skill_swap/services/presence_service.dart';
 import 'package:skill_swap/services/fcm_service.dart';
+import 'package:skill_swap/services/session_reminder_service.dart';
+import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Setting/app_settings.dart';
 import 'package:skill_swap/services/connectivity_service.dart';
 
@@ -96,6 +98,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       PresenceService().setUserOnline();
       ConnectivityService().retryConnection();
+      SessionReminderService().resyncAllAcceptedSessions();
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       PresenceService().setUserOffline();
@@ -129,6 +132,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           themeMode: settings.themeMode,
           themeAnimationDuration: const Duration(milliseconds: 250),
           themeAnimationCurve: Curves.easeInOut,
+          routes: {
+            '/swappingAvailable': (context) {
+              final sessionId =
+                  ModalRoute.of(context)?.settings.arguments as String?;
+              return SwappingAvailable(highlightSessionId: sessionId);
+            },
+          },
           builder: (context, child) {
             return Directionality(
               textDirection: languageProvider.textDirection,

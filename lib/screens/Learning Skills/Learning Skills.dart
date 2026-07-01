@@ -7,25 +7,74 @@ import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 
 class LearningSkillsScreen extends StatefulWidget {
-  LearningSkillsScreen({Key? key}) : super(key: key);
+  const LearningSkillsScreen({Key? key}) : super(key: key);
 
   @override
   State<LearningSkillsScreen> createState() => _LearningSkillsScreenState();
 }
 
 class _LearningSkillsScreenState extends State<LearningSkillsScreen> {
-  final int maxSelection = 5;
-  final Set<String> selectedSkills = {};
+  List<String> selectedSkills = [];
+
+  final List<Map<String, dynamic>> skills = [
+    {
+      "name": "AI",
+      "icon": Icons.auto_awesome,
+      "color": const Color(0xFFFF6A6B),
+    },
+    {"name": "Coding", "icon": Icons.code, "color": const Color(0xFF9D4EDD)},
+    {
+      "name": "Drawing",
+      "icon": Icons.palette,
+      "color": const Color(0xFFF5CB1A),
+    },
+    {
+      "name": "Data Analysis",
+      "icon": Icons.storage,
+      "color": const Color(0xFF5FD5C7),
+    },
+    {
+      "name": "Digital Marketing",
+      "icon": Icons.code,
+      "color": const Color(0xFFF5CB1A),
+    },
+    {
+      "name": "Design",
+      "icon": Icons.design_services,
+      "color": const Color(0xFF6EE7E0),
+    },
+    {
+      "name": "Music",
+      "icon": Icons.music_note,
+      "color": const Color(0xFFFF6A6B),
+    },
+    {
+      "name": "Photos",
+      "icon": Icons.camera_alt,
+      "color": const Color(0xFF9D4EDD),
+    },
+    {
+      "name": "Others",
+      "icon": Icons.more_horiz,
+      "color": const Color(0xFF6EE7E0),
+    },
+  ];
 
   void toggleSkill(String skill) {
     setState(() {
       if (selectedSkills.contains(skill)) {
         selectedSkills.remove(skill);
-      } else {
-        if (selectedSkills.length < maxSelection) {
-          selectedSkills.add(skill);
-        }
+        return;
       }
+
+      if (skill == 'Others') {
+        selectedSkills.clear();
+        selectedSkills.add('Others');
+        return;
+      }
+
+      selectedSkills.remove('Others');
+      selectedSkills.add(skill);
     });
   }
 

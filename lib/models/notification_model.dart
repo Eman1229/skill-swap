@@ -1,7 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-enum NotificationType { chat_message, swap_request, session, system }
+enum NotificationType {
+  chat_message,
+  swap_request,
+  session,
+  asset_upload,
+  system,
+}
 
 class NotificationModel {
   final String id;
@@ -41,9 +47,9 @@ class NotificationModel {
   factory NotificationModel.fromDoc(DocumentSnapshot doc) {
     try {
       final d = doc.data() as Map<String, dynamic>? ?? {};
-      
+
       final bool isReadField = d['isRead'] ?? d['read'] ?? false;
-      
+
       NotificationType parsedType = NotificationType.system;
       final typeStr = d['type']?.toString();
       if (typeStr == 'chat_message' || typeStr == 'chat') {
@@ -52,16 +58,41 @@ class NotificationModel {
         parsedType = NotificationType.swap_request;
       } else if (typeStr == 'session') {
         parsedType = NotificationType.session;
-      } else if (typeStr == 'system' || typeStr == 'system_tip' || typeStr == 'admin') {
+      } else if (typeStr == 'asset_upload') {
+        parsedType = NotificationType.asset_upload;
+      } else if (typeStr == 'system' ||
+          typeStr == 'system_tip' ||
+          typeStr == 'admin') {
         parsedType = NotificationType.system;
       }
 
       // Retrieve sender name and profile picture with robust fallbacks
-      final String senderName = d['senderName'] ?? d['data']?['senderName'] ?? d['data']?['otherName'] ?? d['title'] ?? 'Someone';
-      final String senderProfilePic = d['senderProfilePic'] ?? d['imageUrl'] ?? d['data']?['senderProfilePic'] ?? '';
-      
-      final String actionId = d['actionId'] ?? d['relatedId'] ?? d['data']?['conversationId'] ?? d['data']?['requestId'] ?? '';
-      final String actionRoute = d['actionRoute'] ?? d['route'] ?? (parsedType == NotificationType.chat_message ? '/chat' : parsedType == NotificationType.swap_request ? '/swap' : '');
+      final String senderName =
+          d['senderName'] ??
+          d['data']?['senderName'] ??
+          d['data']?['otherName'] ??
+          d['title'] ??
+          'Someone';
+      final String senderProfilePic =
+          d['senderProfilePic'] ??
+          d['imageUrl'] ??
+          d['data']?['senderProfilePic'] ??
+          '';
+
+      final String actionId =
+          d['actionId'] ??
+          d['relatedId'] ??
+          d['data']?['conversationId'] ??
+          d['data']?['requestId'] ??
+          '';
+      final String actionRoute =
+          d['actionRoute'] ??
+          d['route'] ??
+          (parsedType == NotificationType.chat_message
+              ? '/chat'
+              : parsedType == NotificationType.swap_request
+              ? '/swap'
+              : '');
 
       return NotificationModel(
         id: doc.id,
@@ -71,11 +102,11 @@ class NotificationModel {
         receiverId: d['receiverId'] ?? d['recipientId'] ?? '',
         type: parsedType,
         title: d['title'] ?? '',
-        body: d['body'] ?? '',
+        body: d['body'] ?? d['message'] ?? '',
         data: Map<String, dynamic>.from(d['data'] ?? {}),
         isRead: isReadField,
-        createdAt: d['createdAt'] is Timestamp 
-            ? (d['createdAt'] as Timestamp).toDate() 
+        createdAt: d['createdAt'] is Timestamp
+            ? (d['createdAt'] as Timestamp).toDate()
             : DateTime.now(),
         actionRoute: actionRoute,
         actionId: actionId,

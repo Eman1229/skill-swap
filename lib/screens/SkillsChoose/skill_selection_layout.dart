@@ -16,14 +16,14 @@ class SkillOption {
 }
 
 const List<SkillOption> skillSelectionOptions = [
-  SkillOption(name: 'AI', icon: Icons.auto_awesome, color: Color(0xFFE05A5A)),
-  SkillOption(name: 'Coding', icon: Icons.code, color: Color(0xFF9B59B6)),
-  SkillOption(name: 'Drawing', icon: Icons.brush, color: Color(0xFFE6B800)),
-  SkillOption(name: 'Data Analysis', icon: Icons.storage, color: Color(0xFF00BFA5)),
-  SkillOption(name: 'Digital Marketing', icon: Icons.campaign, color: Color(0xFFE6B800)),
-  SkillOption(name: 'Design', icon: Icons.design_services, color: Color(0xFF00BFA5)),
-  SkillOption(name: 'Music', icon: Icons.music_note, color: Color(0xFFE05A5A)),
-  SkillOption(name: 'Photos', icon: Icons.camera_alt, color: Color(0xFF9B59B6)),
+  SkillOption(name: 'AI', icon: Icons.auto_awesome, color: Color(0xFFFF5A5F)),
+  SkillOption(name: 'Coding', icon: Icons.code, color: Color(0xFF9B51E0)),
+  SkillOption(name: 'Drawing', icon: Icons.palette, color: Color(0xFFFFC107)),
+  SkillOption(name: 'Data Analysis', icon: Icons.dns, color: Color(0xFF00BFA5)),
+  SkillOption(name: 'Digital Marketing', icon: Icons.code, color: Color(0xFFFFC107)),
+  SkillOption(name: 'Design', icon: Icons.edit, color: Color(0xFF00BFA5)),
+  SkillOption(name: 'Music', icon: Icons.music_note, color: Color(0xFFFF5A5F)),
+  SkillOption(name: 'Photos', icon: Icons.camera_alt, color: Color(0xFF9B51E0)),
   SkillOption(name: 'Others', icon: Icons.more_horiz, color: Color(0xFF00BFA5)),
 ];
 
@@ -59,12 +59,12 @@ class SkillSelectionScaffold extends StatelessWidget {
                 textScaler: TextScaler.noScaling,
                 style: TextStyle(
                   color: colorScheme.primary,
-                  fontSize: 19,
-                  height: 1.13,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 24,
+                  height: 1.2,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
               Expanded(
                 child: GridView.builder(
                   padding: EdgeInsets.zero,
@@ -90,24 +90,24 @@ class SkillSelectionScaffold extends StatelessWidget {
               ),
               SizedBox(
                 width: double.infinity,
-                height: 48,
+                height: 50,
                 child: ElevatedButton(
                   onPressed: onNext,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colorScheme.primary,
-                    disabledBackgroundColor: colorScheme.surface.withOpacity(0.9),
+                    disabledBackgroundColor: Colors.grey[600],
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: Text(
                     'next'.tr(),
                     textScaler: TextScaler.noScaling,
-                    style: TextStyle(
-                      color: colorScheme.onSurface,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -146,43 +146,27 @@ class _SkillTile extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Container(
-                width: 58,
-                height: 58,
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: skill.color,
+                  border: isSelected
+                      ? Border.all(
+                          color: const Color(0xFF9B51E0),
+                          width: 3,
+                        )
+                      : null,
                 ),
                 child: Icon(
                   skill.icon,
-                  color: colorScheme.onSurface,
-                  size: 27,
+                  color: Colors.white,
+                  size: 32,
                 ),
               ),
-              if (isSelected)
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFF8B5CF6),
-                      border: Border.all(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.check,
-                      color: colorScheme.onSurface,
-                      size: 11,
-                    ),
-                  ),
-                ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             skill.name,
             textAlign: TextAlign.center,
@@ -191,9 +175,9 @@ class _SkillTile extends StatelessWidget {
             textScaler: TextScaler.noScaling,
             style: TextStyle(
               color: colorScheme.onSurface,
-              fontSize: 10,
-              height: 1,
-              fontWeight: FontWeight.w800,
+              fontSize: 12,
+              height: 1.2,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -233,12 +217,12 @@ class OtherSkillScaffold extends StatelessWidget {
                 textScaler: TextScaler.noScaling,
                 style: TextStyle(
                   color: colorScheme.primary,
-                  fontSize: 23,
-                  height: 1.08,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 24,
+                  height: 1.2,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
               TextField(
                 controller: controller,
                 style: TextStyle(
@@ -274,23 +258,23 @@ class OtherSkillScaffold extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               SizedBox(
-                height: 48,
+                height: 50,
                 child: ElevatedButton(
                   onPressed: onNext,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colorScheme.primary,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: Text(
                     'next'.tr(),
                     textScaler: TextScaler.noScaling,
-                    style: TextStyle(
-                      color: colorScheme.onSurface,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),

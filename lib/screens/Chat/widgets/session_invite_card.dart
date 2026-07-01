@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:skill_swap/models/session_model.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
+import 'package:skill_swap/services/session_reminder_service.dart';
+import 'package:skill_swap/utils/user_display_name.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SessionInviteCard extends StatelessWidget {
@@ -21,7 +24,12 @@ class SessionInviteCard extends StatelessWidget {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
     if (sessionId.isEmpty || swapId.isEmpty) {
-      return Center(child: Text('Error: sessionId or swapId is empty!', style: TextStyle(color: Colors.red)));
+      return Center(
+        child: Text(
+          'Error: sessionId or swapId is empty!',
+          style: TextStyle(color: Colors.red),
+        ),
+      );
     }
 
     final sessionRef = FirebaseFirestore.instance
@@ -34,13 +42,23 @@ class SessionInviteCard extends StatelessWidget {
       stream: sessionRef.snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Text('Error loading session: ${snapshot.error}', style: TextStyle(color: Colors.red)));
+          return Center(
+            child: Text(
+              'Error loading session: ${snapshot.error}',
+              style: TextStyle(color: Colors.red),
+            ),
+          );
         }
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.data!.exists) {
-          return Center(child: Text('Session document not found!', style: TextStyle(color: Colors.red)));
+          return Center(
+            child: Text(
+              'Session document not found!',
+              style: TextStyle(color: Colors.red),
+            ),
+          );
         }
 
         final d = snapshot.data!.data() as Map<String, dynamic>;
@@ -59,8 +77,12 @@ class SessionInviteCard extends StatelessWidget {
             ? "${date.day}/${date.month}/${date.year} at ${TimeOfDay.fromDateTime(date).format(context)}"
             : '';
 
-        final Color badgeColor = Theme.of(context).colorScheme.primary; // Blue theme
-        final Color secondaryBadgeColor = const Color(0xFF6B8AFF); // Gradient end color
+        final Color badgeColor = Theme.of(
+          context,
+        ).colorScheme.primary; // Blue theme
+        final Color secondaryBadgeColor = const Color(
+          0xFF6B8AFF,
+        ); // Gradient end color
         final Color cardBg = Theme.of(context).colorScheme.surface;
 
         return Container(
@@ -88,7 +110,10 @@ class SessionInviteCard extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [badgeColor.withOpacity(0.15), secondaryBadgeColor.withOpacity(0.15)],
+                    colors: [
+                      badgeColor.withOpacity(0.15),
+                      secondaryBadgeColor.withOpacity(0.15),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -257,18 +282,6 @@ class SessionInviteCard extends StatelessWidget {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      // Fetch sender name
-      String senderName = 'Someone';
-      try {
-        final senderDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .get();
-        if (senderDoc.exists) {
-          senderName = senderDoc.data()?['name'] ?? 'Someone';
-        }
-      } catch (_) {}
-
       // Fetch session details to get title and creator ID
       final sessionSnap = await sessionRef.get();
       final sessionData = sessionSnap.data() as Map<String, dynamic>?;
@@ -285,10 +298,40 @@ class SessionInviteCard extends StatelessWidget {
       final String learnerId = swapData?['learnerId'] ?? '';
 
       final String targetUserId = uid == mentorId ? learnerId : mentorId;
+      final mentorName = await UserDisplayName.resolve(
+        FirebaseFirestore.instance,
+        mentorId,
+        fallback: UserDisplayName.isUsable(sessionData?['mentorName'])
+            ? sessionData!['mentorName'].toString().trim()
+            : UserDisplayName.isUsable(swapData?['mentorName'])
+            ? swapData!['mentorName'].toString().trim()
+            : '',
+        authDisplayName: uid == mentorId
+            ? FirebaseAuth.instance.currentUser?.displayName
+            : null,
+      );
+      final learnerName = await UserDisplayName.resolve(
+        FirebaseFirestore.instance,
+        learnerId,
+        fallback: UserDisplayName.isUsable(sessionData?['learnerName'])
+            ? sessionData!['learnerName'].toString().trim()
+            : UserDisplayName.isUsable(swapData?['learnerName'])
+            ? swapData!['learnerName'].toString().trim()
+            : '',
+        authDisplayName: uid == learnerId
+            ? FirebaseAuth.instance.currentUser?.displayName
+            : null,
+      );
+      final rawSenderName = uid == mentorId ? mentorName : learnerName;
+      final senderName = UserDisplayName.isUsable(rawSenderName)
+          ? rawSenderName
+          : 'Someone';
 
       final batch = FirebaseFirestore.instance.batch();
       batch.update(sessionRef, {
         'status': newStatus,
+        if (UserDisplayName.isUsable(mentorName)) 'mentorName': mentorName,
+        if (UserDisplayName.isUsable(learnerName)) 'learnerName': learnerName,
         'statusUpdatedAt': FieldValue.serverTimestamp(),
         if (newStatus == 'accepted') 'acceptedAt': FieldValue.serverTimestamp(),
         if (newStatus == 'rejected') 'rejectedAt': FieldValue.serverTimestamp(),
@@ -326,6 +369,47 @@ class SessionInviteCard extends StatelessWidget {
 
       await batch.commit();
       await _deleteSessionNotification(uid);
+
+      if (newStatus == 'accepted') {
+        final dateField = sessionData?['date'] ?? sessionData?['sessionDate'];
+        final DateTime? startTime = dateField is Timestamp
+            ? dateField.toDate()
+            : null;
+        if (startTime != null) {
+          final reminderService = SessionReminderService();
+          final otherName = await reminderService.resolveOtherUserName(
+            SessionModel(
+              id: sessionId,
+              swapId: swapId,
+              title: sessionTitle,
+              date: startTime,
+              duration: sessionData?['duration'] ?? '',
+              meetingLink: sessionData?['meetingLink'] ?? '',
+              mentorId: mentorId,
+              learnerId: learnerId,
+              mentorName: mentorName,
+              learnerName: learnerName,
+              participantIds: List<String>.from(
+                sessionData?['participantIds'] ?? [mentorId, learnerId],
+              ),
+              status: newStatus,
+              createdAt: DateTime.now(),
+            ),
+            uid,
+          );
+          await reminderService.scheduleSessionReminder(
+            sessionId: sessionId,
+            swapId: swapId,
+            sessionStartTime: startTime,
+            otherUserName: otherName,
+          );
+        }
+      } else if (newStatus == 'rejected') {
+        await SessionReminderService().disableSessionReminders(
+          sessionId: sessionId,
+          swapId: swapId,
+        );
+      }
 
       // Send real-time notification
       if (targetUserId.isNotEmpty) {
@@ -441,30 +525,34 @@ class SessionInviteCard extends StatelessWidget {
         swapId: swapId,
         sessionId: sessionId,
       );
+      await SessionReminderService().disableSessionReminders(
+        sessionId: sessionId,
+        swapId: swapId,
+      );
 
-      // 2. Fetch sender (mentor) name for notification
-      String mentorName = 'Your mentor';
-      try {
-        final mentorDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .get();
-        if (mentorDoc.exists) {
-          mentorName = mentorDoc.data()?['name'] ?? 'Your mentor';
-        }
-      } catch (_) {}
+      final mentorName = await UserDisplayName.resolve(
+        FirebaseFirestore.instance,
+        uid,
+        fallback: UserDisplayName.isUsable(sData?['mentorName'])
+            ? sData!['mentorName'].toString().trim()
+            : '',
+        authDisplayName: FirebaseAuth.instance.currentUser?.displayName,
+      );
+      final displayMentorName = UserDisplayName.isUsable(mentorName)
+          ? mentorName
+          : 'Someone';
 
       // 3. Send Completed Notification to the learner
       if (learnerId.isNotEmpty) {
         await FirebaseFirestore.instance.collection('notifications').add({
           'senderId': uid,
-          'senderName': mentorName,
+          'senderName': displayMentorName,
           'senderProfilePic': '',
           'receiverId': learnerId,
           'type': 'session',
           'title': 'Session Completed! 🎉',
           'body':
-              'Your session "$sessionTitle" with $mentorName has been completed.',
+              'Your session "$sessionTitle" with $displayMentorName has been completed.',
           'isRead': false,
           'createdAt': FieldValue.serverTimestamp(),
           'actionRoute': '/chat',
@@ -530,9 +618,9 @@ class _InfoRow extends StatelessWidget {
         Icon(
           icon,
           size: 16,
-          color: color ?? Theme.of(
-            context,
-          ).colorScheme.onSurfaceVariant.withOpacity(0.6),
+          color:
+              color ??
+              Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -540,9 +628,11 @@ class _InfoRow extends StatelessWidget {
             text,
             style: TextStyle(
               fontSize: 13,
-              color: color ?? Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withOpacity(0.8),
+              color:
+                  color ??
+                  Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withOpacity(0.8),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -570,7 +660,9 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final defaultTextColor = isPrimary ? Theme.of(context).colorScheme.onSurface : color;
+    final defaultTextColor = isPrimary
+        ? Theme.of(context).colorScheme.onSurface
+        : color;
     final finalTextColor = textColor ?? defaultTextColor;
 
     return SizedBox(
@@ -583,7 +675,9 @@ class _ActionButton extends StatelessWidget {
           elevation: 0,
           side: BorderSide(color: color, width: 1.5),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12), // Scaled down to match height
+            borderRadius: BorderRadius.circular(
+              12,
+            ), // Scaled down to match height
           ),
           padding: EdgeInsets.zero,
         ),
@@ -591,7 +685,7 @@ class _ActionButton extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 13, // Scaled down for card layout
-            fontWeight: FontWeight.bold, 
+            fontWeight: FontWeight.bold,
             color: finalTextColor,
           ),
         ),
