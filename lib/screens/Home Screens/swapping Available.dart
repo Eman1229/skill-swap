@@ -203,6 +203,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     }
 
     return query.snapshots().asyncMap((snap) async {
+      debugPrint('SwappingAvailable: Received ${snap.docs.length} documents from Firestore for category $categoryIndex');
       final uid = _auth.currentUser?.uid;
       final swapperIds = <String>{};
 
@@ -220,6 +221,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         }
       }
 
+<<<<<<< Updated upstream
       return snap.docs.map(SwapListing.fromDoc).where((s) {
         if (s.userId == uid) return false;
         final pv = s.profileVisibility.toLowerCase();
@@ -229,6 +231,21 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           return false;
         return true;
       }).toList();
+=======
+      final listings = snap.docs
+          .map(SwapListing.fromDoc)
+          .where((s) {
+            // BUG FIX: Allow current user's skills to show up
+            // if (s.userId == uid) return false;
+            final pv = s.profileVisibility.toLowerCase();
+            if (pv == 'private' && s.userId != uid) return false;
+            if ((pv == 'swappers_only' || pv == 'swappers only') && s.userId != uid && !swapperIds.contains(s.userId)) return false;
+            return true;
+          })
+          .toList();
+      debugPrint('SwappingAvailable: Parsed and filtered ${listings.length} listings');
+      return listings;
+>>>>>>> Stashed changes
     });
   }
 

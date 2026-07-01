@@ -10,6 +10,7 @@ import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/screens/Home%20Screens/see%20all.dart';
 
 import '../Add skill/offer skill.dart';
 
@@ -96,6 +97,42 @@ class _HomeScreenState extends State<HomeScreen> {
     if (hour < 12) return 'Morning';
     if (hour < 17) return 'Afternoon';
     return 'Evening';
+  }
+
+  Stream<List<SwapListing>> get _featuredSwapsStream {
+    Query query = _db.collection('swapListings');
+    if (_selectedCategory != 0) {
+      query = query.where('Category', isEqualTo: _categories[_selectedCategory]);
+    }
+
+    return query.snapshots().asyncMap((snap) async {
+      final uid = _auth.currentUser?.uid;
+      final swapperIds = <String>{};
+
+      if (uid != null) {
+        try {
+          final swapsSnap = await _db
+              .collection('swaps')
+              .where('participants', arrayContains: uid)
+              .get();
+          for (final doc in swapsSnap.docs) {
+            swapperIds.addAll(List<String>.from(doc['participants'] ?? []));
+          }
+        } catch (e) {
+          debugPrint('Error fetching swapper IDs: $e');
+        }
+      }
+
+      return snap.docs
+          .map(SwapListing.fromDoc)
+          .where((s) {
+            final pv = s.profileVisibility.toLowerCase();
+            if (pv == 'private' && s.userId != uid) return false;
+            if ((pv == 'swappers_only' || pv == 'swappers only') && s.userId != uid && !swapperIds.contains(s.userId)) return false;
+            return true;
+          })
+          .toList();
+    });
   }
 
   Future<void> _signOut() async {
@@ -374,107 +411,146 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     SizedBox(height: 26),
 
-                    // ── Featured Swaps — Empty State ─────────────────
-                    _SectionTitle(title: 'featured_swaps'.tr()),
+                    // ── Featured Swaps — Live Data ─────────────────
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _SectionTitle(title: 'featured_swaps'.tr()),
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => SeeAllScreen()),
+                          ),
+                          child: Text(
+                            'see_all'.tr(),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     SizedBox(height: 14),
 
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(vertical: 40),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.06),
-                            blurRadius: 20,
-                            offset: Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 64,
-                            height: 64,
+                    StreamBuilder<List<SwapListing>>(
+                      stream: _featuredSwapsStream,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+                        }
+                        final swaps = snapshot.data ?? [];
+                        if (swaps.isEmpty) {
+                          return Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(vertical: 40),
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                                  Color(0xFF6B8AFF).withOpacity(0.2),
-                                ],
-                              ),
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadius.circular(25),
                               border: Border.all(
-                                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                                width: 1.5,
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
                               ),
-                            ),
-                            child: Icon(
-                              Icons.person_off_outlined,
-                              color: Theme.of(context).colorScheme.primary,
-                              size: 30,
-                            ),
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'no_listings_found'.tr(),
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'adjust_filters'.tr(),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
-                              fontSize: 13,
-                              height: 1.6,
-                            ),
-                          ),
-                          SizedBox(height: 24),
-                          Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Theme.of(context).colorScheme.primary,
-                                  Color(0xFF6B8AFF),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: ElevatedButton(
-                              onPressed: _openOfferSkill,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: StadiumBorder(),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 36,
-                                  vertical: 14,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.06),
+                                  blurRadius: 20,
+                                  offset: Offset(0, 8),
                                 ),
-                              ),
-                              child: Text(
-                                'add_listing'.tr(),
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
+                              ],
                             ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 64,
+                                  height: 64,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                                        Color(0xFF6B8AFF).withOpacity(0.2),
+                                      ],
+                                    ),
+                                    border: Border.all(
+                                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.person_off_outlined,
+                                    color: Theme.of(context).colorScheme.primary,
+                                    size: 30,
+                                  ),
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'no_listings_found'.tr(),
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'adjust_filters'.tr(),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
+                                    fontSize: 13,
+                                    height: 1.6,
+                                  ),
+                                ),
+                                SizedBox(height: 24),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Theme.of(context).colorScheme.primary,
+                                        Color(0xFF6B8AFF),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  child: ElevatedButton(
+                                    onPressed: _openOfferSkill,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      shape: StadiumBorder(),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 36,
+                                        vertical: 14,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'add_listing'.tr(),
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return SizedBox(
+                          height: 230,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: swaps.length,
+                            separatorBuilder: (_, __) => SizedBox(width: 14),
+                            itemBuilder: (_, i) => HorizontalSwapCard(swap: swaps[i]),
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
 
                     SizedBox(height: 30),

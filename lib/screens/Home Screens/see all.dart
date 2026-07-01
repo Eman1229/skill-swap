@@ -28,6 +28,7 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
 
   Stream<List<SwapListing>> get _swapsStream {
     return _db.collection('swapListings').snapshots().asyncMap((snap) async {
+      debugPrint('SeeAllScreen: Received ${snap.docs.length} documents from Firestore');
       final uid = FirebaseAuth.instance.currentUser?.uid;
       final swapperIds = <String>{};
 
@@ -45,16 +46,19 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
         }
       }
 
-      return snap.docs
+      final listings = snap.docs
           .map(SwapListing.fromDoc)
           .where((s) {
-            if (s.userId == uid) return false;
+            // BUG FIX: Allow current user's skills to show up
+            // if (s.userId == uid) return false;
             final pv = s.profileVisibility.toLowerCase();
-            if (pv == 'private') return false;
-            if ((pv == 'swappers_only' || pv == 'swappers only') && !swapperIds.contains(s.userId)) return false;
+            if (pv == 'private' && s.userId != uid) return false;
+            if ((pv == 'swappers_only' || pv == 'swappers only') && s.userId != uid && !swapperIds.contains(s.userId)) return false;
             return true;
           })
           .toList();
+      debugPrint('SeeAllScreen: Parsed and filtered ${listings.length} listings');
+      return listings;
     });
   }
 
@@ -218,6 +222,7 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
 
                   final all = snapshot.data ?? [];
                   final swaps = _applyFilters(all);
+                  debugPrint('SeeAllScreen: Displaying ${swaps.length} swaps after UI filters');
 
                   if (swaps.isEmpty) {
                     return Center(
