@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:skill_swap/models/swap_model.dart';
+import 'package:skill_swap/services/session_reminder_service.dart';
 
 class SkillExchangeService {
   SkillExchangeService({FirebaseFirestore? firestore})
@@ -222,6 +223,11 @@ class SkillExchangeService {
         }
       }
     });
+
+    await SessionReminderService().disableSessionReminders(
+      sessionId: sessionId,
+      swapId: swapId,
+    );
 
     // Write real-time activity logs for both mentor and learner to update analytics instantly
     final mentorId = _text(swapData['mentorId']);

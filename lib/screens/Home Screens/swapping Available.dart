@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,6 +15,7 @@ import 'package:skill_swap/screens/Notifications/notifications_screen.dart';
 import 'package:skill_swap/screens/Setting/settings_screen.dart';
 import 'package:skill_swap/services/notification_repository.dart';
 import 'package:skill_swap/models/session_model.dart';
+import 'package:skill_swap/utils/user_display_name.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // ─────────────────────────────────────────────────────────────────────
@@ -56,11 +59,11 @@ class _AnimatedGradientBorderState extends State<AnimatedGradientBorder>
             gradient: SweepGradient(
               transform: GradientRotation(_controller.value * 6.2832),
               colors: const [
-                Color(0xFF3B82F6),  // blue
-                Color(0xFF6A5CFF),  // medium purple
-                Color(0xFF4B0082),  // deep purple
-                Color(0xFF6A5CFF),  // medium purple
-                Color(0xFF3B82F6),  // blue
+                Color(0xFF3B82F6), // blue
+                Color(0xFF6A5CFF), // medium purple
+                Color(0xFF4B0082), // deep purple
+                Color(0xFF6A5CFF), // medium purple
+                Color(0xFF3B82F6), // blue
               ],
             ),
           ),
@@ -153,7 +156,9 @@ class SwapListing {
 // MAIN SCREEN
 // ─────────────────────────────────────────────────────────────────────
 class SwappingAvailable extends StatefulWidget {
-  SwappingAvailable({Key? key}) : super(key: key);
+  final String? highlightSessionId;
+
+  SwappingAvailable({Key? key, this.highlightSessionId}) : super(key: key);
 
   @override
   State<SwappingAvailable> createState() => _SwappingAvailableState();
@@ -162,6 +167,10 @@ class SwappingAvailable extends StatefulWidget {
 class _SwappingAvailableState extends State<SwappingAvailable> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final ScrollController _homeScrollController = ScrollController();
+  final Map<String, GlobalKey> _sessionCardKeys = {};
+  bool _hasScrolledToHighlight = false;
+  Timer? _sessionExpiryTimer;
 
   int _selectedIndex = 0;
   int _selectedCategory = 0;
@@ -209,16 +218,15 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         }
       }
 
-      return snap.docs
-          .map(SwapListing.fromDoc)
-          .where((s) {
-            if (s.userId == uid) return false;
-            final pv = s.profileVisibility.toLowerCase();
-            if (pv == 'private') return false;
-            if ((pv == 'swappers_only' || pv == 'swappers only') && !swapperIds.contains(s.userId)) return false;
-            return true;
-          })
-          .toList();
+      return snap.docs.map(SwapListing.fromDoc).where((s) {
+        if (s.userId == uid) return false;
+        final pv = s.profileVisibility.toLowerCase();
+        if (pv == 'private') return false;
+        if ((pv == 'swappers_only' || pv == 'swappers only') &&
+            !swapperIds.contains(s.userId))
+          return false;
+        return true;
+      }).toList();
     });
   }
 
@@ -254,10 +262,17 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         .where('status', isEqualTo: 'accepted')
         .snapshots()
         .map((snap) {
-      final sessions = snap.docs.map(SessionModel.fromDoc).toList();
-      sessions.sort((a, b) => a.date.compareTo(b.date));
-      return sessions;
-    });
+          final sessions = snap.docs.map(SessionModel.fromDoc).toList();
+          sessions.sort((a, b) => a.date.compareTo(b.date));
+          return sessions;
+        });
+  }
+
+  List<SessionModel> _activeSessionsOnly(List<SessionModel> sessions) {
+    final cutoff = DateTime.now().subtract(const Duration(hours: 24));
+    return sessions.where((session) {
+      return !session.date.isBefore(cutoff);
+    }).toList();
   }
 
   String get _initials {
@@ -277,6 +292,25 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   void initState() {
     super.initState();
     _refreshCategoryStream();
+    _sessionExpiryTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+    if (widget.highlightSessionId != null) {
+      _selectedIndex = 0;
+    }
+  }
+
+  void _scrollToHighlightedSession(String sessionId) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final key = _sessionCardKeys[sessionId];
+      if (key?.currentContext != null) {
+        Scrollable.ensureVisible(
+          key!.currentContext!,
+          duration: const Duration(milliseconds: 400),
+          alignment: 0.3,
+        );
+      }
+    });
   }
 
   void _refreshCategoryStream() {
@@ -287,7 +321,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 
   @override
   void dispose() {
+    _sessionExpiryTimer?.cancel();
     _searchController.dispose();
+    _homeScrollController.dispose();
     super.dispose();
   }
 
@@ -445,9 +481,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   String liveInitials = _initials;
 
                   if (snapshot.hasData && snapshot.data != null) {
-                    final data =
-                    snapshot.data!.data() as Map<String, dynamic>?;
-                    _userName = (data?['name'] as String?) ??
+                    final data = snapshot.data!.data() as Map<String, dynamic>?;
+                    _userName =
+                        (data?['name'] as String?) ??
                         _auth.currentUser?.email?.split('@').first ??
                         'User';
                     liveImageUrl = data?['imageUrl'] as String?;
@@ -458,8 +494,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     liveInitials = parts.length >= 2
                         ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
                         : (parts[0].isNotEmpty
-                        ? parts[0][0].toUpperCase()
-                        : '?');
+                              ? parts[0][0].toUpperCase()
+                              : '?');
                   }
 
                   return _buildHeader(screenHeight, liveImageUrl, liveInitials);
@@ -484,9 +520,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                         child: Text(
                           'Error: ${snapshot.error}',
                           style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       );
@@ -496,6 +532,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     final swaps = _filteredSwaps;
 
                     return SingleChildScrollView(
+                      controller: _homeScrollController,
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Column(
@@ -513,8 +550,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 
                           if (swaps.isNotEmpty) ...[
                             Row(
-                              mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 _SectionTitle(title: 'Featured Swaps'),
                                 GestureDetector(
@@ -527,9 +563,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                                   child: Text(
                                     'See All',
                                     style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -544,7 +580,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                                 scrollDirection: Axis.horizontal,
                                 itemCount: swaps.length,
                                 separatorBuilder: (_, __) =>
-                                const SizedBox(width: 14),
+                                    const SizedBox(width: 14),
                                 itemBuilder: (_, i) =>
                                     HorizontalSwapCard(swap: swaps[i]),
                               ),
@@ -559,73 +595,95 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                                   return Container(
                                     padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary
-                                          .withAlpha(25),
-                                      borderRadius:
-                                      BorderRadius.circular(16),
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary.withAlpha(25),
+                                      borderRadius: BorderRadius.circular(16),
                                       border: Border.all(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary
-                                              .withAlpha(76)),
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary.withAlpha(76),
+                                      ),
                                     ),
                                     child: Column(
                                       children: [
-                                        Icon(Icons.info_outline_rounded,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary),
+                                        Icon(
+                                          Icons.info_outline_rounded,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
                                         const SizedBox(height: 8),
                                         Text(
                                           'Preparing sessions...',
                                           style: TextStyle(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary,
-                                              fontWeight: FontWeight.bold),
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           'Your sessions will appear here shortly once database indexing is complete. ${sessionSnapshot.error}',
                                           style: TextStyle(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                              fontSize: 12),
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                            fontSize: 12,
+                                          ),
                                           textAlign: TextAlign.center,
                                         ),
                                       ],
                                     ),
                                   );
                                 }
-                                final sessions =
-                                    sessionSnapshot.data ?? [];
+                                final sessions = _activeSessionsOnly(
+                                  sessionSnapshot.data ?? [],
+                                );
                                 if (sessionSnapshot.connectionState ==
-                                    ConnectionState.waiting &&
+                                        ConnectionState.waiting &&
                                     !sessionSnapshot.hasData) {
                                   return Center(
                                     child: CircularProgressIndicator(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                     ),
                                   );
                                 }
                                 if (sessions.isEmpty) {
                                   return _buildEmptySessions();
                                 }
+                                if (widget.highlightSessionId != null &&
+                                    !_hasScrolledToHighlight &&
+                                    sessions.any(
+                                      (s) => s.id == widget.highlightSessionId,
+                                    )) {
+                                  _hasScrolledToHighlight = true;
+                                  _scrollToHighlightedSession(
+                                    widget.highlightSessionId!,
+                                  );
+                                }
                                 return Column(
                                   children: sessions
                                       .map(
                                         (s) => Padding(
-                                      padding: const EdgeInsets.only(
-                                          bottom: 12),
-                                      child: _LiveSessionCard(
-                                          session: s),
-                                    ),
-                                  )
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          child: _LiveSessionCard(
+                                            key: _sessionCardKeys.putIfAbsent(
+                                              s.id,
+                                              () => GlobalKey(),
+                                            ),
+                                            session: s,
+                                            highlighted:
+                                                widget.highlightSessionId ==
+                                                s.id,
+                                          ),
+                                        ),
+                                      )
                                       .toList(),
                                 );
                               },
@@ -705,10 +763,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             const SizedBox(height: 12),
             const Text(
               'We analyzed your profile and found 3 perfect mentors for your current learning path.',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
             const SizedBox(height: 12),
             //  Solid blue link
@@ -716,7 +771,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const AIRecommendationCenterScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const AIRecommendationCenterScreen(),
+                  ),
                 );
               },
               child: const Text(
@@ -760,10 +817,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           Text(
             'Check Back Later Or Offer A Skill Yourself!',
             style: TextStyle(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurfaceVariant
-                  .withOpacity(0.65),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withOpacity(0.65),
               fontSize: 14,
             ),
           ),
@@ -775,8 +831,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   // ─────────────────────────────────────────────────────────────────
   // HEADER
   // ─────────────────────────────────────────────────────────────────
-  Widget _buildHeader(
-      double screenHeight, String? imageUrl, String initials) {
+  Widget _buildHeader(double screenHeight, String? imageUrl, String initials) {
     return Container(
       width: double.infinity,
       height: screenHeight * 0.16,
@@ -802,8 +857,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                    builder: (_) => const MyProfileScreen()),
+                MaterialPageRoute(builder: (_) => const MyProfileScreen()),
               );
             },
             child: Row(
@@ -823,55 +877,53 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   ),
                   child: imageUrl == null || imageUrl.isEmpty
                       ? Center(
-                    child: Text(
-                      initials,
-                      style: TextStyle(
-                        color:
-                        Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  )
-                      : ClipOval(
-                    child: Image.network(
-                      imageUrl,
-                      key: ValueKey(imageUrl),
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.cover,
-                      cacheWidth: 300,
-                      cacheHeight: 300,
-                      loadingBuilder:
-                          (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Center(
-                          child: SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface,
+                          child: Text(
+                            initials,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
                             ),
                           ),
-                        );
-                      },
-                      errorBuilder: (_, __, ___) => Center(
-                        child: Text(
-                          initials,
-                          style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
+                        )
+                      : ClipOval(
+                          child: Image.network(
+                            imageUrl,
+                            key: ValueKey(imageUrl),
+                            width: 48,
+                            height: 48,
+                            fit: BoxFit.cover,
+                            cacheWidth: 300,
+                            cacheHeight: 300,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder: (_, __, ___) => Center(
+                              child: Text(
+                                initials,
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
                 ),
                 const SizedBox(width: 12),
                 Column(
@@ -890,10 +942,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     ),
                     const Text(
                       'Keep growing every day!',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ],
                 ),
@@ -905,8 +954,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen()),
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
             },
             child: Stack(
@@ -915,10 +963,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withAlpha(51),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withAlpha(51),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -941,8 +988,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                           color: const Color(0xFFEF4444),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Theme.of(context)
-                                .scaffoldBackgroundColor,
+                            color: Theme.of(context).scaffoldBackgroundColor,
                             width: 1.5,
                           ),
                         ),
@@ -986,8 +1032,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       ),
       child: TextField(
         controller: _searchController,
-        onChanged: (value) =>
-            setState(() => _searchQuery = value.trim()),
+        onChanged: (value) => setState(() => _searchQuery = value.trim()),
         style: TextStyle(
           color: Theme.of(context).colorScheme.onSurface,
           fontSize: 14,
@@ -995,10 +1040,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         decoration: InputDecoration(
           hintText: 'Search skills or topic...',
           hintStyle: TextStyle(
-            color: Theme.of(context)
-                .colorScheme
-                .onSurfaceVariant
-                .withOpacity(0.65),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant.withOpacity(0.65),
             fontSize: 14,
           ),
           prefixIcon: Icon(
@@ -1007,20 +1051,21 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           ),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-            icon: Icon(
-              Icons.close,
-              color:
-              Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            onPressed: () {
-              _searchController.clear();
-              setState(() => _searchQuery = '');
-            },
-          )
+                  icon: Icon(
+                    Icons.close,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
               : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
-              horizontal: 18, vertical: 14),
+            horizontal: 18,
+            vertical: 14,
+          ),
         ),
       ),
     );
@@ -1048,30 +1093,24 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 18, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
                 gradient: selected
                     ? LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    const Color(0xFF6B8AFF),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          const Color(0xFF6B8AFF),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
                     : null,
-                color: selected
-                    ? null
-                    : Theme.of(context).colorScheme.surface,
+                color: selected ? null : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: selected
                       ? Colors.transparent
-                      : Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withOpacity(0.25),
+                      : Theme.of(context).colorScheme.primary.withOpacity(0.25),
                 ),
               ),
               child: Text(
@@ -1081,9 +1120,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                       ? Theme.of(context).colorScheme.onSurface
                       : Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 13,
-                  fontWeight: selected
-                      ? FontWeight.w600
-                      : FontWeight.normal,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
             ),
@@ -1104,8 +1141,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color:
-          Theme.of(context).colorScheme.primary.withOpacity(0.15),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
         ),
       ),
       child: Column(
@@ -1117,10 +1153,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: [
-                  Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withOpacity(0.15),
+                  Theme.of(context).colorScheme.primary.withOpacity(0.15),
                   const Color(0xFF6B8AFF).withOpacity(0.15),
                 ],
               ),
@@ -1135,10 +1168,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           Text(
             'Nothing Live Yet',
             style: TextStyle(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurfaceVariant
-                  .withOpacity(0.65),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withOpacity(0.65),
               fontSize: 13,
             ),
           ),
@@ -1175,8 +1207,7 @@ class HorizontalSwapCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color:
-              Theme.of(context).colorScheme.primary.withAlpha(13),
+              color: Theme.of(context).colorScheme.primary.withAlpha(13),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -1194,36 +1225,33 @@ class HorizontalSwapCard extends StatelessWidget {
               ),
               child: swap.imageUrl != null
                   ? ClipOval(
-                child: Image.network(
-                  swap.imageUrl!,
-                  width: 44,
-                  height: 44,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Center(
-                    child: Text(
-                      swap.initials,
-                      style: TextStyle(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                      child: Image.network(
+                        swap.imageUrl!,
+                        width: 44,
+                        height: 44,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Text(
+                            swap.initials,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Center(
+                      child: Text(
+                        swap.initials,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              )
-                  : Center(
-                child: Text(
-                  swap.initials,
-                  style: TextStyle(
-                    color:
-                    Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
             ),
             const SizedBox(height: 12),
             Text(
@@ -1251,9 +1279,7 @@ class HorizontalSwapCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 11,
                     ),
                   ),
@@ -1264,10 +1290,9 @@ class HorizontalSwapCard extends StatelessWidget {
             Text(
               'Looking For:',
               style: TextStyle(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurfaceVariant
-                    .withOpacity(0.65),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withOpacity(0.65),
                 fontSize: 11,
               ),
             ),
@@ -1302,17 +1327,13 @@ class HorizontalSwapCard extends StatelessWidget {
                 Text(
                   '(${swap.reviews})',
                   style: TextStyle(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurfaceVariant
-                        .withOpacity(0.65),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withOpacity(0.65),
                     fontSize: 11,
                   ),
                 ),
-                if (swap.isLive) ...[
-                  const Spacer(),
-                  _LiveBadge(),
-                ],
+                if (swap.isLive) ...[const Spacer(), _LiveBadge()],
               ],
             ),
           ],
@@ -1327,7 +1348,13 @@ class HorizontalSwapCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────
 class _LiveSessionCard extends StatelessWidget {
   final SessionModel session;
-  const _LiveSessionCard({required this.session});
+  final bool highlighted;
+
+  const _LiveSessionCard({
+    super.key,
+    required this.session,
+    this.highlighted = false,
+  });
 
   String _formatDateTime(BuildContext context) {
     return '${session.date.day}/${session.date.month}/${session.date.year} at ${TimeOfDay.fromDateTime(session.date).format(context)}';
@@ -1337,24 +1364,43 @@ class _LiveSessionCard extends StatelessWidget {
     final meetingLink = session.meetingLink.trim();
     if (meetingLink.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No meeting link available.')));
+        const SnackBar(content: Text('No meeting link available.')),
+      );
       return;
     }
     final uri = Uri.tryParse(
       meetingLink.contains('://') ? meetingLink : 'https://$meetingLink',
     );
     if (uri == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid meeting link.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid meeting link.')));
       return;
     }
-    final launched =
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!context.mounted) return;
     if (!launched) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open meeting link.')));
+        const SnackBar(content: Text('Could not open meeting link.')),
+      );
     }
+  }
+
+  Future<String> _resolveOtherName(String? uid) async {
+    final isMentor = uid == session.mentorId;
+    final storedName = isMentor ? session.learnerName : session.mentorName;
+    if (UserDisplayName.isUsable(storedName)) {
+      return storedName.trim();
+    }
+
+    final otherId = isMentor ? session.learnerId : session.mentorId;
+    final fallback = isMentor ? 'Your student' : 'Your instructor';
+    final resolved = await UserDisplayName.resolve(
+      FirebaseFirestore.instance,
+      otherId,
+      fallback: fallback,
+    );
+    return UserDisplayName.isUsable(resolved) ? resolved : fallback;
   }
 
   @override
@@ -1363,21 +1409,42 @@ class _LiveSessionCard extends StatelessWidget {
         ? session.title.trim()[0].toUpperCase()
         : 'S';
 
-    return Container(
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    final storedOtherName = uid == session.mentorId
+        ? session.learnerName.trim()
+        : session.mentorName.trim();
+    final initialOtherName = UserDisplayName.isUsable(storedOtherName)
+        ? storedOtherName
+        : '';
+
+    final card = Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color:
-          Theme.of(context).colorScheme.primary.withOpacity(0.25),
+          color: highlighted
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.primary.withOpacity(0.25),
+          width: highlighted ? 2 : 1,
         ),
+        boxShadow: highlighted
+            ? [
+                BoxShadow(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withOpacity(0.25),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
       ),
       child: InkWell(
         onTap: () => _openMeetingLink(context),
         borderRadius: BorderRadius.circular(18),
         child: Padding(
-          padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
               Container(
@@ -1412,12 +1479,33 @@ class _LiveSessionCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
+                    FutureBuilder<String>(
+                      future: _resolveOtherName(uid),
+                      initialData: initialOtherName,
+                      builder: (context, snapshot) {
+                        final otherName =
+                            UserDisplayName.isUsable(snapshot.data)
+                            ? snapshot.data!.trim()
+                            : uid == session.mentorId
+                            ? 'Your student'
+                            : 'Your instructor';
+                        return Text(
+                          'With $otherName',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 2),
                     Text(
                       '${_formatDateTime(context)} - ${session.meetingLink}',
                       style: TextStyle(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 11,
                       ),
                       maxLines: 1,
@@ -1435,6 +1523,11 @@ class _LiveSessionCard extends StatelessWidget {
         ),
       ),
     );
+
+    if (highlighted) {
+      return AnimatedGradientBorder(child: card);
+    }
+    return card;
   }
 }
 
@@ -1447,12 +1540,10 @@ class _LiveBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color:
-        Theme.of(context).colorScheme.primary.withOpacity(0.15),
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color:
-          Theme.of(context).colorScheme.primary.withOpacity(0.4),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
         ),
       ),
       child: Row(
@@ -1506,8 +1597,7 @@ class _GradientButton extends StatelessWidget {
       child: TextButton(
         onPressed: onTap,
         style: TextButton.styleFrom(
-          padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
@@ -1594,10 +1684,9 @@ class _NavItem extends StatelessWidget {
             selected ? activeIcon : icon,
             color: selected
                 ? Theme.of(context).colorScheme.primary
-                : Theme.of(context)
-                .colorScheme
-                .onSurfaceVariant
-                .withOpacity(0.65),
+                : Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withOpacity(0.65),
             size: 24,
           ),
           const SizedBox(height: 3),
@@ -1606,13 +1695,11 @@ class _NavItem extends StatelessWidget {
             style: TextStyle(
               color: selected
                   ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context)
-                  .colorScheme
-                  .onSurfaceVariant
-                  .withOpacity(0.65),
+                  : Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withOpacity(0.65),
               fontSize: 10,
-              fontWeight:
-              selected ? FontWeight.w600 : FontWeight.normal,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
         ],

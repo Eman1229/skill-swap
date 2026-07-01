@@ -5,12 +5,14 @@ class SessionModel {
   final String swapId;
   final String title;
   final DateTime date;
-  final String duration; // e.g., "1 hour"
+  final String duration;
   final String meetingLink;
   final String mentorId;
   final String learnerId;
+  final String mentorName;
+  final String learnerName;
   final List<String> participantIds;
-  final String status; // 'pending', 'accepted', 'rejected', 'completed'
+  final String status;
   final DateTime createdAt;
 
   SessionModel({
@@ -22,6 +24,8 @@ class SessionModel {
     this.meetingLink = '',
     this.mentorId = '',
     this.learnerId = '',
+    this.mentorName = '',
+    this.learnerName = '',
     this.participantIds = const [],
     required this.status,
     required this.createdAt,
@@ -40,6 +44,8 @@ class SessionModel {
       meetingLink: d['meetingLink'] ?? '',
       mentorId: d['mentorId'] ?? '',
       learnerId: d['learnerId'] ?? '',
+      mentorName: d['mentorName'] ?? '',
+      learnerName: d['learnerName'] ?? '',
       participantIds: List<String>.from(d['participantIds'] ?? const []),
       status: d['status'] ?? 'pending',
       createdAt: createdAtField is Timestamp
@@ -56,11 +62,13 @@ class SessionModel {
       'date': Timestamp.fromDate(date),
       'sessionDate': Timestamp.fromDate(date),
       'sessionTime':
-          '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
+      '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
       'duration': duration,
       'meetingLink': meetingLink,
       'mentorId': mentorId,
       'learnerId': learnerId,
+      'mentorName': mentorName,
+      'learnerName': learnerName,
       'participantIds': participantIds,
       'status': status,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -76,6 +84,8 @@ class SessionModel {
     String? meetingLink,
     String? mentorId,
     String? learnerId,
+    String? mentorName,
+    String? learnerName,
     List<String>? participantIds,
     String? status,
     DateTime? createdAt,
@@ -89,6 +99,8 @@ class SessionModel {
       meetingLink: meetingLink ?? this.meetingLink,
       mentorId: mentorId ?? this.mentorId,
       learnerId: learnerId ?? this.learnerId,
+      mentorName: mentorName ?? this.mentorName,
+      learnerName: learnerName ?? this.learnerName,
       participantIds: participantIds ?? this.participantIds,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,

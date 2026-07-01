@@ -2,35 +2,64 @@
 // Thin client for the three Firebase Cloud Functions that proxy OpenAI.
 // The OpenAI API key never leaves the server — stored in Secret Manager.
 
-import 'package:cloud_functions/cloud_functions.dart';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 class OpenAIService {
   static final OpenAIService _instance = OpenAIService._internal();
   factory OpenAIService() => _instance;
   OpenAIService._internal();
 
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
+  // Replace with your actual Firebase project region and project ID
+  static const String _projectId = 'YOUR_PROJECT_ID';
+  static const String _region = 'us-central1';
+  static const String _baseUrl =
+      'https://$_region-$_projectId.cloudfunctions.net';
+
+  Future<Map<String, dynamic>> _callFunction(
+      String functionName,
+      Map<String, dynamic> payload, {
+        Duration timeout = const Duration(seconds: 30),
+      }) async {
+    final uri = Uri.parse('$_baseUrl/$functionName');
+    try {
+      final response = await http
+          .post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'data': payload}),
+      )
+          .timeout(timeout);
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Cloud Function $functionName failed: ${response.statusCode} ${response.body}',
+        );
+      }
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      // Firebase callable functions wrap results in {"result": ...}
+      return (decoded['result'] as Map<String, dynamic>?) ?? decoded;
+    } catch (e) {
+      debugPrint('OpenAIService.$functionName error: $e');
+      rethrow;
+    }
+  }
 
   // ── Embeddings ──────────────────────────────────────────────────────
   /// Returns a list of embedding vectors for the given texts.
   /// Uses Cloud Function "getEmbedding" which calls text-embedding-3-small.
   Future<List<List<double>>> getEmbeddings(List<String> texts) async {
-    try {
-      final callable = _functions.httpsCallable(
-        'getEmbedding',
-        options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
-      );
-      final result = await callable.call({'texts': texts});
-      final data = result.data as Map<String, dynamic>;
-      final embeddings = data['embeddings'] as List;
-      return embeddings
-          .map((e) => List<double>.from((e as List).map((v) => (v as num).toDouble())))
-          .toList();
-    } catch (e) {
-      debugPrint('OpenAIService.getEmbeddings error: $e');
-      rethrow;
-    }
+    final data = await _callFunction('getEmbedding', {'texts': texts});
+    final embeddings = data['embeddings'] as List;
+    return embeddings
+        .map(
+          (e) => List<double>.from(
+        (e as List).map((v) => (v as num).toDouble()),
+      ),
+    )
+        .toList();
   }
 
   // ── Career Compass ──────────────────────────────────────────────────
@@ -47,12 +76,9 @@ class OpenAIService {
     required double successRate,
     String? careerGoal,
   }) async {
-    try {
-      final callable = _functions.httpsCallable(
-        'generateCareerRecommendation',
-        options: HttpsCallableOptions(timeout: const Duration(seconds: 90)),
-      );
-      final result = await callable.call({
+    return _callFunction(
+      'generateCareerRecommendation',
+      {
         'skillsLearned': skillsLearned,
         'skillsTeaching': skillsTeaching,
         'completedSwaps': completedSwaps,
@@ -63,12 +89,9 @@ class OpenAIService {
         'totalAchievements': totalAchievements,
         'successRate': successRate,
         'careerGoal': careerGoal,
-      });
-      return Map<String, dynamic>.from(result.data as Map);
-    } catch (e) {
-      debugPrint('OpenAIService.generateCareerRecommendation error: $e');
-      rethrow;
-    }
+      },
+      timeout: const Duration(seconds: 90),
+    );
   }
 
   // ── Learning Roadmap ────────────────────────────────────────────────
@@ -81,23 +104,17 @@ class OpenAIService {
     required int completedSwaps,
     required double averageRating,
   }) async {
-    try {
-      final callable = _functions.httpsCallable(
-        'generateLearningRoadmap',
-        options: HttpsCallableOptions(timeout: const Duration(seconds: 90)),
-      );
-      final result = await callable.call({
+    return _callFunction(
+      'generateLearningRoadmap',
+      {
         'targetCareer': targetCareer,
         'currentSkills': currentSkills,
         'missingSkills': missingSkills,
         'learningHours': learningHours,
         'completedSwaps': completedSwaps,
         'averageRating': averageRating,
-      });
-      return Map<String, dynamic>.from(result.data as Map);
-    } catch (e) {
-      debugPrint('OpenAIService.generateLearningRoadmap error: $e');
-      rethrow;
-    }
+      },
+      timeout: const Duration(seconds: 90),
+    );
   }
 }

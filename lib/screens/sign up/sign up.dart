@@ -3,6 +3,7 @@ import 'package:skill_swap/Ui_helper/Ui_helper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/SkillsChoose/Selecting%20Skills.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignUpScreen extends StatefulWidget {
   SignUpScreen({Key? key}) : super(key: key);
@@ -25,6 +26,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
           );
+          
+      // Update Firebase Auth Display Name
+      await userCredential.user?.updateDisplayName(_nameController.text.trim());
+      
+      // Save user details to Firestore
+      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("account_created".tr())),
