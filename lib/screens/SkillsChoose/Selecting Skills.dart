@@ -3,6 +3,8 @@ import 'package:skill_swap/screens/Learning Skills/Learning Skills.dart';
 import 'Selecting skills1.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'skill_selection_layout.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 class SkillsScreen extends StatefulWidget {
   const SkillsScreen({Key? key}) : super(key: key);
@@ -21,11 +23,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
       "icon": Icons.auto_awesome,
       "color": const Color(0xFFFF6A6B),
     },
-    {
-      "name": "Coding",
-      "icon": Icons.code,
-      "color": const Color(0xFF9D4EDD),
-    },
+    {"name": "Coding", "icon": Icons.code, "color": const Color(0xFF9D4EDD)},
     {
       "name": "Drawing",
       "icon": Icons.palette,
@@ -38,7 +36,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
     },
     {
       "name": "Digital Marketing",
-      "icon": Icons.code,
+      "icon": Icons.campaign,
       "color": const Color(0xFFF5CB1A),
     },
     {
@@ -88,147 +86,28 @@ class _SkillsScreenState extends State<SkillsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  "Choose up to 5 skills\nyou can teach others.",
-                  style: const TextStyle(
-                    color: Color(0XFF00C2FF),
-                    fontSize: 25,
-                    fontWeight: FontWeight.bold,
+    context.watch<LanguageProvider>();
+    return SkillSelectionScaffold(
+      title: "choose_teach_skills".tr(),
+      selectedSkills: selectedSkills,
+      onSkillTap: toggleSkill,
+      onNext: selectedSkills.isNotEmpty
+          ? () {
+              if (selectedSkills.contains('Others')) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TeachOthersScreen()),
+                );
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LearningSkillsScreen(),
                   ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              Expanded(
-                child: GridView.builder(
-                  itemCount: skills.length,
-                  gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 20,
-                    mainAxisSpacing: 20,
-                    childAspectRatio: 0.8,
-                  ),
-                  itemBuilder: (context, index) {
-                    final skill = skills[index];
-                    final bool isSelected =
-                    selectedSkills.contains(skill["name"]);
-
-                    return GestureDetector(
-                      onTap: () => toggleSkill(skill["name"]),
-                      child: Column(
-                        children: [
-                          Stack(
-                            children: [
-                              Container(
-                                width: 70,
-                                height: 70,
-                                decoration: BoxDecoration(
-                                  color: skill["color"],
-                                  shape: BoxShape.circle,
-                                  border: isSelected
-                                      ? Border.all(
-                                    color: Color(0XFF9D4EDD),
-                                    width: 3,
-                                  )
-                                      : null,
-                                ),
-                                child: Icon(
-                                  skill["icon"],
-                                  color: Colors.white,
-                                  size: 32,
-                                ),
-                              ),
-
-                              if (isSelected)
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  child: Container(
-                                    decoration: const BoxDecoration(
-                                      color: Color(0XFF9D4EDD),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    padding: const EdgeInsets.all(3),
-                                    child: const Icon(
-                                      Icons.check,
-                                      size: 14,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          Text(
-                            skill["name"],
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00C2FF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: selectedSkills.isEmpty
-                      ? null
-                      : () {
-                    if (selectedSkills.contains("Others")) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TeachOthersScreen(),
-                        ),
-                      );
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => LearningSkillsScreen(),
-                        ),
-                      );
-                    }
-                  },
-                  child: const Text(
-                    "Next",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+                );
+              }
+            }
+          : null,
     );
   }
 }

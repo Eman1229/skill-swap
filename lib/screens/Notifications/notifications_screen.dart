@@ -6,6 +6,8 @@ import 'package:skill_swap/screens/Swap/course_assets_screen.dart';
 import 'package:skill_swap/services/notification_repository.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -53,6 +55,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -159,7 +162,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 letterSpacing: 1,
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
               ),
             ),
           ],
@@ -197,7 +200,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           height: 80,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(
@@ -208,7 +211,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.08),
+                  ).colorScheme.onSurface.withValues(alpha: 0.08),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -224,7 +227,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       decoration: BoxDecoration(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.08),
+                        ).colorScheme.onSurface.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -235,7 +238,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       decoration: BoxDecoration(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.05),
+                        ).colorScheme.onSurface.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -301,12 +304,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.notifications_off_outlined,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
                 size: 60,
               ),
             ),
@@ -322,7 +325,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               style: TextStyle(
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -434,7 +437,7 @@ class _NotificationTile extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: Colors.redAccent.withOpacity(0.15),
+          color: Colors.redAccent.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(18),
         ),
         child: const Icon(
@@ -454,7 +457,7 @@ class _NotificationTile extends StatelessWidget {
             border: Border.all(
               color: notification.isRead
                   ? Colors.transparent
-                  : Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                  : Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
               width: 1,
             ),
             boxShadow: [
@@ -462,7 +465,7 @@ class _NotificationTile extends StatelessWidget {
                 BoxShadow(
                   color: Theme.of(
                     context,
-                  ).colorScheme.primary.withOpacity(0.04),
+                  ).colorScheme.primary.withValues(alpha: 0.04),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -513,7 +516,7 @@ class _NotificationTile extends StatelessWidget {
                       style: TextStyle(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurfaceVariant.withOpacity(0.75),
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
                         fontSize: 12.5,
                         height: 1.4,
                       ),
@@ -529,7 +532,7 @@ class _NotificationTile extends StatelessWidget {
                           style: TextStyle(
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurfaceVariant.withOpacity(0.45),
+                            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
                             fontSize: 10,
                           ),
                         ),
@@ -540,7 +543,7 @@ class _NotificationTile extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: iconColor.withOpacity(0.08),
+                            color: iconColor.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -583,7 +586,7 @@ class _NotificationTile extends StatelessWidget {
           height: 46,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
           ),
           child: ClipOval(
             child: hasProfilePic

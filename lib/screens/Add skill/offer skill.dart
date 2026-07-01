@@ -5,6 +5,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; //  Supabase instead of Firebase Storage
 import 'dart:io';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 class OfferSkillScreen extends StatefulWidget {
   OfferSkillScreen({super.key});
@@ -237,6 +239,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
   // ── Build ────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(

@@ -12,14 +12,22 @@ import 'package:skill_swap/screens/Setting/language_settings_screen.dart';
 import 'package:skill_swap/screens/Setting/help_center_screen.dart';
 import 'package:skill_swap/screens/Setting/about_screen.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
-class SettingsScreen extends StatelessWidget {
-  SettingsScreen({super.key});
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
 
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
   final AppSettings _settings = AppSettings();
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>(); // ← triggers rebuild on lang change
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 class AboutScreen extends StatelessWidget {
  const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor:  Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(

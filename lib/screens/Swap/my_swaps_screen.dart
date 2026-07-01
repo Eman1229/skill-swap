@@ -5,6 +5,8 @@ import 'package:skill_swap/screens/Swap/my_learning_screen.dart';
 import 'package:skill_swap/screens/Swap/my_teaching_screen.dart';
 import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 
 
 class MySwapsScreen extends StatefulWidget {
@@ -20,6 +22,7 @@ class _MySwapsScreenState extends State<MySwapsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final uid = _auth.currentUser?.uid;
 
     return Scaffold(
@@ -31,7 +34,7 @@ class _MySwapsScreenState extends State<MySwapsScreen> {
           icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('My Swaps',
+        title: Text('my_swaps'.tr(),
             style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),

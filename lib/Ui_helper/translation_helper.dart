@@ -1,4 +1,6 @@
 import 'package:skill_swap/providers/language_provider.dart';
+import 'package:flutter/widgets.dart';
+import 'package:provider/provider.dart';
 
 class AppTranslations {
   static const Map<String, Map<String, String>> _localizedValues = {
@@ -1794,5 +1796,12 @@ extension TranslationExtension on String {
   String tr() {
     final languageCode = LanguageProvider.instance.languageCode;
     return AppTranslations.translate(this, languageCode);
+  }
+}
+
+extension TranslationContext on BuildContext {
+  String tr(String key) {
+    final code = watch<LanguageProvider>().languageCode;
+    return AppTranslations.translate(key, code);
   }
 }
