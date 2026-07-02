@@ -340,7 +340,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void _handleNotificationTap(NotificationModel notification) {
     _repo.markAsRead(notification.id);
 
-    if (notification.type == NotificationType.asset_upload) {
+    if (notification.type == NotificationType.assetUpload) {
       final courseId = notification.data['courseId'] ?? notification.data['swapId'] ?? '';
       final assetId = notification.data['assetId'] ?? notification.actionId ?? '';
       if (courseId.toString().isNotEmpty) {
@@ -646,13 +646,13 @@ class _NotificationTile extends StatelessWidget {
 
   IconData _getIcon(NotificationType type) {
     switch (type) {
-      case NotificationType.swap_request:
+      case NotificationType.swapRequest:
         return Icons.swap_horiz_rounded;
-      case NotificationType.chat_message:
+      case NotificationType.chatMessage:
         return Icons.chat_bubble_outline_rounded;
       case NotificationType.session:
         return Icons.chat_bubble_outline_rounded;
-      case NotificationType.asset_upload:
+      case NotificationType.assetUpload:
         return Icons.folder_copy_rounded;
       case NotificationType.system:
         return Icons.campaign_rounded;
@@ -661,13 +661,13 @@ class _NotificationTile extends StatelessWidget {
 
   Color _getIconColor(NotificationType type) {
     switch (type) {
-      case NotificationType.swap_request:
+      case NotificationType.swapRequest:
         return const Color(0xFF00C2FF);
-      case NotificationType.chat_message:
+      case NotificationType.chatMessage:
         return const Color(0xFF6B8AFF);
       case NotificationType.session:
         return Colors.greenAccent;
-      case NotificationType.asset_upload:
+      case NotificationType.assetUpload:
         return const Color(0xFF00C2FF);
       case NotificationType.system:
         return Colors.orangeAccent;
@@ -676,13 +676,13 @@ class _NotificationTile extends StatelessWidget {
 
   String _getCategoryLabel(NotificationType type) {
     switch (type) {
-      case NotificationType.swap_request:
+      case NotificationType.swapRequest:
         return "SWAP";
-      case NotificationType.chat_message:
+      case NotificationType.chatMessage:
         return "CHAT";
       case NotificationType.session:
         return "SESSION";
-      case NotificationType.asset_upload:
+      case NotificationType.assetUpload:
         return "ASSET";
       case NotificationType.system:
         return "ALERT";

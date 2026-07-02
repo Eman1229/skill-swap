@@ -100,6 +100,8 @@ class SwapListing {
   final String experience;
   final String? imageUrl;
   final String profileVisibility;
+  final DateTime createdAt;
+  final bool isFeatured;
 
   SwapListing({
     required this.id,
@@ -119,7 +121,9 @@ class SwapListing {
     this.experience = '',
     this.imageUrl,
     this.profileVisibility = 'public',
-  });
+    DateTime? createdAt,
+    this.isFeatured = false,
+  }) : createdAt = createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
   factory SwapListing.fromDoc(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
@@ -131,6 +135,10 @@ class SwapListing {
     final Color color = d['avatarColor'] != null
         ? Color(d['avatarColor'] as int)
         : const Color(0xFF6B8AFF);
+    final createdAtField = d['createdAt'];
+    final createdAt = createdAtField is Timestamp
+        ? createdAtField.toDate()
+        : DateTime.fromMillisecondsSinceEpoch(0);
 
     return SwapListing(
       id: doc.id,
@@ -150,6 +158,8 @@ class SwapListing {
       experience: (d['experienceLevel'] as String?) ?? '',
       imageUrl: d['imageUrl'] as String?,
       profileVisibility: (d['profileVisibility'] as String?) ?? 'public',
+      createdAt: createdAt,
+      isFeatured: (d['isFeatured'] as bool?) ?? false,
     );
   }
 }
@@ -160,7 +170,7 @@ class SwapListing {
 class SwappingAvailable extends StatefulWidget {
   final String? highlightSessionId;
 
-  SwappingAvailable({Key? key, this.highlightSessionId}) : super(key: key);
+  const SwappingAvailable({super.key, this.highlightSessionId});
 
   @override
   State<SwappingAvailable> createState() => _SwappingAvailableState();
@@ -197,13 +207,11 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   int _lastBuiltCategory = -1;
 
   Stream<List<SwapListing>> _buildCategoryStream(int categoryIndex) {
-    Query query = _db.collection('swapListings');
-    if (categoryIndex != 0) {
-      query = query.where('Category', isEqualTo: _categories[categoryIndex]);
-    }
+    final query = _db
+        .collection('swapListings')
+        .orderBy('createdAt', descending: true);
 
-    return query.snapshots().asyncMap((snap) async {
-      debugPrint('SwappingAvailable: Received ${snap.docs.length} documents from Firestore for category $categoryIndex');
+    return query.snapshots().asyncMap((snapshot) async {
       final uid = _auth.currentUser?.uid;
       final swapperIds = <String>{};
 
@@ -221,31 +229,21 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
         }
       }
 
-<<<<<<< Updated upstream
-      return snap.docs.map(SwapListing.fromDoc).where((s) {
+      final docs = snapshot.docs;
+      return docs.map((doc) => SwapListing.fromDoc(doc)).where((s) {
         if (s.userId == uid) return false;
-        final pv = s.profileVisibility.toLowerCase();
-        if (pv == 'private') return false;
-        if ((pv == 'swappers_only' || pv == 'swappers only') &&
-            !swapperIds.contains(s.userId))
+        if (categoryIndex != 0 && s.category != _categories[categoryIndex]) {
           return false;
+        }
+        final pv = s.profileVisibility.toLowerCase();
+        if (pv == 'private' && s.userId != uid) return false;
+        if ((pv == 'swappers_only' || pv == 'swappers only') &&
+            s.userId != uid &&
+            !swapperIds.contains(s.userId)) {
+          return false;
+        }
         return true;
       }).toList();
-=======
-      final listings = snap.docs
-          .map(SwapListing.fromDoc)
-          .where((s) {
-            // BUG FIX: Allow current user's skills to show up
-            // if (s.userId == uid) return false;
-            final pv = s.profileVisibility.toLowerCase();
-            if (pv == 'private' && s.userId != uid) return false;
-            if ((pv == 'swappers_only' || pv == 'swappers only') && s.userId != uid && !swapperIds.contains(s.userId)) return false;
-            return true;
-          })
-          .toList();
-      debugPrint('SwappingAvailable: Parsed and filtered ${listings.length} listings');
-      return listings;
->>>>>>> Stashed changes
     });
   }
 
@@ -267,9 +265,25 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     return _db
         .collection('swapListings')
         .where('userId', isEqualTo: uid)
-        .limit(1)
         .snapshots()
-        .map((snap) => snap.docs.isNotEmpty ? snap.docs.first : null);
+        .map((snap) {
+          if (snap.docs.isEmpty) return null;
+          final docs = [...snap.docs];
+          docs.sort((a, b) {
+            final aData = a.data();
+            final bData = b.data();
+            final aCreatedAt = aData['createdAt'];
+            final bCreatedAt = bData['createdAt'];
+            final aDate = aCreatedAt is Timestamp
+                ? aCreatedAt.toDate()
+                : DateTime.fromMillisecondsSinceEpoch(0);
+            final bDate = bCreatedAt is Timestamp
+                ? bCreatedAt.toDate()
+                : DateTime.fromMillisecondsSinceEpoch(0);
+            return bDate.compareTo(aDate);
+          });
+          return docs.first;
+        });
   }
 
   Stream<List<SessionModel>> get _acceptedSessionsStream {
@@ -539,150 +553,150 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                           _buildAIRecommendationCard(),
                           const SizedBox(height: 26),
 
-                          if (swaps.isNotEmpty) ...[
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _SectionTitle(title: 'Featured Swaps'),
-                                GestureDetector(
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => SeeAllScreen(),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'See All',
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _SectionTitle(title: 'featured_swaps'.tr()),
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => SeeAllScreen(),
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
+                                child: Text(
+                                  'See All'.tr(),
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+
+                          if (swaps.isNotEmpty)
                             SizedBox(
-                              height: 230,
+                              height: 250,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: swaps.length,
                                 separatorBuilder: (_, __) =>
-                                    const SizedBox(width: 14),
+                                    const SizedBox(width: 18),
                                 itemBuilder: (_, i) =>
                                     HorizontalSwapCard(swap: swaps[i]),
                               ),
-                            ),
-                            const SizedBox(height: 30),
-                            _SectionTitle(title: 'Active Swap Sessions'),
-                            const SizedBox(height: 14),
-                            StreamBuilder<List<SessionModel>>(
-                              stream: _acceptedSessionsStream,
-                              builder: (context, sessionSnapshot) {
-                                if (sessionSnapshot.hasError) {
-                                  return Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
+                            )
+                          else
+                            _buildEmptyFeaturedSwaps(),
+
+                          const SizedBox(height: 30),
+                          _SectionTitle(title: 'active_swaps'.tr()),
+                          const SizedBox(height: 14),
+                          StreamBuilder<List<SessionModel>>(
+                            stream: _acceptedSessionsStream,
+                            builder: (context, sessionSnapshot) {
+                              if (sessionSnapshot.hasError) {
+                                return Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary.withValues(alpha: 25),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
                                       color: Theme.of(
                                         context,
-                                      ).colorScheme.primary.withAlpha(25),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
+                                      ).colorScheme.primary.withValues(alpha: 76),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline_rounded,
                                         color: Theme.of(
                                           context,
-                                        ).colorScheme.primary.withAlpha(76),
+                                        ).colorScheme.primary,
                                       ),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Icon(
-                                          Icons.info_outline_rounded,
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'preparing_sessions'.tr(),
+                                        style: TextStyle(
                                           color: Theme.of(
                                             context,
                                           ).colorScheme.primary,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'Preparing sessions...',
-                                          style: TextStyle(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${'sessions_indexing_message'.tr()} ${sessionSnapshot.error}',
+                                        style: TextStyle(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                          fontSize: 12,
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Your sessions will appear here shortly once database indexing is complete. ${sessionSnapshot.error}',
-                                          style: TextStyle(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                            fontSize: 12,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }
-                                final sessions = _activeSessionsOnly(
-                                  sessionSnapshot.data ?? [],
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
                                 );
-                                if (sessionSnapshot.connectionState ==
-                                        ConnectionState.waiting &&
-                                    !sessionSnapshot.hasData) {
-                                  return Center(
-                                    child: CircularProgressIndicator(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
-                                  );
-                                }
-                                if (sessions.isEmpty) {
-                                  return _buildEmptySessions();
-                                }
-                                if (widget.highlightSessionId != null &&
-                                    !_hasScrolledToHighlight &&
-                                    sessions.any(
-                                      (s) => s.id == widget.highlightSessionId,
-                                    )) {
-                                  _hasScrolledToHighlight = true;
-                                  _scrollToHighlightedSession(
-                                    widget.highlightSessionId!,
-                                  );
-                                }
-                                return Column(
-                                  children: sessions
-                                      .map(
-                                        (s) => Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 12,
+                              }
+                              final sessions = _activeSessionsOnly(
+                                sessionSnapshot.data ?? [],
+                              );
+                              if (sessionSnapshot.connectionState ==
+                                      ConnectionState.waiting &&
+                                  !sessionSnapshot.hasData) {
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                );
+                              }
+                              if (sessions.isEmpty) {
+                                return _buildEmptySessions();
+                              }
+                              if (widget.highlightSessionId != null &&
+                                  !_hasScrolledToHighlight &&
+                                  sessions.any(
+                                    (s) => s.id == widget.highlightSessionId,
+                                  )) {
+                                _hasScrolledToHighlight = true;
+                                _scrollToHighlightedSession(
+                                  widget.highlightSessionId!,
+                                );
+                              }
+                              return Column(
+                                children: sessions
+                                    .map(
+                                      (s) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 12,
+                                        ),
+                                        child: LiveSessionCard(
+                                          key: _sessionCardKeys.putIfAbsent(
+                                            s.id,
+                                            () => GlobalKey(),
                                           ),
-                                          child: _LiveSessionCard(
-                                            key: _sessionCardKeys.putIfAbsent(
+                                          session: s,
+                                          highlighted:
+                                              widget.highlightSessionId ==
                                               s.id,
-                                              () => GlobalKey(),
-                                            ),
-                                            session: s,
-                                            highlighted:
-                                                widget.highlightSessionId ==
-                                                s.id,
-                                          ),
                                         ),
-                                      )
-                                      .toList(),
-                                );
-                              },
-                            ),
-                          ] else ...[
-                            const SizedBox(height: 40),
-                            _buildEmptyHomeState(),
-                          ],
+                                      ),
+                                    )
+                                    .toList(),
+                              );
+                            },
+                          ),
 
                           const SizedBox(height: 100),
                         ],
@@ -788,6 +802,51 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   }
 
   // ─────────────────────────────────────────────────────────────────
+  // EMPTY FEATURED SWAPS
+  // ─────────────────────────────────────────────────────────────────
+  Widget _buildEmptyFeaturedSwaps() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.person_off_outlined,
+            color: Theme.of(context).colorScheme.primary,
+            size: 40,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'no_listings_found'.tr(),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'adjust_filters'.tr(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────
   // EMPTY HOME STATE
   // ─────────────────────────────────────────────────────────────────
   Widget _buildEmptyHomeState() {
@@ -802,7 +861,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No Swaps Available',
+            'no_swaps_available'.tr(),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontSize: 18,
@@ -811,11 +870,11 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Check Back Later Or Offer A Skill Yourself!',
+            'check_back_later'.tr(),
             style: TextStyle(
               color: Theme.of(
                 context,
-              ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
               fontSize: 14,
             ),
           ),
@@ -956,18 +1015,18 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             child: Stack(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 46,
+                  height: 46,
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withAlpha(51),
+                    color: Colors.white.withOpacity(0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.notifications_outlined,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    size: 22,
+                  child: const Center(
+                    child: Icon(
+                      Icons.notifications_none_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
                 ),
                 StreamBuilder<int>(
@@ -1038,7 +1097,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           hintStyle: TextStyle(
             color: Theme.of(
               context,
-            ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
             fontSize: 14,
           ),
           prefixIcon: Icon(
@@ -1162,11 +1221,11 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Nothing Live Yet',
+            'nothing_live'.tr(),
             style: TextStyle(
               color: Theme.of(
                 context,
-              ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
               fontSize: 13,
             ),
           ),
@@ -1194,27 +1253,17 @@ class HorizontalSwapCard extends StatelessWidget {
       },
       child: Container(
         width: 180,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.primary.withAlpha(38),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(context).colorScheme.primary.withAlpha(13),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
                 color: swap.imageUrl == null ? swap.avatarColor : null,
                 shape: BoxShape.circle,
@@ -1223,16 +1272,16 @@ class HorizontalSwapCard extends StatelessWidget {
                   ? ClipOval(
                       child: Image.network(
                         swap.imageUrl!,
-                        width: 44,
-                        height: 44,
+                        width: 50,
+                        height: 50,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Center(
                           child: Text(
                             swap.initials,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
+                            style: const TextStyle(
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: 16,
                             ),
                           ),
                         ),
@@ -1241,67 +1290,66 @@ class HorizontalSwapCard extends StatelessWidget {
                   : Center(
                       child: Text(
                         swap.initials,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
+                        style: const TextStyle(
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontSize: 16,
                         ),
                       ),
                     ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
               swap.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-                fontSize: 14,
+                color: Colors.white,
+                fontSize: 16,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Row(
               children: [
-                Icon(
-                  Icons.school_rounded,
-                  size: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                const Icon(
+                  Icons.school_outlined,
+                  size: 14,
+                  color: Colors.grey,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     swap.offering,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 11,
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            Text(
+            const Text(
               'Looking For:',
               style: TextStyle(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurfaceVariant.withOpacity(0.65),
-                fontSize: 11,
+                color: Colors.grey,
+                fontSize: 12,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               swap.wanting,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontSize: 12,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
               ),
             ),
+            const SizedBox(height: 6),
             const Spacer(),
             Row(
               children: [
@@ -1313,8 +1361,8 @@ class HorizontalSwapCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(
                   swap.rating.toStringAsFixed(1),
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1322,14 +1370,11 @@ class HorizontalSwapCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(
                   '(${swap.reviews})',
-                  style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+                  style: const TextStyle(
+                    color: Colors.grey,
                     fontSize: 11,
                   ),
                 ),
-                if (swap.isLive) ...[const Spacer(), _LiveBadge()],
               ],
             ),
           ],
@@ -1342,11 +1387,11 @@ class HorizontalSwapCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────
 // LIVE SESSION CARD
 // ─────────────────────────────────────────────────────────────────────
-class _LiveSessionCard extends StatelessWidget {
+class LiveSessionCard extends StatelessWidget {
   final SessionModel session;
   final bool highlighted;
 
-  const _LiveSessionCard({
+  const LiveSessionCard({
     super.key,
     required this.session,
     this.highlighted = false,
@@ -1421,7 +1466,7 @@ class _LiveSessionCard extends StatelessWidget {
         border: Border.all(
           color: highlighted
               ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.primary.withOpacity(0.25),
+              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
           width: highlighted ? 2 : 1,
         ),
         boxShadow: highlighted
@@ -1429,7 +1474,7 @@ class _LiveSessionCard extends StatelessWidget {
                 BoxShadow(
                   color: Theme.of(
                     context,
-                  ).colorScheme.primary.withOpacity(0.25),
+                  ).colorScheme.primary.withValues(alpha: 0.25),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -1531,15 +1576,17 @@ class _LiveSessionCard extends StatelessWidget {
 // LIVE BADGE
 // ─────────────────────────────────────────────────────────────────────
 class _LiveBadge extends StatelessWidget {
+  const _LiveBadge();
+
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
         ),
       ),
       child: Row(
@@ -1682,7 +1729,7 @@ class _NavItem extends StatelessWidget {
                 ? Theme.of(context).colorScheme.primary
                 : Theme.of(
                     context,
-                  ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
             size: 24,
           ),
           const SizedBox(height: 3),
@@ -1693,7 +1740,7 @@ class _NavItem extends StatelessWidget {
                   ? Theme.of(context).colorScheme.primary
                   : Theme.of(
                       context,
-                    ).colorScheme.onSurfaceVariant.withOpacity(0.65),
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
               fontSize: 10,
               fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
             ),

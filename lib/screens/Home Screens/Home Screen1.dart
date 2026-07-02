@@ -12,6 +12,10 @@ import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 import 'package:skill_swap/screens/Home%20Screens/see%20all.dart';
 
+import 'package:skill_swap/models/swap_listing.dart' as model;
+import 'package:skill_swap/models/session_model.dart';
+import 'package:skill_swap/utils/user_display_name.dart';
+import 'package:skill_swap/screens/Home Screens/swapping Available.dart' as available;
 import '../Add skill/offer skill.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -99,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Evening';
   }
 
-  Stream<List<SwapListing>> get _featuredSwapsStream {
+  Stream<List<available.SwapListing>> get _featuredSwapsStream {
     Query query = _db.collection('swapListings');
     if (_selectedCategory != 0) {
       query = query.where('Category', isEqualTo: _categories[_selectedCategory]);
@@ -124,8 +128,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       return snap.docs
-          .map(SwapListing.fromDoc)
+          .map(available.SwapListing.fromDoc)
           .where((s) {
+            if (s.userId == uid) return false;
             final pv = s.profileVisibility.toLowerCase();
             if (pv == 'private' && s.userId != uid) return false;
             if ((pv == 'swappers_only' || pv == 'swappers only') && s.userId != uid && !swapperIds.contains(s.userId)) return false;
@@ -133,6 +138,28 @@ class _HomeScreenState extends State<HomeScreen> {
           })
           .toList();
     });
+  }
+
+  Stream<List<SessionModel>> get _acceptedSessionsStream {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return Stream.value([]);
+    return _db
+        .collectionGroup('sessions')
+        .where('participantIds', arrayContains: uid)
+        .where('status', isEqualTo: 'accepted')
+        .snapshots()
+        .map((snap) {
+          final sessions = snap.docs.map(SessionModel.fromDoc).toList();
+          sessions.sort((a, b) => a.date.compareTo(b.date));
+          return sessions;
+        });
+  }
+
+  List<SessionModel> _activeSessionsOnly(List<SessionModel> sessions) {
+    final cutoff = DateTime.now().subtract(const Duration(hours: 24));
+    return sessions.where((session) {
+      return !session.date.isBefore(cutoff);
+    }).toList();
   }
 
   Future<void> _signOut() async {
@@ -230,30 +257,37 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   // Notification Bell
+                  // Notification Bell
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationsScreen(),
+                        ),
                       );
                     },
                     child: Consumer<NotificationProvider>(
                       builder: (context, provider, child) {
                         final unreadCount = provider.unreadCount;
+
                         return Stack(
                           clipBehavior: Clip.none,
                           children: [
                             Container(
-                              width: 40,
-                              height: 40,
+                              width: 46,
+                              height: 46,
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
                                 shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.22),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.15),
+                                ),
                               ),
-                              child: Icon(
-                                Icons.notifications_outlined,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                size: 22,
+                              child: const Icon(
+                                Icons.notifications_none_rounded,
+                                size: 24,
+                                color: Color(0xFFEEF4FF),
                               ),
                             ),
                             if (unreadCount > 0)
@@ -261,23 +295,32 @@ class _HomeScreenState extends State<HomeScreen> {
                                 top: -2,
                                 right: -2,
                                 child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFFF3B3B),
-                                    shape: BoxShape.circle,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                    vertical: 2,
                                   ),
                                   constraints: const BoxConstraints(
-                                    minWidth: 16,
-                                    minHeight: 16,
+                                    minWidth: 18,
+                                    minHeight: 18,
                                   ),
-                                  child: Text(
-                                    '$unreadCount',
-                                    style: const TextStyle(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFF3B30),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
                                       color: Colors.white,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
+                                      width: 2,
                                     ),
-                                    textAlign: TextAlign.center,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      unreadCount > 99 ? "99+" : "$unreadCount",
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -422,7 +465,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             MaterialPageRoute(builder: (_) => SeeAllScreen()),
                           ),
                           child: Text(
-                            'see_all'.tr(),
+                            'See All'.tr(),
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.primary,
                               fontSize: 12,
@@ -434,7 +477,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     SizedBox(height: 14),
 
-                    StreamBuilder<List<SwapListing>>(
+                    StreamBuilder<List<available.SwapListing>>(
                       stream: _featuredSwapsStream,
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -547,7 +590,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             scrollDirection: Axis.horizontal,
                             itemCount: swaps.length,
                             separatorBuilder: (_, __) => SizedBox(width: 14),
-                            itemBuilder: (_, i) => HorizontalSwapCard(swap: swaps[i]),
+                            itemBuilder: (_, i) => available.HorizontalSwapCard(swap: swaps[i]),
                           ),
                         );
                       },
@@ -555,50 +598,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     SizedBox(height: 30),
 
-                    // ── Active Swap Sessions — Empty State ───────────
+                    // ── Active Swap Sessions — Live Data ───────────
                     _SectionTitle(title: 'active_swaps'.tr()),
                     SizedBox(height: 14),
 
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(vertical: 32),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  Theme.of(context).colorScheme.primary.withOpacity(0.15),
-                                  Color(0xFF6B8AFF).withOpacity(0.15),
-                                ],
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.downloading_outlined,
-                              color: Color(0xFF6B8AFF),
-                              size: 26,
-                            ),
-                          ),
-                          SizedBox(height: 12),
-                          Text(
-                            'nothing_live'.tr(),
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
+                    StreamBuilder<List<SessionModel>>(
+                      stream: _acceptedSessionsStream,
+                      builder: (context, sessionSnapshot) {
+                        if (sessionSnapshot.hasError) {
+                          return Center(child: Text('Error loading sessions', style: TextStyle(color: Colors.red)));
+                        }
+                        final sessions = _activeSessionsOnly(sessionSnapshot.data ?? []);
+                        if (sessionSnapshot.connectionState == ConnectionState.waiting && !sessionSnapshot.hasData) {
+                          return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+                        }
+                        if (sessions.isEmpty) {
+                          return _buildEmptySessions(context);
+                        }
+                        return Column(
+                          children: sessions.map((s) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: available.LiveSessionCard(session: s),
+                          )).toList(),
+                        );
+                      },
                     ),
 
                     SizedBox(height: 100),
@@ -676,6 +699,49 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildEmptySessions(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 32),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                  Color(0xFF6B8AFF).withOpacity(0.15),
+                ],
+              ),
+            ),
+            child: Icon(
+              Icons.downloading_outlined,
+              color: Color(0xFF6B8AFF),
+              size: 26,
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            'nothing_live'.tr(),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65),
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Section Title ─────────────────────────────────────────────────────

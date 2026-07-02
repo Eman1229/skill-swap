@@ -248,7 +248,7 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
             ],
           ),
           SizedBox(height: 20),
-          Divider(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6)),
+          Divider(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6)),
           SizedBox(height: 20),
           Row(
             children: [
@@ -257,6 +257,12 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                   value: totalHours,
                   icon: Icons.timer_outlined,
                   color: Theme.of(context).colorScheme.primary),
+              Spacer(),
+              _StatItem(
+                  label: 'Active Swaps',
+                  value: data.activeTeachingSwapsCount.toString(),
+                  icon: Icons.sync_rounded,
+                  color: Colors.orangeAccent),
               Spacer(),
               _StatItem(
                   label: 'Rating',

@@ -183,7 +183,7 @@ class _AIRecommendationCenterScreenState extends State<AIRecommendationCenterScr
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: primaryColor.withOpacity(0.15),
+              color: primaryColor.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -245,7 +245,7 @@ class _AIRecommendationCenterScreenState extends State<AIRecommendationCenterScr
               ? []
               : [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Colors.grey.withValues(alpha: 0.1),
                     spreadRadius: 1,
                     blurRadius: 10,
                     offset: const Offset(0, 4),
@@ -288,7 +288,7 @@ class _AIRecommendationCenterScreenState extends State<AIRecommendationCenterScr
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: gradientColors.first.withOpacity(0.12),
+                    color: gradientColors.first.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(

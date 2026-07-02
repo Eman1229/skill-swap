@@ -249,7 +249,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
             ],
           ),
           SizedBox(height: 20),
-          Divider(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6)),
+          Divider(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6)),
           SizedBox(height: 20),
           Row(
             children: [
@@ -258,6 +258,12 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                   value: totalHours,
                   icon: Icons.timer_outlined,
                   color: Theme.of(context).colorScheme.primary),
+              Spacer(),
+              _StatItem(
+                  label: 'Active Swaps',
+                  value: data.activeLearningSwapsCount.toString(),
+                  icon: Icons.sync_rounded,
+                  color: Colors.orangeAccent),
             ],
           ),
         ],

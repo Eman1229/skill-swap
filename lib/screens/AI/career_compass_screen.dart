@@ -20,6 +20,20 @@ class _CareerCompassScreenState extends State<CareerCompassScreen> {
   bool _isGeneratingRoadmap = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider =
+          Provider.of<AIRecommendationProvider>(context, listen: false);
+      if (provider.careerRecommendation == null && !provider.isLoading) {
+        provider.loadRecommendations(
+          uid: FirebaseAuth.instance.currentUser?.uid,
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = Provider.of<AIRecommendationProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;

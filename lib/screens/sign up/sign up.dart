@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:skill_swap/Ui_helper/Ui_helper.dart';
+import 'package:skill_swap/ui_helper/ui_helper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/SkillsChoose/Selecting%20Skills.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignUpScreen extends StatefulWidget {

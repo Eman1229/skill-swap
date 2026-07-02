@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:skill_swap/models/analytics_data.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/models/session_model.dart';
+import 'package:skill_swap/services/user_skills_service.dart';
 
 class AnalyticsService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -64,19 +65,18 @@ class AnalyticsService {
             }
 
             // Sync overall stats to the users document to ensure global consistency
-            final storedXp = (userSnap!.data() as Map<String, dynamic>?)?['xp'] as num?;
-            if (storedXp == null || storedXp.toInt() != data.totalXp) {
-              _db.collection('users').doc(uid).set({
-                'xp': data.totalXp,
-                'level': data.currentLevel,
-                'levelProgress': data.levelProgressPercentage,
-                'completedSwaps': data.completedSwaps,
-                'skillsLearnedCount': data.skillsLearnedCount,
-                'skillsTeachingCount': data.skillsTeachingCount,
-              }, SetOptions(merge: true)).catchError((e) {
-                debugPrint("Error syncing user stats to Firestore: $e");
-              });
-            }
+            _db.collection('users').doc(uid).set({
+              'xp': data.totalXp,
+              'level': data.currentLevel,
+              'levelProgress': data.levelProgressPercentage,
+              'completedSwaps': data.completedSwaps,
+              'skillsLearnedCount': data.skillsLearnedCount,
+              'skillsTeachingCount': data.skillsTeachingCount,
+              'teachingSkills': data.skillsTeaching,
+              'learningSkills': data.skillsLearned,
+            }, SetOptions(merge: true)).catchError((e) {
+              debugPrint("Error syncing user stats to Firestore: $e");
+            });
           } catch (e, stack) {
             debugPrint("Error in watchAnalytics checkAndEmit: $e\n$stack");
           }
@@ -219,36 +219,44 @@ class AnalyticsService {
     final attended = sessions.where((s) => s.status.toLowerCase() == 'completed').length;
     final missed = sessions
         .where((s) =>
-            s.status.toLowerCase() == 'rejected' ||
-            s.status.toLowerCase() == 'cancelled' ||
-            (s.status.toLowerCase() == 'accepted' && s.date.add(const Duration(hours: 2)).isBefore(now)))
+    s.status.toLowerCase() == 'rejected' ||
+        s.status.toLowerCase() == 'cancelled' ||
+        (s.status.toLowerCase() == 'accepted' && s.date.add(const Duration(hours: 2)).isBefore(now)))
         .length;
     final attendanceRate = (attended + missed) == 0 ? 100.0 : (attended / (attended + missed)) * 100.0;
 
     // 3. Completed swaps and sessions count
     final completedSwapsList = swaps.where((s) => s.status.toLowerCase() == 'completed' || s.progress >= 1.0).toList();
-    final completedSwaps = completedSwapsList.length;
+    final completedSwapsCount = completedSwapsList.length;
     final totalSessions = swaps.fold<int>(0, (acc, swap) => acc + swap.completedSessions);
 
-    // 4. Skills list (balanced logic)
-    final learnedSet = <String>{};
-    final teachingSet = <String>{};
+    // 4. Profile skills from marketplace listings (single source of truth)
+    final skillsTeaching =
+    UserSkillsService.teachingSkillsFromListingDocs(listingsSnap.docs);
+    final skillsLearned =
+    UserSkillsService.learningSkillsFromListingDocs(listingsSnap.docs);
+
+    // Completed swap skills used only for XP balancing (NOT for UI display)
+    final completedLearnedSet = <String>{};
+    final completedTeachingSet = <String>{};
     for (final s in completedSwapsList) {
-      if (s.learnerId == uid) learnedSet.add(s.skillName);
-      if (s.mentorId == uid) teachingSet.add(s.skillName);
+      if (s.learnerId == uid) completedLearnedSet.add(s.skillName);
+      if (s.mentorId == uid) completedTeachingSet.add(s.skillName);
     }
-    final balancedCount = math.min(learnedSet.length, teachingSet.length);
-    final skillsLearned = learnedSet.toList()..sort();
-    final skillsTeaching = teachingSet.toList()..sort();
-    final balancedLearned = skillsLearned.take(balancedCount).toList();
-    final balancedTeaching = skillsTeaching.take(balancedCount).toList();
+    final balancedLearned = completedLearnedSet.toList();
+    final balancedTeaching = completedTeachingSet.toList();
+
+    final activeTeachingSwapsCount =
+        swaps.where((s) => s.mentorId == uid).length;
+    final activeLearningSwapsCount =
+        swaps.where((s) => s.learnerId == uid).length;
 
     // 5. XP and Level
-    final totalXp = completedSwaps * 250 +
+    final totalXp = (completedSwapsCount * 250 +
         totalSessions * 60 +
         acceptedRequests * 40 +
         balancedTeaching.length * 90 +
-        balancedLearned.length * 110;
+        balancedLearned.length * 110).toInt();
 
     final currentLevel = (totalXp ~/ 1000) + 1;
     final xpRequiredForNextLevel = 1000 - (totalXp % 1000);
@@ -274,16 +282,16 @@ class AnalyticsService {
     // 8. Streaks
     final learningDates = activitiesSnap.docs
         .where((doc) {
-          final d = doc.data() as Map<String, dynamic>;
-          return d['type'] == 'session_completed' && d['role'] == 'learner';
-        })
+      final d = doc.data() as Map<String, dynamic>;
+      return d['type'] == 'session_completed' && d['role'] == 'learner';
+    })
         .map((doc) => _dateValue((doc.data() as Map<String, dynamic>)['timestamp']) ?? now)
         .toList();
     final teachingDates = activitiesSnap.docs
         .where((doc) {
-          final d = doc.data() as Map<String, dynamic>;
-          return d['type'] == 'session_completed' && d['role'] == 'mentor';
-        })
+      final d = doc.data() as Map<String, dynamic>;
+      return d['type'] == 'session_completed' && d['role'] == 'mentor';
+    })
         .map((doc) => _dateValue((doc.data() as Map<String, dynamic>)['timestamp']) ?? now)
         .toList();
 
@@ -292,12 +300,12 @@ class AnalyticsService {
 
     // 9. Badges
     int unlockedBadges = 0;
-    if (completedSwaps >= 1) unlockedBadges++;
+    if (completedSwapsCount >= 1) unlockedBadges++;
     if (skillsLearned.length >= 3) unlockedBadges++;
     if (skillsTeaching.length >= 3) unlockedBadges++;
     if (currentLevel >= 5) unlockedBadges++;
-    if (successRate >= 80 && completedSwaps >= 1) unlockedBadges++;
-    if (completedSwaps >= 10) unlockedBadges++;
+    if (successRate >= 80 && completedSwapsCount >= 1) unlockedBadges++;
+    if (completedSwapsCount >= 10) unlockedBadges++;
 
     // 10. Growth calculations (XP historical cuts)
     final thisWeekStart = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
@@ -394,6 +402,8 @@ class AnalyticsService {
       teachingHours: teachingHours,
       skillsLearnedCount: skillsLearned.length,
       skillsTeachingCount: skillsTeaching.length,
+      activeTeachingSwapsCount: activeTeachingSwapsCount,
+      activeLearningSwapsCount: activeLearningSwapsCount,
       averageRating: averageRating,
       weeklyGrowthPercentage: weeklyGrowthPercentage.clamp(-100.0, 1000.0),
       monthlyGrowthPercentage: monthlyGrowthPercentage.clamp(-100.0, 1000.0),
@@ -404,12 +414,12 @@ class AnalyticsService {
       currentLevel: currentLevel,
       xpRequiredForNextLevel: xpRequiredForNextLevel,
       levelProgressPercentage: levelProgressPercentage,
-      completedSwaps: completedSwaps,
+      completedSwaps: completedSwapsCount,
       learningStreak: learningStreak,
       teachingStreak: teachingStreak,
       totalAchievements: unlockedBadges,
-      skillsLearned: balancedLearned,
-      skillsTeaching: balancedTeaching,
+      skillsLearned: skillsLearned,
+      skillsTeaching: skillsTeaching,
       weeklyActivity: weeklyActivity,
       monthlyActivity: monthlyActivity,
       skillGrowth: skillGrowth,
@@ -556,13 +566,13 @@ class AnalyticsService {
   }
 
   void _backfillActivities(
-    String uid,
-    List<SwapModel> swaps,
-    List<SessionModel> sessions,
-    List<QueryDocumentSnapshot> requests,
-    List<QueryDocumentSnapshot> listings,
-    List<QueryDocumentSnapshot> existingLogs,
-  ) async {
+      String uid,
+      List<SwapModel> swaps,
+      List<SessionModel> sessions,
+      List<QueryDocumentSnapshot> requests,
+      List<QueryDocumentSnapshot> listings,
+      List<QueryDocumentSnapshot> existingLogs,
+      ) async {
     final existingIds = existingLogs.map((doc) => doc.id).toSet();
     final batch = _db.batch();
     var hasUpdates = false;
@@ -574,7 +584,7 @@ class AnalyticsService {
         if (!existingIds.contains(docId)) {
           final isMentor = s.mentorId == uid;
           final swap = swaps.firstWhere(
-            (sw) => sw.id == s.swapId,
+                (sw) => sw.id == s.swapId,
             orElse: () => SwapModel(
               id: s.swapId,
               mentorId: s.mentorId,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 
-import '../../Ui_helper/Ui_helper.dart';
+import '../../ui_helper/ui_helper.dart';
 
 class OnBoardingScreen extends StatelessWidget {
   OnBoardingScreen({super.key});

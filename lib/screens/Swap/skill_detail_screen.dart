@@ -55,14 +55,21 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                     children: [
                       _buildProgressSection(swap),
                       _buildCompletionStatusSection(swap, isMentor, uid),
+
                       const SizedBox(height: 32),
-                      _buildInfoSection(swap),
-                      const SizedBox(height: 32),
+
                       CourseAssetsSection(
                         course: swap,
                         highlightedAssetId: widget.highlightedAssetId,
                       ),
+
                       const SizedBox(height: 32),
+
+                      _buildInfoSection(swap),
+
+                      const SizedBox(height: 32),
+
+// Sessions
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [

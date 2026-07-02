@@ -2,10 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 enum NotificationType {
-  chat_message,
-  swap_request,
+  chatMessage,
+  swapRequest,
   session,
-  asset_upload,
+  assetUpload,
   system,
 }
 
@@ -52,14 +52,14 @@ class NotificationModel {
 
       NotificationType parsedType = NotificationType.system;
       final typeStr = d['type']?.toString();
-      if (typeStr == 'chat_message' || typeStr == 'chat') {
-        parsedType = NotificationType.chat_message;
-      } else if (typeStr == 'swap_request' || typeStr == 'swap') {
-        parsedType = NotificationType.swap_request;
+      if (typeStr == 'chat_message' || typeStr == 'chat' || typeStr == 'chatMessage') {
+        parsedType = NotificationType.chatMessage;
+      } else if (typeStr == 'swap_request' || typeStr == 'swap' || typeStr == 'swapRequest') {
+        parsedType = NotificationType.swapRequest;
       } else if (typeStr == 'session') {
         parsedType = NotificationType.session;
-      } else if (typeStr == 'asset_upload') {
-        parsedType = NotificationType.asset_upload;
+      } else if (typeStr == 'asset_upload' || typeStr == 'assetUpload') {
+        parsedType = NotificationType.assetUpload;
       } else if (typeStr == 'system' ||
           typeStr == 'system_tip' ||
           typeStr == 'admin') {
@@ -88,9 +88,9 @@ class NotificationModel {
       final String actionRoute =
           d['actionRoute'] ??
           d['route'] ??
-          (parsedType == NotificationType.chat_message
+          (parsedType == NotificationType.chatMessage
               ? '/chat'
-              : parsedType == NotificationType.swap_request
+              : parsedType == NotificationType.swapRequest
               ? '/swap'
               : '');
 

@@ -17,6 +17,7 @@ class SwapListing {
   final String description;
   final String experience;
   final String portfolioFile;
+  final String profileVisibility;
 
   const SwapListing({
     required this.id,
@@ -34,6 +35,7 @@ class SwapListing {
     this.description = '',
     this.experience = '',
     this.portfolioFile = '',
+    this.profileVisibility = 'public',
   });
 
   factory SwapListing.fromDoc(DocumentSnapshot doc) {
@@ -63,6 +65,7 @@ class SwapListing {
       description: (d['description'] as String?) ?? '',
       experience: (d['experience'] as String?) ?? '',
       portfolioFile: (d['portfolio'] as String?) ?? '',
+      profileVisibility: (d['profileVisibility'] as String?) ?? 'public',
     );
   }
 }
