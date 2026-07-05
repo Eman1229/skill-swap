@@ -581,7 +581,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 
                           if (swaps.isNotEmpty)
                             SizedBox(
-                              height: 250,
+                               height: 250,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: swaps.length,

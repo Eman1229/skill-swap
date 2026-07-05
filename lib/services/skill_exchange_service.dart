@@ -394,24 +394,28 @@ class SkillExchangeService {
           .where((skill) => skill.isNotEmpty)
           .toSet();
 
-      if (learned.isNotEmpty && taught.isNotEmpty) {
-        learning.add(learned.first);
-        teaching.add(taught.first);
+      if (learned.isNotEmpty) {
+        learning.addAll(learned);
+      }
+      if (taught.isNotEmpty) {
+        teaching.addAll(taught);
+      }
+      if (learned.isNotEmpty || taught.isNotEmpty) {
         completedExchangeIds.add(entry.key);
       }
     }
 
+    final learningList = learning.toList()..sort();
+    final teachingList = teaching.toList()..sort();
     final balancedCount = learning.length < teaching.length
         ? learning.length
         : teaching.length;
-    final learningList = learning.toList()..sort();
-    final teachingList = teaching.toList()..sort();
 
     await _db.collection('users').doc(uid).set({
-      'learningSkills': learningList.take(balancedCount).toList(),
-      'teachingSkills': teachingList.take(balancedCount).toList(),
-      'skillsLearnedCount': balancedCount,
-      'skillsTeachingCount': balancedCount,
+      'learningSkills': learningList,
+      'teachingSkills': teachingList,
+      'skillsLearnedCount': learning.length,
+      'skillsTeachingCount': teaching.length,
       'completedSwaps': completedExchangeIds.length,
       'skillExchangeCount': balancedCount,
       'skillStatsSyncedAt': FieldValue.serverTimestamp(),
@@ -515,16 +519,28 @@ class SkillExchangeService {
     required String skillName,
     required String learnerName,
   }) async {
-    await _db.runTransaction((transaction) async {
-      final swapRef = _db.collection('swaps').doc(swapId);
-      final swapSnap = await transaction.get(swapRef);
+    final swapRef = _db.collection('swaps').doc(swapId);
+    final swapSnap = await swapRef.get();
 
-      if (!swapSnap.exists) {
+    if (!swapSnap.exists) {
+      throw Exception("Swap not found.");
+    }
+
+    final data = swapSnap.data() as Map<String, dynamic>;
+    final exchangeId = _exchangeId(swapId, data);
+    final pairQuery = await _db
+        .collection('swaps')
+        .where('exchangeId', isEqualTo: exchangeId)
+        .get();
+
+    await _db.runTransaction((transaction) async {
+      final freshSwapSnap = await transaction.get(swapRef);
+      if (!freshSwapSnap.exists) {
         throw Exception("Swap not found.");
       }
-
-      final data = swapSnap.data() as Map<String, dynamic>;
-      final status = data['status']?.toString().toLowerCase() ?? '';
+      
+      final freshData = freshSwapSnap.data() as Map<String, dynamic>;
+      final status = freshData['status']?.toString().toLowerCase() ?? '';
 
       if (status == 'completed') {
         // Already completed, no need to do anything
@@ -538,13 +554,6 @@ class SkillExchangeService {
         'completedAt': FieldValue.serverTimestamp(),
       });
 
-      // Find and update the paired swap (if it exists)
-      final exchangeId = _exchangeId(swapId, data);
-      final pairQuery = await _db
-          .collection('swaps')
-          .where('exchangeId', isEqualTo: exchangeId)
-          .get();
-
       for (var doc in pairQuery.docs) {
         if (doc.id != swapId) {
           transaction.update(doc.reference, {
@@ -556,7 +565,7 @@ class SkillExchangeService {
       }
 
       // Update the swap request status if applicable
-      final requestId = data['requestId']?.toString() ?? '';
+      final requestId = freshData['requestId']?.toString() ?? '';
       if (requestId.isNotEmpty) {
         transaction.update(_db.collection('swap_requests').doc(requestId), {
           'status': 'completed',

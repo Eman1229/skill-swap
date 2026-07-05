@@ -155,9 +155,13 @@ async function syncUserProfileSkills(uid) {
       .filter((swap) => text(swap.mentorId) === uid)
       .map((swap) => text(swap.skillName))
       .filter(Boolean);
-    if (learned.length && taught.length) {
-      learning.add(learned[0]);
-      teaching.add(taught[0]);
+    if (learned.length) {
+      learned.forEach((skill) => learning.add(skill));
+    }
+    if (taught.length) {
+      taught.forEach((skill) => teaching.add(skill));
+    }
+    if (learned.length || taught.length) {
       completedExchangeIds.add(exchangeId);
     }
   });
@@ -167,18 +171,18 @@ async function syncUserProfileSkills(uid) {
   const balancedCount = Math.min(learningList.length, teachingList.length);
 
   await db.collection('users').doc(uid).set({
-    learningSkills: learningList.slice(0, balancedCount),
-    teachingSkills: teachingList.slice(0, balancedCount),
-    skillsLearnedCount: balancedCount,
-    skillsTeachingCount: balancedCount,
+    learningSkills: learningList,
+    teachingSkills: teachingList,
+    skillsLearnedCount: learningList.length,
+    skillsTeachingCount: teachingList.length,
     completedSwaps: completedExchangeIds.size,
     skillExchangeCount: balancedCount,
     skillStatsSyncedAt: fieldValue.serverTimestamp(),
   }, { merge: true });
 
   return {
-    learningSkills: learningList.slice(0, balancedCount),
-    teachingSkills: teachingList.slice(0, balancedCount),
+    learningSkills: learningList,
+    teachingSkills: teachingList,
     completedSwaps: completedExchangeIds.size,
   };
 }
@@ -204,11 +208,30 @@ async function buildAIProfile(uid, seed = {}) {
 
   listingsSnap.docs.forEach((doc) => {
     const data = doc.data();
-    list(data.wanting || data.wantedSkill || data.learningSkill || data.skillsWanted)
-      .forEach((skill) => learned.add(skill));
-    list(data.offering || data.offeredSkill || data.teachingSkill || data.skillsOffered)
-      .forEach((skill) => teaching.add(skill));
-    list(data.interests || data.tags || data.categories).forEach((item) => interests.add(item));
+    [
+      data.wanting,
+      data.wantedSkill,
+      data.learningSkill,
+      data.skillsWanted,
+      data.wantedSkills
+    ].forEach(val => list(val).forEach((skill) => learned.add(skill)));
+
+    [
+      data.offering,
+      data.offeredSkill,
+      data.teachingSkill,
+      data.skillsOffered,
+      data.offeredSkills
+    ].forEach(val => list(val).forEach((skill) => teaching.add(skill)));
+
+    [
+      data.interests,
+      data.tags,
+      data.categories,
+      data.interest,
+      data.skillsInterested,
+      data.careerInterests
+    ].forEach(val => list(val).forEach((item) => interests.add(item)));
   });
 
   swapsSnap.docs.forEach((doc) => {
@@ -266,7 +289,16 @@ async function claimAICompletionGeneration(uid, exchangeId) {
   const lockRef = db.collection('ai_completion_generation_locks').doc(`${exchangeId}_${uid}`);
   return db.runTransaction(async (transaction) => {
     const snap = await transaction.get(lockRef);
-    if (snap.exists) return false;
+    if (snap.exists) {
+      const data = snap.data();
+      if (data.status === 'completed') return false;
+      if (data.status === 'running') {
+        const createdAt = data.createdAt ? data.createdAt.toDate() : null;
+        if (createdAt && (new Date() - createdAt < 5 * 60 * 1000)) {
+          return false;
+        }
+      }
+    }
     transaction.set(lockRef, {
       uid,
       exchangeId,
@@ -306,20 +338,6 @@ async function generateAIForCompletedSwap(uid, exchangeId, seed = {}) {
     }, { skipRateLimit: true });
 
     const topCareer = Array.isArray(career.careers) ? career.careers[0] : null;
-    if (topCareer && text(topCareer.title)) {
-      await generateLearningRoadmapForUser(uid, {
-        targetCareer: topCareer.title,
-        currentSkills: unique([...profile.skillsLearned, ...profile.skillsTeaching]),
-        missingSkills: list(topCareer.missingSkills),
-        interests: profile.interests,
-        recentSwapHistory: profile.recentSwapHistory,
-        learningHours: profile.learningHours,
-        completedSwaps: profile.completedSwaps,
-        averageRating: profile.averageRating,
-        trigger: 'swap_completed',
-        triggerId: exchangeId,
-      });
-    }
 
     await updateAICompletionGenerationLock(uid, exchangeId, {
       status: 'completed',
@@ -342,7 +360,7 @@ exports.swapProposalNotifier = functions.firestore
 
 // Trigger on new chat message
 exports.directMessageNotifier = functions.firestore
-  .document('chats/{chatId}/messages/{msgId}')
+  .document('conversations/{chatId}/messages/{msgId}')
   .onCreate(sendDirectMessageNotification);
 
 // Weekly tip scheduled function (triggered by Cloud Scheduler)

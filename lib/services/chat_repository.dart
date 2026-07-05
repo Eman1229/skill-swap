@@ -190,4 +190,113 @@ class ChatRepository {
 
     await batch.commit();
   }
+
+  /// Marks all conversations as read for the current user.
+  Future<void> markAllConversationsAsRead() async {
+    final uid = _auth.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+
+    final convosQuery = await _db
+        .collection('conversations')
+        .where('participants', arrayContains: uid)
+        .get();
+
+    final batch = _db.batch();
+    bool hasUpdates = false;
+
+    for (final doc in convosQuery.docs) {
+      final rawUnread = doc.data()['unreadCount'];
+      if (rawUnread is Map) {
+        final currentUnread = rawUnread[uid] ?? 0;
+        if (currentUnread > 0) {
+          batch.update(doc.reference, {
+            'unreadCount.$uid': 0,
+          });
+          hasUpdates = true;
+        }
+      } else if (rawUnread is int && rawUnread > 0) {
+        batch.update(doc.reference, {
+          'unreadCount': 0,
+        });
+        hasUpdates = true;
+      }
+    }
+
+    if (hasUpdates) {
+      await batch.commit();
+    }
+
+    // Also update any pending notification documents in the notifications collection for this user!
+    final notificationsQuery = await _db
+        .collection('notifications')
+        .where('receiverId', isEqualTo: uid)
+        .where('type', isEqualTo: 'chat_message')
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    if (notificationsQuery.docs.isNotEmpty) {
+      final notifBatch = _db.batch();
+      for (final doc in notificationsQuery.docs) {
+        notifBatch.update(doc.reference, {'isRead': true});
+      }
+      await notifBatch.commit();
+    }
+  }
+
+  /// Clears all chat conversations and messages for the current user.
+  Future<void> clearAllConversations() async {
+    final uid = _auth.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+
+    final convosQuery = await _db
+        .collection('conversations')
+        .where('participants', arrayContains: uid)
+        .get();
+
+    for (final doc in convosQuery.docs) {
+      final convoId = doc.id;
+      final messagesQuery = await _db
+          .collection('conversations')
+          .doc(convoId)
+          .collection('messages')
+          .get();
+
+      final batch = _db.batch();
+      for (final msgDoc in messagesQuery.docs) {
+        batch.delete(msgDoc.reference);
+      }
+      batch.delete(doc.reference);
+      await batch.commit();
+    }
+
+    // Clear notifications of type 'chat_message'
+    final notificationsQuery = await _db
+        .collection('notifications')
+        .where('receiverId', isEqualTo: uid)
+        .where('type', isEqualTo: 'chat_message')
+        .get();
+
+    if (notificationsQuery.docs.isNotEmpty) {
+      final notifBatch = _db.batch();
+      for (final doc in notificationsQuery.docs) {
+        notifBatch.delete(doc.reference);
+      }
+      await notifBatch.commit();
+    }
+
+    final sentNotificationsQuery = await _db
+        .collection('notifications')
+        .where('senderId', isEqualTo: uid)
+        .where('type', isEqualTo: 'chat_message')
+        .get();
+
+    if (sentNotificationsQuery.docs.isNotEmpty) {
+      final sentNotifBatch = _db.batch();
+      for (final doc in sentNotificationsQuery.docs) {
+        sentNotifBatch.delete(doc.reference);
+      }
+      await sentNotifBatch.commit();
+    }
+  }
 }
+

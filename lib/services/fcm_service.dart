@@ -108,7 +108,28 @@ class FcmService {
       if (!settings.pushEnabled) return;
 
       final type = msg.data['type'] as String?;
-      if (type == 'chat_message' && !settings.directMessagesEnabled) return;
+      if (type == 'chat_message') {
+        final settingsData = settingsDoc.data();
+        final bool chatMuted = settingsData?['chatNotificationsMuted'] ?? false;
+        if (chatMuted) return;
+
+        if (convoId != null) {
+          final convoDoc = await FirebaseFirestore.instance
+              .collection('conversations')
+              .doc(convoId)
+              .get();
+          if (convoDoc.exists) {
+            final convoData = convoDoc.data();
+            final mutedMap = convoData?['muted'] as Map?;
+            if (mutedMap?[uid] == true) {
+              debugPrint("FCM Service: Suppressed foreground notification for muted conversation $convoId");
+              return;
+            }
+          }
+        }
+
+        if (!settings.directMessagesEnabled) return;
+      }
       if (type == 'swap_request' && !settings.swapProposalEnabled) return;
 
       _showLocalNotification(msg, settings);
@@ -209,7 +230,28 @@ class FcmService {
     if (!settings.pushEnabled) return;
 
     final type = data['type'] as String?;
-    if (type == 'chat_message' && !settings.directMessagesEnabled) return;
+    if (type == 'chat_message') {
+      final settingsData = settingsDoc.data();
+      final bool chatMuted = settingsData?['chatNotificationsMuted'] ?? false;
+      if (chatMuted) return;
+
+      if (convoId != null) {
+        final convoDoc = await FirebaseFirestore.instance
+            .collection('conversations')
+            .doc(convoId)
+            .get();
+        if (convoDoc.exists) {
+          final convoData = convoDoc.data();
+          final mutedMap = convoData?['muted'] as Map?;
+          if (mutedMap?[uid] == true) {
+            debugPrint("FCM Service: Suppressed Firestore-triggered notification for muted conversation $convoId");
+            return;
+          }
+        }
+      }
+
+      if (!settings.directMessagesEnabled) return;
+    }
     if (type == 'swap_request' && !settings.swapProposalEnabled) return;
 
     String title = data['title'] ?? 'Skill Swap';

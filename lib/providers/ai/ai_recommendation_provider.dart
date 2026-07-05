@@ -1,6 +1,7 @@
 // lib/providers/ai/ai_recommendation_provider.dart
 
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/models/ai/career_recommendation.dart';
 import 'package:skill_swap/models/ai/mentor_recommendation.dart';
 import 'package:skill_swap/models/ai/learning_roadmap_model.dart';
@@ -8,6 +9,7 @@ import 'package:skill_swap/models/ai/ai_analytics_snapshot.dart';
 import 'package:skill_swap/services/ai/ai_recommendation_service.dart';
 import 'package:skill_swap/services/ai/learning_roadmap_service.dart';
 import 'package:skill_swap/repositories/ai/ai_recommendation_repository.dart';
+import 'package:skill_swap/services/skill_exchange_service.dart';
 
 class AIRecommendationProvider extends ChangeNotifier {
   final AIRecommendationService _service = AIRecommendationService();
@@ -35,6 +37,10 @@ class AIRecommendationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (uid != null) {
+        await SkillExchangeService().syncUserProfile(uid);
+      }
+
       final mentors = await _service.getLatestMentors();
       final career = await _service.getLatestCareer();
       final roadmap = await _service.getLatestRoadmap();
@@ -45,6 +51,17 @@ class AIRecommendationProvider extends ChangeNotifier {
 
       if (uid != null) {
         _analyticsSnapshot = await _repository.getLatestAnalyticsSnapshot(uid);
+      }
+
+      if (career == null && uid != null) {
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final userData = userDoc.data() ?? {};
+        final completedSwaps = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
+        if (completedSwaps > 0) {
+          _isLoading = false;
+          await refreshRecommendations(uid: uid, force: true);
+          return;
+        }
       }
 
       _isLoading = false;

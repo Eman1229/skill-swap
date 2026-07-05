@@ -12,6 +12,10 @@ let _cachedKey = null;
 
 async function getOpenAiKey() {
   if (_cachedKey) return _cachedKey;
+  if (process.env.OPENAI_API_KEY) {
+    _cachedKey = process.env.OPENAI_API_KEY.trim();
+    return _cachedKey;
+  }
   const [version] = await secretClient.accessSecretVersion({
     name: 'projects/' + process.env.GCLOUD_PROJECT + '/secrets/openai-api-key/versions/latest',
   });

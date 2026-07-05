@@ -62,7 +62,7 @@ class CertificateScreen extends StatelessWidget {
                         'Certificate of Completion',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontFamily: 'Serif',
+                          fontFamily: 'Nunito',
                           color: Color(0xFF1E293B),
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -75,7 +75,6 @@ class CertificateScreen extends StatelessWidget {
                       Text(
                         'This is to certify that',
                         style: TextStyle(
-                          fontFamily: 'Serif',
                           color: Colors.grey[600],
                           fontSize: 12,
                           fontStyle: FontStyle.italic,
@@ -88,7 +87,7 @@ class CertificateScreen extends StatelessWidget {
                         '${swap.mentorName} & ${swap.learnerName}',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontFamily: 'Serif',
+                          fontFamily: 'Nunito',
                           color: Color(0xFF0F172A),
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -100,7 +99,6 @@ class CertificateScreen extends StatelessWidget {
                       Text(
                         'have successfully completed the swap for',
                         style: TextStyle(
-                          fontFamily: 'Serif',
                           color: Colors.grey[600],
                           fontSize: 12,
                           fontStyle: FontStyle.italic,
@@ -113,7 +111,7 @@ class CertificateScreen extends StatelessWidget {
                         swap.skillName,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontFamily: 'Serif',
+                          fontFamily: 'Nunito',
                           color: Theme.of(context).colorScheme.primary,
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -131,7 +129,6 @@ class CertificateScreen extends StatelessWidget {
                               Text(
                                 dateStr,
                                 style: const TextStyle(
-                                  fontFamily: 'Serif',
                                   color: Color(0xFF1E293B),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -164,7 +161,6 @@ class CertificateScreen extends StatelessWidget {
                               const Text(
                                 'SKILL SWAP',
                                 style: TextStyle(
-                                  fontFamily: 'Serif',
                                   color: Color(0xFF1E293B),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,

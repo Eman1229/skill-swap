@@ -96,10 +96,12 @@ flutter:
     - assets/Images/
 
   fonts:
-    - family: Schyler
+    - family: Nunito
       fonts:
         - asset: assets/fonts/Nunito-VariableFont_wght.ttf
-        - asset: assets/fonts/Inter-VariableFont_opsz,wght.ttf
+    - family: Rubik
+      fonts:
+        - asset: assets/fonts/Rubik-VariableFont_wght.ttf
 
   #         style: italic
   #   - family: Trajan Pro

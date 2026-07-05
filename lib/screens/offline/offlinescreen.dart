@@ -24,7 +24,6 @@ class OfflineScreen extends StatelessWidget {
             Text(
               "No Internet connection found. Check",
               style: TextStyle(
-                fontFamily: "Inter",
                 fontSize: 14,
                 color: Color(0XFF888888),
               ),
@@ -33,7 +32,6 @@ class OfflineScreen extends StatelessWidget {
             Text(
               "your connection or try again.",
               style: TextStyle(
-                fontFamily: "Inter",
                 fontSize: 14,
                 color: Color(0XFF888888),
               ),

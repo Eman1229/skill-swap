@@ -20,7 +20,7 @@ class OnBoardingScreen extends StatelessWidget {
                 ), textAlign: TextAlign.center,
               ),
               SizedBox(height: 12),
-              Text("Trade Skills, Learn cool stuff, No money needed", style: TextStyle(fontFamily:"Inter",fontSize: 14,
+              Text("Trade Skills, Learn cool stuff, No money needed", style: TextStyle(fontSize: 14,
                 fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,

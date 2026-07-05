@@ -169,16 +169,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       brightness: Brightness.light,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: _skillSwapBackground,
-      fontFamily: 'Schyler',
+      fontFamily: 'Rubik',
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         foregroundColor: _skillSwapText,
         elevation: 0,
         centerTitle: true,
       ),
-      textTheme: ThemeData.light().textTheme.apply(
-        bodyColor: _skillSwapText,
-        displayColor: _skillSwapText,
+      textTheme: _buildTextTheme(
+        ThemeData.light().textTheme,
+        'Rubik',
+        'Nunito',
+        _skillSwapText,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -214,12 +216,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       brightness: Brightness.dark,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: const Color(0xFF0F172A),
-      fontFamily: 'Schyler',
+      fontFamily: 'Rubik',
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+      ),
+      textTheme: _buildTextTheme(
+        ThemeData.dark().textTheme,
+        'Rubik',
+        'Nunito',
+        Colors.white,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -237,6 +245,30 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ),
       cardColor: const Color(0xFF1E293B),
       switchTheme: _buildSwitchTheme(colorScheme),
+    );
+  }
+
+  TextTheme _buildTextTheme(
+      TextTheme base, String bodyFont, String displayFont, Color textColor) {
+    return base.copyWith(
+      displayLarge: base.displayLarge?.copyWith(fontFamily: displayFont),
+      displayMedium: base.displayMedium?.copyWith(fontFamily: displayFont),
+      displaySmall: base.displaySmall?.copyWith(fontFamily: displayFont),
+      headlineLarge: base.headlineLarge?.copyWith(fontFamily: displayFont),
+      headlineMedium: base.headlineMedium?.copyWith(fontFamily: displayFont),
+      headlineSmall: base.headlineSmall?.copyWith(fontFamily: displayFont),
+      titleLarge: base.titleLarge?.copyWith(fontFamily: displayFont),
+      titleMedium: base.titleMedium?.copyWith(fontFamily: displayFont),
+      titleSmall: base.titleSmall?.copyWith(fontFamily: displayFont),
+      bodyLarge: base.bodyLarge?.copyWith(fontFamily: bodyFont),
+      bodyMedium: base.bodyMedium?.copyWith(fontFamily: bodyFont),
+      bodySmall: base.bodySmall?.copyWith(fontFamily: bodyFont),
+      labelLarge: base.labelLarge?.copyWith(fontFamily: bodyFont),
+      labelMedium: base.labelMedium?.copyWith(fontFamily: bodyFont),
+      labelSmall: base.labelSmall?.copyWith(fontFamily: bodyFont),
+    ).apply(
+      bodyColor: textColor,
+      displayColor: textColor,
     );
   }
 
