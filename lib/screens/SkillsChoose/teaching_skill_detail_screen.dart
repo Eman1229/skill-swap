@@ -131,29 +131,34 @@ class _TeachingSkillDetailScreenState extends State<TeachingSkillDetailScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'course_assets'.tr().toUpperCase(),
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'course_assets'.tr().toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              height: 2,
-              width: 24,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(1),
+              const SizedBox(height: 4),
+              Container(
+                height: 2,
+                width: 24,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(1),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        const SizedBox(width: 12),
         if (widget.isTeacher)
           TextButton.icon(
             onPressed: _onAddMaterial,
@@ -164,6 +169,8 @@ class _TeachingSkillDetailScreenState extends State<TeachingSkillDetailScreen> {
             ),
             label: Text(
               'add_material'.tr(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
@@ -279,8 +286,6 @@ class _TeachingSkillDetailScreenState extends State<TeachingSkillDetailScreen> {
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
         subtitle: asset.size != null
             ? Text(
@@ -385,153 +390,158 @@ class _TeachingSkillDetailScreenState extends State<TeachingSkillDetailScreen> {
             color: Theme.of(context).colorScheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'add_new_resource'.tr(),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'asset_title'.tr(),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'add_new_resource'.tr(),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                onChanged: (val) => title = val,
-              ),
-              const SizedBox(height: 16),
-              SegmentedButton<AssetType>(
-                segments: const [
-                  ButtonSegment(
-                    value: AssetType.pdf,
-                    label: Text('PDF'),
-                    icon: Icon(Icons.picture_as_pdf),
-                  ),
-                  ButtonSegment(
-                    value: AssetType.video,
-                    label: Text('Video'),
-                    icon: Icon(Icons.movie),
-                  ),
-                  ButtonSegment(
-                    value: AssetType.link,
-                    label: Text('Link'),
-                    icon: Icon(Icons.link),
-                  ),
-                ],
-                selected: {selectedType},
-                onSelectionChanged: (set) =>
-                    setSheetState(() => selectedType = set.first),
-              ),
-              const SizedBox(height: 16),
-              if (selectedType == AssetType.link)
+                const SizedBox(height: 20),
                 TextField(
                   decoration: InputDecoration(
-                    labelText: 'URL',
+                    labelText: 'asset_title'.tr(),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onChanged: (val) => url = val,
-                )
-              else
-                ElevatedButton.icon(
-                  onPressed: isUploading
-                      ? null
-                      : () async {
-                          FilePickerResult? result = await FilePicker.platform
-                              .pickFiles(
-                                type: selectedType == AssetType.pdf
-                                    ? FileType.custom
-                                    : FileType.video,
-                                allowedExtensions: selectedType == AssetType.pdf
-                                    ? ['pdf']
-                                    : null,
-                              );
-
-                          if (result != null) {
-                            setSheetState(() => isUploading = true);
-                            try {
-                              File file = File(result.files.single.path!);
-                              String fileName =
-                                  '${DateTime.now().millisecondsSinceEpoch}_${result.files.single.name}';
-                              Reference ref = FirebaseStorage.instance
-                                  .ref()
-                                  .child(
-                                    'skill_assets/${widget.skillId}/$fileName',
-                                  );
-
-                              UploadTask uploadTask = ref.putFile(file);
-                              TaskSnapshot snapshot = await uploadTask;
-                              String downloadUrl = await snapshot.ref
-                                  .getDownloadURL();
-
-                              url = downloadUrl;
-                              String size = _formatBytes(
-                                result.files.single.size,
-                              );
-
-                              await FirebaseFirestore.instance
-                                  .collection('skills')
-                                  .doc(widget.skillId)
-                                  .collection('assets')
-                                  .add({
-                                    'title': title.isEmpty
-                                        ? result.files.single.name
-                                        : title,
-                                    'url': url,
-                                    'type': selectedType.name,
-                                    'size': size,
-                                    'createdAt': FieldValue.serverTimestamp(),
-                                  });
-
-                              if (mounted) Navigator.pop(context);
-                            } catch (e) {
-                              debugPrint(e.toString());
-                            } finally {
-                              setSheetState(() => isUploading = false);
-                            }
-                          }
-                        },
-                  icon: isUploading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.upload_file),
-                  label: Text(
-                    isUploading ? 'uploading'.tr() : 'select_and_upload'.tr(),
+                  onChanged: (val) => title = val,
+                ),
+                const SizedBox(height: 16),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: SegmentedButton<AssetType>(
+                    segments: const [
+                      ButtonSegment(
+                        value: AssetType.pdf,
+                        label: Text('PDF'),
+                        icon: Icon(Icons.picture_as_pdf),
+                      ),
+                      ButtonSegment(
+                        value: AssetType.video,
+                        label: Text('Video'),
+                        icon: Icon(Icons.movie),
+                      ),
+                      ButtonSegment(
+                        value: AssetType.link,
+                        label: Text('Link'),
+                        icon: Icon(Icons.link),
+                      ),
+                    ],
+                    selected: {selectedType},
+                    onSelectionChanged: (set) =>
+                        setSheetState(() => selectedType = set.first),
                   ),
                 ),
-              const SizedBox(height: 16),
-              if (selectedType == AssetType.link)
-                ElevatedButton(
-                  onPressed: isUploading || title.isEmpty || url.isEmpty
-                      ? null
-                      : () async {
-                          await FirebaseFirestore.instance
-                              .collection('skills')
-                              .doc(widget.skillId)
-                              .collection('assets')
-                              .add({
-                                'title': title,
-                                'url': url,
-                                'type': selectedType.name,
-                                'createdAt': FieldValue.serverTimestamp(),
-                              });
-                          Navigator.pop(context);
-                        },
-                  child: Text('save'.tr()),
-                ),
-              const SizedBox(height: 24),
-            ],
+                const SizedBox(height: 16),
+                if (selectedType == AssetType.link)
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: 'URL',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onChanged: (val) => url = val,
+                  )
+                else
+                  ElevatedButton.icon(
+                    onPressed: isUploading
+                        ? null
+                        : () async {
+                            FilePickerResult? result = await FilePicker.platform
+                                .pickFiles(
+                                  type: selectedType == AssetType.pdf
+                                      ? FileType.custom
+                                      : FileType.video,
+                                  allowedExtensions: selectedType == AssetType.pdf
+                                      ? ['pdf']
+                                      : null,
+                                );
+
+                            if (result != null) {
+                              setSheetState(() => isUploading = true);
+                              try {
+                                File file = File(result.files.single.path!);
+                                String fileName =
+                                    '${DateTime.now().millisecondsSinceEpoch}_${result.files.single.name}';
+                                Reference ref = FirebaseStorage.instance
+                                    .ref()
+                                    .child(
+                                      'skill_assets/${widget.skillId}/$fileName',
+                                    );
+
+                                UploadTask uploadTask = ref.putFile(file);
+                                TaskSnapshot snapshot = await uploadTask;
+                                String downloadUrl = await snapshot.ref
+                                    .getDownloadURL();
+
+                                url = downloadUrl;
+                                String size = _formatBytes(
+                                  result.files.single.size,
+                                );
+
+                                await FirebaseFirestore.instance
+                                    .collection('skills')
+                                    .doc(widget.skillId)
+                                    .collection('assets')
+                                    .add({
+                                      'title': title.isEmpty
+                                          ? result.files.single.name
+                                          : title,
+                                      'url': url,
+                                      'type': selectedType.name,
+                                      'size': size,
+                                      'createdAt': FieldValue.serverTimestamp(),
+                                    });
+
+                                if (mounted) Navigator.pop(context);
+                              } catch (e) {
+                                debugPrint(e.toString());
+                              } finally {
+                                setSheetState(() => isUploading = false);
+                              }
+                            }
+                          },
+                    icon: isUploading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.upload_file),
+                    label: Text(
+                      isUploading ? 'uploading'.tr() : 'select_and_upload'.tr(),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                if (selectedType == AssetType.link)
+                  ElevatedButton(
+                    onPressed: isUploading || title.isEmpty || url.isEmpty
+                        ? null
+                        : () async {
+                            await FirebaseFirestore.instance
+                                .collection('skills')
+                                .doc(widget.skillId)
+                                .collection('assets')
+                                .add({
+                                  'title': title,
+                                  'url': url,
+                                  'type': selectedType.name,
+                                  'createdAt': FieldValue.serverTimestamp(),
+                                });
+                            Navigator.pop(context);
+                          },
+                    child: Text('save'.tr()),
+                  ),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         );
       },

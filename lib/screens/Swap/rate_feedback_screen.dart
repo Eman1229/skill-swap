@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:skill_swap/services/skill_exchange_service.dart';
 
 class RateFeedbackScreen extends StatefulWidget {
   final String swapId;
@@ -61,7 +62,7 @@ class _RateFeedbackScreenState extends State<RateFeedbackScreen> {
         reviewerName = reviewerDoc.data()?['name'] ?? 'Someone';
       }
 
-      // 2. Save feedback document
+      // 2. Save feedback document (revieweeRole enables per-role rating splits)
       final reviewRef = _db.collection('reviews').doc();
       await reviewRef.set({
         'swapId': widget.swapId,
@@ -69,6 +70,7 @@ class _RateFeedbackScreenState extends State<RateFeedbackScreen> {
         'reviewerName': reviewerName,
         'revieweeId': widget.revieweeId,
         'revieweeName': widget.revieweeName,
+        'revieweeRole': widget.revieweeRole, // 'mentor' or 'learner'
         'rating': _partnerRating,
         'overallExperienceRating': _overallRating,
         'comment': _commentController.text.trim(),
@@ -108,12 +110,49 @@ class _RateFeedbackScreenState extends State<RateFeedbackScreen> {
 
       final batch = _db.batch();
       for (var doc in listingsQuery.docs) {
+        // Use 'Reviews' (capital R) to match the field initialized in offer_skill.dart
+        // and read by SwapListing.fromDoc via d['Reviews'].
         batch.update(doc.reference, {
           'Rating': newAverage,
-          'reviews': reviewsCount,
+          'Reviews': reviewsCount,
         });
       }
       await batch.commit();
+
+      // Check if both users have submitted reviews for this swap
+      try {
+        final swapDoc = await _db.collection('swaps').doc(widget.swapId).get();
+        if (swapDoc.exists) {
+          final swapData = swapDoc.data()!;
+          final mentorId = swapData['mentorId'] ?? '';
+          final learnerId = swapData['learnerId'] ?? '';
+          final learnerName = swapData['learnerName'] ?? '';
+          final skillNameLocal = swapData['skillName'] ?? skillName;
+
+          final allReviewsQuery = await _db
+              .collection('reviews')
+              .where('swapId', isEqualTo: widget.swapId)
+              .get();
+
+          final uniqueReviewerIds = allReviewsQuery.docs
+              .map((d) => d.data()['reviewerId']?.toString())
+              .where((id) => id != null && id.isNotEmpty)
+              .toSet();
+
+          if (uniqueReviewerIds.contains(mentorId) && uniqueReviewerIds.contains(learnerId)) {
+            // Both reviews have been submitted! Complete the swap.
+            await SkillExchangeService().confirmSwapCompletion(
+              swapId: widget.swapId,
+              learnerId: learnerId,
+              teacherId: mentorId,
+              skillName: skillNameLocal,
+              learnerName: learnerName,
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error triggering swap completion in review submission: $e');
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

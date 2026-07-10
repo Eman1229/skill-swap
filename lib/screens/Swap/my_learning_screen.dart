@@ -77,8 +77,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                           if (_selectedFilter != 'All') {
                             swapsList = swapsList.where((swap) {
                               if (_selectedFilter == 'Ongoing') {
-                                return swap.status.toLowerCase() == 'ongoing' ||
-                                    swap.status.toLowerCase() == 'completion_requested';
+                                return swap.status.toLowerCase() != 'completed';
                               }
                               return swap.status.toLowerCase() == _selectedFilter.toLowerCase();
                             }).toList();
@@ -198,6 +197,8 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
   Widget _buildInsights(AnalyticsData data) {
     final xp = data.totalXp;
     final totalHours = data.learningHours.toStringAsFixed(1);
+    // Use learningRating: the average of ratings received specifically as a learner
+    final learningRating = data.learningRating;
     final growthText = data.weeklyGrowthPercentage >= 0 
         ? '+${data.weeklyGrowthPercentage.toStringAsFixed(0)}% this week' 
         : '${data.weeklyGrowthPercentage.toStringAsFixed(0)}% this week';
@@ -264,6 +265,12 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                   value: data.activeLearningSwapsCount.toString(),
                   icon: Icons.sync_rounded,
                   color: Colors.orangeAccent),
+              Spacer(),
+              _StatItem(
+                  label: 'Rating',
+                  value: learningRating.toStringAsFixed(1),
+                  icon: Icons.star_rounded,
+                  color: Colors.pinkAccent),
             ],
           ),
         ],

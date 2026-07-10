@@ -154,7 +154,9 @@ class _CourseAssetsSectionState extends State<CourseAssetsSection> {
                 ),
               ),
               const Spacer(),
-              if (_isTeacher)
+              if (_isTeacher &&
+                  widget.course.status != 'completed' &&
+                  widget.course.status != 'Waiting for Learner Confirmation')
                 TextButton.icon(
                   onPressed: _showUploadDialog,
                   icon: const Icon(Icons.add_rounded, size: 18),
@@ -208,7 +210,10 @@ class _CourseAssetsSectionState extends State<CourseAssetsSection> {
                     asset: asset,
                     highlighted: asset.id == widget.highlightedAssetId,
                     canManage:
-                        _isTeacher && asset.teacherId == _auth.currentUser?.uid,
+                        _isTeacher &&
+                        asset.teacherId == _auth.currentUser?.uid &&
+                        widget.course.status != 'completed' &&
+                        widget.course.status != 'Waiting for Learner Confirmation',
                     onOpen: () => _openAsset(asset),
                     onEdit: () => _showRenameDialog(asset),
                     onDelete: () => _confirmDelete(asset),

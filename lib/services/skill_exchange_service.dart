@@ -189,16 +189,21 @@ class SkillExchangeService {
       final currentSession = freshSession.data() ?? {};
       if (_text(currentSession['status']).toLowerCase() == 'completed') return;
 
-      final completed =
-          (_num(currentSwap['completedSessions'])).toInt() + 1;
-      final total = (_num(currentSwap['totalSessions'])).toInt() > 0
-          ? (_num(currentSwap['totalSessions'])).toInt()
-          : defaultTotalSessions;
+      final sessionsQuery = await _db.collection('swaps').doc(swapId).collection('sessions').get();
+      final total = sessionsQuery.docs.isNotEmpty ? sessionsQuery.docs.length : defaultTotalSessions;
+      var completed = 0;
+      for (final doc in sessionsQuery.docs) {
+        final status = _text(doc.data()['status']).toLowerCase();
+        if (doc.id == sessionId || status == 'completed') {
+          completed++;
+        }
+      }
       final progress = (completed / total).clamp(0.0, 1.0).toDouble();
       final isExchangeComplete = progress >= 1.0;
 
       transaction.update(swapRef, {
         'completedSessions': completed,
+        'totalSessions': total,
         'progress': progress,
         'status': isExchangeComplete ? 'completed' : 'ongoing',
         'lastSessionAt': FieldValue.serverTimestamp(),
@@ -492,7 +497,7 @@ class SkillExchangeService {
   }) async {
     final swapRef = _db.collection('swaps').doc(swapId);
     await swapRef.update({
-      'status': 'completion_requested',
+      'status': 'Waiting for Learner Confirmation',
       'completionRequestedBy': teacherId,
       'completionRequestedAt': FieldValue.serverTimestamp(),
     });
@@ -616,7 +621,19 @@ class SkillExchangeService {
     await syncUserProfile(learnerId);
     await syncUserProfile(teacherId);
 
-    // Send notification
+    // Get mentor/teacher name from swap details
+    String teacherName = 'Your teacher';
+    try {
+      final swapSnap = await _db.collection('swaps').doc(swapId).get();
+      if (swapSnap.exists) {
+        final d = swapSnap.data();
+        if (d != null) {
+          teacherName = d['mentorName'] ?? 'Your teacher';
+        }
+      }
+    } catch (_) {}
+
+    // Send notification to teacher
     await NotificationService().sendNotification(
       receiverId: teacherId,
       type: 'swap',
@@ -629,5 +646,36 @@ class SkillExchangeService {
         'swapId': swapId,
       },
     );
+
+    // Send notification to learner
+    await NotificationService().sendNotification(
+      receiverId: learnerId,
+      type: 'swap',
+      title: 'Swap Completed!',
+      body: 'Your swap "$skillName" with $teacherName has been successfully completed.',
+      actionRoute: '/skill_detail',
+      actionId: swapId,
+      data: {
+        'type': 'swap_completed',
+        'swapId': swapId,
+      },
+    );
+  }
+
+  Future<void> syncSwapSessionCounts(String swapId) async {
+    final swapRef = _db.collection('swaps').doc(swapId);
+    final sessionsQuery = await swapRef.collection('sessions').get();
+
+    final total = sessionsQuery.docs.length;
+    final completed = sessionsQuery.docs
+        .where((doc) => _text(doc.data()['status']).toLowerCase() == 'completed')
+        .length;
+    final progress = total > 0 ? (completed / total).clamp(0.0, 1.0) : 0.0;
+
+    await swapRef.update({
+      'totalSessions': total,
+      'completedSessions': completed,
+      'progress': progress,
+    });
   }
 }

@@ -12,9 +12,14 @@ class AnalyticsData {
   final int activeTeachingSwapsCount;
   final int activeLearningSwapsCount;
   final double averageRating;
+  final double learningRating;
+  final double teachingRating;
+  final int reviewsCount;
   final double weeklyGrowthPercentage;
   final double monthlyGrowthPercentage;
   final int completedSessions;
+  final int completedLearningSessions;
+  final int completedTeachingSessions;
   final double attendanceRate;
   final double successRate;
   final int currentXp;
@@ -49,9 +54,14 @@ class AnalyticsData {
     required this.activeTeachingSwapsCount,
     required this.activeLearningSwapsCount,
     required this.averageRating,
+    this.learningRating = 0.0,
+    this.teachingRating = 0.0,
+    this.reviewsCount = 0,
     required this.weeklyGrowthPercentage,
     required this.monthlyGrowthPercentage,
     required this.completedSessions,
+    this.completedLearningSessions = 0,
+    this.completedTeachingSessions = 0,
     required this.attendanceRate,
     required this.successRate,
     required this.currentXp,
@@ -93,9 +103,14 @@ class AnalyticsData {
       activeTeachingSwapsCount: 0,
       activeLearningSwapsCount: 0,
       averageRating: 0.0,
+      learningRating: 0.0,
+      teachingRating: 0.0,
+      reviewsCount: 0,
       weeklyGrowthPercentage: 0.0,
       monthlyGrowthPercentage: 0.0,
       completedSessions: 0,
+      completedLearningSessions: 0,
+      completedTeachingSessions: 0,
       attendanceRate: 0.0,
       successRate: 0.0,
       currentXp: 0,

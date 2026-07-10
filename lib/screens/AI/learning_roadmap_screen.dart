@@ -471,8 +471,10 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
     Color primaryColor,
   ) {
     // Fetch weekly activity stats
+    // Use real weeklyLearningHours from saved AIAnalyticsSnapshot.
+    // Default to all zeros (not fake data) when no snapshot exists yet.
     final weeklyActivity = provider.analyticsSnapshot?.weeklyLearningHours ?? const {
-      'Mon': 1, 'Tue': 0, 'Wed': 2, 'Thu': 1, 'Fri': 0, 'Sat': 3, 'Sun': 1
+      'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0
     };
 
     return SingleChildScrollView(

@@ -78,6 +78,39 @@ class AIRecommendationService {
       final currentSwapCount = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
       final currentRating = (userData['averageRating'] as num?)?.toDouble() ?? 0.0;
 
+      // Check if Firestore already has fresh career recommendation
+      bool isCareerDbFresh = false;
+      try {
+        final metaDoc = await _db.collection('career_recommendations').doc(uid).get();
+        final metaDocData = metaDoc.data();
+        if (metaDoc.exists && metaDocData != null) {
+          final latestId = metaDocData['latestId'] as String?;
+          if (latestId != null) {
+            final historyDoc = await _db
+                .collection('career_recommendations')
+                .doc(uid)
+                .collection('history')
+                .doc(latestId)
+                .get();
+            final historyDocData = historyDoc.data();
+            if (historyDoc.exists && historyDocData != null) {
+              final triggerData = historyDocData['triggerData'] as Map?;
+              if (triggerData != null) {
+                final dbSwapCount = (triggerData['completedSwaps'] as num?)?.toInt() ?? 0;
+                final dbSkills = List<String>.from(triggerData['skillsLearned'] ?? []);
+                if (dbSwapCount >= currentSwapCount && _listsEqual(dbSkills, currentSkills)) {
+                  isCareerDbFresh = true;
+                  await _cache.markCareerFresh(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
+                  debugPrint('AIRecommendationService: Firestore career recommendation is already fresh (swaps: $dbSwapCount). Skipping generation.');
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('AIRecommendationService: Error checking career db freshness: $e');
+      }
+
       // 2. Refresh Mentors
       final mentorStale = await _cache.isMentorStale(uid, currentSkills: currentSkills, currentSwapCount: currentSwapCount);
       if (mentorStale || force) {
@@ -88,10 +121,86 @@ class AIRecommendationService {
 
       // 3. Refresh Career Recommendations
       final careerStale = await _cache.isCareerStale(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
-      if (careerStale || force) {
+      if ((careerStale && !isCareerDbFresh) || force) {
         await _careerService.generateRecommendation(careerGoal: careerGoal);
         await _cache.markCareerFresh(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
         await _repository.logGeneration(userId: uid, type: 'career_generation', success: true);
+      }
+
+      // Check if Firestore already has fresh learning roadmap
+      bool isRoadmapDbFresh = false;
+      String? roadmapTargetCareer;
+      try {
+        final roadmapMetaDoc = await _db.collection('learning_roadmaps').doc(uid).get();
+        final roadmapMetaDocData = roadmapMetaDoc.data();
+        if (roadmapMetaDoc.exists && roadmapMetaDocData != null) {
+          roadmapTargetCareer = roadmapMetaDocData['targetCareer'] as String?;
+          if (roadmapTargetCareer != null && roadmapTargetCareer.isNotEmpty) {
+            final latestId = roadmapMetaDocData['latestId'] as String?;
+            if (latestId != null) {
+              final historyDoc = await _db
+                  .collection('learning_roadmaps')
+                  .doc(uid)
+                  .collection('history')
+                  .doc(latestId)
+                  .get();
+              final historyDocData = historyDoc.data();
+              if (historyDoc.exists && historyDocData != null) {
+                final triggerData = historyDocData['triggerData'] as Map?;
+                if (triggerData != null) {
+                  final dbSwapCount = (triggerData['completedSwaps'] as num?)?.toInt() ?? 0;
+                  final dbSkills = List<String>.from(triggerData['currentSkills'] ?? []);
+                  if (dbSwapCount >= currentSwapCount && _listsEqual(dbSkills, currentSkills)) {
+                    isRoadmapDbFresh = true;
+                    await _cache.markRoadmapFresh(uid, targetCareer: roadmapTargetCareer);
+                    debugPrint('AIRecommendationService: Firestore learning roadmap is already fresh (swaps: $dbSwapCount). Skipping generation.');
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('AIRecommendationService: Error checking roadmap db freshness: $e');
+      }
+
+      // 3.5 Refresh/Regenerate Learning Roadmap
+      String? targetCareer = roadmapTargetCareer;
+      if (targetCareer == null || targetCareer.isEmpty) {
+        final latestCareer = await getLatestCareer();
+        if (latestCareer != null && latestCareer.careers.isNotEmpty) {
+          targetCareer = latestCareer.careers.first.title;
+        }
+      }
+      if (targetCareer == null || targetCareer.isEmpty) {
+        targetCareer = userData['careerGoal']?.toString() ?? userData['targetCareer']?.toString();
+      }
+
+      if (targetCareer != null && targetCareer.isNotEmpty) {
+        final roadmapStale = await _cache.isRoadmapStale(uid, targetCareer: targetCareer);
+        if ((roadmapStale && !isRoadmapDbFresh) || force) {
+          debugPrint('AIRecommendationService: Generating learning roadmap for $targetCareer');
+          List<String> missingSkills = [];
+          final latestCareer = await getLatestCareer();
+          if (latestCareer != null) {
+            final matchingPath = latestCareer.careers.firstWhere(
+              (c) => c.title.toLowerCase() == targetCareer!.toLowerCase(),
+              orElse: () => latestCareer.careers.first,
+            );
+            missingSkills = matchingPath.missingSkills;
+          }
+
+          await _roadmapService.generateRoadmap(
+            targetCareer: targetCareer,
+            currentSkills: currentSkills,
+            missingSkills: missingSkills,
+            learningHours: (userData['learningHours'] as num?)?.toDouble() ?? 0.0,
+            completedSwaps: currentSwapCount,
+            averageRating: currentRating,
+          );
+          await _cache.markRoadmapFresh(uid, targetCareer: targetCareer);
+          await _repository.logGeneration(userId: uid, type: 'roadmap_generation', success: true);
+        }
       }
 
       // 4. Generate/Save Weekly Analytics Snapshot
@@ -162,5 +271,15 @@ class AIRecommendationService {
     );
 
     await _repository.submitFeedback(feedback);
+  }
+
+  bool _listsEqual(List<dynamic> a, List<dynamic> b) {
+    if (a.length != b.length) return false;
+    final sortedA = List.from(a)..sort();
+    final sortedB = List.from(b)..sort();
+    for (int i = 0; i < sortedA.length; i++) {
+      if (sortedA[i] != sortedB[i]) return false;
+    }
+    return true;
   }
 }

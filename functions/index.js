@@ -331,6 +331,7 @@ async function generateAIForCompletedSwap(uid, exchangeId, seed = {}) {
       return;
     }
 
+    console.log(`[AI Trigger] Generating career recommendation for user: ${uid} (exchangeId: ${exchangeId})`);
     const career = await generateCareerRecommendationForUser(uid, {
       ...profile,
       trigger: 'swap_completed',
@@ -338,14 +339,36 @@ async function generateAIForCompletedSwap(uid, exchangeId, seed = {}) {
     }, { skipRateLimit: true });
 
     const topCareer = Array.isArray(career.careers) ? career.careers[0] : null;
+    let roadmapId = null;
+
+    if (topCareer) {
+      console.log(`[AI Trigger] Generating learning roadmap for top career: "${topCareer.title}" for user: ${uid}`);
+      const roadmap = await generateLearningRoadmapForUser(uid, {
+        targetCareer: topCareer.title,
+        currentSkills: profile.skillsLearned,
+        missingSkills: topCareer.missingSkills,
+        interests: profile.interests,
+        recentSwapHistory: profile.recentSwapHistory,
+        learningHours: profile.learningHours,
+        completedSwaps: profile.completedSwaps,
+        averageRating: profile.averageRating,
+        trigger: 'swap_completed',
+        triggerId: exchangeId,
+      });
+      roadmapId = roadmap.id || null;
+      console.log(`[AI Trigger] Learning roadmap generated successfully: ${roadmapId}`);
+    } else {
+      console.warn(`[AI Trigger] No top career path recommendation was parsed for user: ${uid}`);
+    }
 
     await updateAICompletionGenerationLock(uid, exchangeId, {
       status: 'completed',
       careerRecommendationId: career.id || null,
+      roadmapId: roadmapId,
       roadmapTargetCareer: topCareer?.title || null,
     });
   } catch (err) {
-    console.error('AI completion generation failed:', uid, exchangeId, err);
+    console.error('[AI Trigger] AI completion generation failed:', uid, exchangeId, err);
     await updateAICompletionGenerationLock(uid, exchangeId, {
       status: 'failed',
       error: err.message || String(err),

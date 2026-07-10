@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:skill_swap/models/analytics_data.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/models/session_model.dart';
+import 'package:skill_swap/models/ai/ai_analytics_snapshot.dart';
+import 'package:skill_swap/repositories/ai/ai_recommendation_repository.dart';
 import 'package:skill_swap/services/user_skills_service.dart';
 
 class AnalyticsService {
@@ -25,6 +27,7 @@ class AnalyticsService {
         QuerySnapshot? requestsSnap;
         QuerySnapshot? listingsSnap;
         QuerySnapshot? activitiesSnap;
+        QuerySnapshot? reviewsSnap;
 
         void checkAndEmit() async {
           if (userSnap == null ||
@@ -32,6 +35,7 @@ class AnalyticsService {
               requestsSnap == null ||
               listingsSnap == null ||
               activitiesSnap == null ||
+              reviewsSnap == null ||
               controller.isClosed) {
             return;
           }
@@ -57,6 +61,7 @@ class AnalyticsService {
               requestsSnap: requestsSnap!,
               listingsSnap: listingsSnap!,
               activitiesSnap: activitiesSnap!,
+              reviewsSnap: reviewsSnap!,
               sessions: sessions,
             );
 
@@ -74,8 +79,26 @@ class AnalyticsService {
               'skillsTeachingCount': data.skillsTeachingCount,
               'teachingSkills': data.skillsTeaching,
               'learningSkills': data.skillsLearned,
+              // Sync computed ratings back so other services can read them quickly
+              'learningRating': data.learningRating,
+              'teachingRating': data.teachingRating,
+              'completedLearningSessions': data.completedLearningSessions,
+              'completedTeachingSessions': data.completedTeachingSessions,
             }, SetOptions(merge: true)).catchError((e) {
               debugPrint("Error syncing user stats to Firestore: $e");
+            });
+
+            // Save AIAnalyticsSnapshot so Career Compass / Roadmap always has fresh data
+            _saveAiSnapshot(uid, data, sessions).catchError((e) {
+              debugPrint("Error saving AI analytics snapshot: $e");
+            });
+
+            // Sync Rating + Reviews to all swapListings for this user so
+            // listing cards always show accurate data. When no reviews have
+            // been submitted yet, use completedSwaps as the Reviews count
+            // so the "N swaps_count" chip shows a non-zero value.
+            _syncListingsStats(uid, listingsSnap!.docs, data).catchError((e) {
+              debugPrint("Error syncing listing stats: $e");
             });
           } catch (e, stack) {
             debugPrint("Error in watchAnalytics checkAndEmit: $e\n$stack");
@@ -134,6 +157,19 @@ class AnalyticsService {
             checkAndEmit();
           }, onError: controller.addError),
         );
+
+        // Stream the reviews collection filtered by revieweeId so ratings
+        // update in real-time immediately after a review is submitted.
+        subscriptions.add(
+          _db
+              .collection('reviews')
+              .where('revieweeId', isEqualTo: uid)
+              .snapshots()
+              .listen((snap) {
+            reviewsSnap = snap;
+            checkAndEmit();
+          }, onError: controller.addError),
+        );
       },
       onCancel: () async {
         for (final sub in subscriptions) {
@@ -175,6 +211,7 @@ class AnalyticsService {
     required QuerySnapshot requestsSnap,
     required QuerySnapshot listingsSnap,
     required QuerySnapshot activitiesSnap,
+    required QuerySnapshot reviewsSnap,
     required List<SessionModel> sessions,
   }) {
     final now = DateTime.now();
@@ -262,22 +299,81 @@ class AnalyticsService {
     final xpRequiredForNextLevel = 1000 - (totalXp % 1000);
     final levelProgressPercentage = (totalXp % 1000) / 1000.0;
 
-    // 6. Hours
+    // 6. Hours – computed from the swap's own completedSessions counter,
+    // filtered by the user's role on the swap document. This is more reliable
+    // than querying session subcollection documents (which may lack learnerId).
+    final completedLearningSessionsCount = swaps
+        .where((s) => s.learnerId == uid)
+        .fold<int>(0, (acc, s) => acc + s.completedSessions);
+    final completedTeachingSessionsCount = swaps
+        .where((s) => s.mentorId == uid)
+        .fold<int>(0, (acc, s) => acc + s.completedSessions);
+    final learningHours = completedLearningSessionsCount * 1.5;
+    final teachingHours = completedTeachingSessionsCount * 1.5;
+
+    // Also compute from actual session docs (for weekly chart / streak data)
     final completedLearningSessions = sessions
-        .where((s) => s.learnerId == uid && s.status.toLowerCase() == 'completed')
+        .where((s) => (s.learnerId == uid || (s.learnerId.isEmpty && s.participantIds.contains(uid))) && s.status.toLowerCase() == 'completed')
         .length;
     final completedTeachingSessions = sessions
-        .where((s) => s.mentorId == uid && s.status.toLowerCase() == 'completed')
+        .where((s) => (s.mentorId == uid || (s.mentorId.isEmpty && s.participantIds.contains(uid))) && s.status.toLowerCase() == 'completed')
         .length;
-    final learningHours = completedLearningSessions * 1.5;
-    final teachingHours = completedTeachingSessions * 1.5;
+    // Use the higher of the two (swap counter is authoritative, session docs used if more detailed)
+    final finalCompletedLearningSessions = completedLearningSessionsCount > completedLearningSessions
+        ? completedLearningSessionsCount
+        : completedLearningSessions;
+    final finalCompletedTeachingSessions = completedTeachingSessionsCount > completedTeachingSessions
+        ? completedTeachingSessionsCount
+        : completedTeachingSessions;
 
-    // 7. Ratings
-    final ratings = listingsSnap.docs
-        .map((doc) => _numValue((doc.data() as Map<String, dynamic>?)?['Rating']))
-        .where((r) => r > 0)
-        .toList();
-    final averageRating = ratings.isEmpty ? 0.0 : ratings.reduce((a, b) => a + b) / ratings.length;
+    // 7. Ratings – calculated from the reviews collection (real-time source of truth)
+    // Split by revieweeRole to get per-context ratings.
+    double learningRatingSum = 0.0;
+    int learningRatingCount = 0;
+    double teachingRatingSum = 0.0;
+    int teachingRatingCount = 0;
+
+    for (final doc in reviewsSnap.docs) {
+      final rData = doc.data() as Map<String, dynamic>? ?? {};
+      final ratingVal = _numValue(rData['rating']);
+      if (ratingVal <= 0) continue;
+      final role = rData['revieweeRole']?.toString().toLowerCase() ?? '';
+      if (role == 'learner') {
+        learningRatingSum += ratingVal;
+        learningRatingCount++;
+      } else if (role == 'mentor') {
+        teachingRatingSum += ratingVal;
+        teachingRatingCount++;
+      } else {
+        // Legacy reviews without role – count toward both aggregates
+        teachingRatingSum += ratingVal;
+        teachingRatingCount++;
+      }
+    }
+
+    final learningRating = learningRatingCount == 0
+        ? 0.0
+        : learningRatingSum / learningRatingCount;
+    final teachingRating = teachingRatingCount == 0
+        ? 0.0
+        : teachingRatingSum / teachingRatingCount;
+
+    final totalReviewsCount = reviewsSnap.docs.length;
+    final allRatingSum = learningRatingSum + teachingRatingSum;
+    final allRatingCount = learningRatingCount + teachingRatingCount;
+
+    // Overall average rating: prefer the pre-computed value stored on the user
+    // document (written by rate_feedback_screen.dart after each review) for
+    // accuracy. Fall back to computing from the reviews stream if absent.
+    double averageRating;
+    final storedAvg = _numValue(userData['averageRating']);
+    if (storedAvg > 0) {
+      averageRating = storedAvg;
+    } else {
+      averageRating = allRatingCount == 0
+          ? 0.0
+          : allRatingSum / allRatingCount;
+    }
 
     // 8. Streaks
     final learningDates = activitiesSnap.docs
@@ -357,7 +453,7 @@ class AnalyticsService {
         ? (xpEarnedThisMonth > 0 ? 100.0 : 0.0)
         : ((xpEarnedThisMonth - xpEarnedLastMonth) / xpEarnedLastMonth) * 100.0;
 
-    // 11. Activity Graphs
+    // 11. Activity Graphs – built from activity log timestamps
     final activityDates = activitiesSnap.docs
         .map((doc) => _dateValue((doc.data() as Map<String, dynamic>)['timestamp']) ?? now)
         .toList();
@@ -405,9 +501,14 @@ class AnalyticsService {
       activeTeachingSwapsCount: activeTeachingSwapsCount,
       activeLearningSwapsCount: activeLearningSwapsCount,
       averageRating: averageRating,
+      learningRating: learningRating,
+      teachingRating: teachingRating,
+      reviewsCount: totalReviewsCount,
       weeklyGrowthPercentage: weeklyGrowthPercentage.clamp(-100.0, 1000.0),
       monthlyGrowthPercentage: monthlyGrowthPercentage.clamp(-100.0, 1000.0),
       completedSessions: totalSessions,
+      completedLearningSessions: finalCompletedLearningSessions,
+      completedTeachingSessions: finalCompletedTeachingSessions,
       attendanceRate: attendanceRate,
       successRate: successRate,
       currentXp: totalXp,
@@ -428,6 +529,93 @@ class AnalyticsService {
       firstActivityAt: firstActivityAt,
       firstCompletedSwapAt: firstCompletedSwapAt,
     );
+  }
+
+  /// Persist a fresh AIAnalyticsSnapshot derived from the already-computed
+  /// AnalyticsData so the Career Compass and Learning Roadmap screens always
+  /// read accurate, real-time data.
+  Future<void> _saveAiSnapshot(
+    String uid,
+    AnalyticsData data,
+    List<SessionModel> sessions,
+  ) async {
+    try {
+      // Build weeklyLearningHours from completed sessions this week
+      final now = DateTime.now();
+      final weekStart = DateTime(now.year, now.month, now.day)
+          .subtract(Duration(days: now.weekday - 1));
+      const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+      final weeklyLearningHours = <String, int>{
+        for (final l in dayLabels) l: 0
+      };
+
+      for (final s in sessions) {
+        if (s.learnerId != uid) continue;
+        if (s.status.toLowerCase() != 'completed') continue;
+        final day = DateTime(s.date.year, s.date.month, s.date.day);
+        final diffDays = day.difference(weekStart).inDays;
+        if (diffDays >= 0 && diffDays < 7) {
+          final label = dayLabels[diffDays];
+          // Count each completed session as 1 hour unit for the graph
+          weeklyLearningHours[label] = (weeklyLearningHours[label] ?? 0) + 1;
+        }
+      }
+
+      final snapshot = AIAnalyticsSnapshot(
+        userId: uid,
+        learningHours: data.learningHours,
+        skillsGained: data.skillsLearnedCount,
+        teachingHours: data.teachingHours,
+        sessionSuccessRate: data.averageRating > 0
+            ? (data.averageRating / 5.0).clamp(0.0, 1.0)
+            : (data.successRate / 100.0).clamp(0.0, 1.0),
+        mentorMatchAccuracy: data.successRate / 100.0,
+        roadmapProgress: data.levelProgressPercentage,
+        careerReadinessScore: (data.currentLevel / 10.0).clamp(0.0, 1.0),
+        projectsCompleted: data.completedSwaps,
+        isLearningConsistent: data.learningStreak >= 3,
+        weeklyLearningHours: weeklyLearningHours,
+        createdAt: DateTime.now(),
+        period: 'weekly',
+      );
+
+      await AIRecommendationRepository().saveAnalyticsSnapshot(uid, snapshot);
+    } catch (e) {
+      debugPrint("Error saving AI analytics snapshot: $e");
+    }
+  }
+
+  /// Sync Rating and Reviews (capital R) to all swapListings belonging to
+  /// this user so listing cards always show accurate data.
+  ///
+  /// - If the user has reviews, use [data.averageRating] and [data.reviewsCount].
+  /// - If no reviews yet, still write [data.completedSwaps] as [Reviews] so
+  ///   the "N swaps_count" chip shows a meaningful number instead of 0.
+  Future<void> _syncListingsStats(
+    String uid,
+    List<QueryDocumentSnapshot> listingDocs,
+    AnalyticsData data,
+  ) async {
+    if (listingDocs.isEmpty) return;
+    try {
+      final batch = _db.batch();
+      // Reviews field: prefer actual review count, fall back to completed swaps
+      final reviewsValue = data.reviewsCount > 0
+          ? data.reviewsCount
+          : data.completedSwaps;
+      // Rating: only write a non-zero rating when reviews actually exist
+      final ratingValue = data.reviewsCount > 0 ? data.averageRating : 0.0;
+      for (final doc in listingDocs) {
+        batch.update(doc.reference, {
+          'Rating': ratingValue,
+          'Reviews': reviewsValue,
+        });
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint("Error syncing listing stats: $e");
+    }
   }
 
   String _getUsername(Map<String, dynamic> userData) {
@@ -658,29 +846,6 @@ class AnalyticsService {
               'timestamp': Timestamp.fromDate(createdAt),
               'xp': 40,
               'details': 'Accepted a skill swap request',
-              'createdAt': FieldValue.serverTimestamp(),
-            },
-          );
-          hasUpdates = true;
-        }
-      }
-    }
-
-    // 4. Backfill ratings
-    for (final l in listings) {
-      final lData = l.data() as Map<String, dynamic>? ?? {};
-      final ratingVal = _numValue(lData['Rating']);
-      if (ratingVal > 0) {
-        final docId = 'rating_received_${l.id}_$uid';
-        if (!existingIds.contains(docId)) {
-          batch.set(
-            _db.collection('users').doc(uid).collection('activities').doc(docId),
-            {
-              'type': 'rating_received',
-              'timestamp': Timestamp.fromDate(_dateValue(lData['createdAt']) ?? DateTime.now()),
-              'rating': ratingVal,
-              'xp': 0,
-              'details': 'Received a rating of $ratingVal',
               'createdAt': FieldValue.serverTimestamp(),
             },
           );

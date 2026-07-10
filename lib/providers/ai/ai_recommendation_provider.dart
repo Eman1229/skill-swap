@@ -1,5 +1,6 @@
 // lib/providers/ai/ai_recommendation_provider.dart
 
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/models/ai/career_recommendation.dart';
@@ -22,6 +23,10 @@ class AIRecommendationProvider extends ChangeNotifier {
   AIAnalyticsSnapshot? _analyticsSnapshot;
   bool _isLoading = false;
   String? _error;
+
+  StreamSubscription<DocumentSnapshot>? _userSubscription;
+  int? _lastCompletedSwaps;
+  List<String>? _lastLearningSkills;
 
   List<MentorRecommendation> get mentorRecommendations => _mentorRecommendations;
   CareerRecommendation? get careerRecommendation => _careerRecommendation;
@@ -51,6 +56,13 @@ class AIRecommendationProvider extends ChangeNotifier {
 
       if (uid != null) {
         _analyticsSnapshot = await _repository.getLatestAnalyticsSnapshot(uid);
+
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final userData = userDoc.data() ?? {};
+        _lastCompletedSwaps = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
+        _lastLearningSkills = List<String>.from(userData['learningSkills'] ?? []);
+
+        listenToUserChanges(uid);
       }
 
       if (career == null && uid != null) {
@@ -92,6 +104,11 @@ class AIRecommendationProvider extends ChangeNotifier {
 
       if (uid != null) {
         _analyticsSnapshot = await _repository.getLatestAnalyticsSnapshot(uid);
+
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final userData = userDoc.data() ?? {};
+        _lastCompletedSwaps = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
+        _lastLearningSkills = List<String>.from(userData['learningSkills'] ?? []);
       }
 
       _isLoading = false;
@@ -157,5 +174,47 @@ class AIRecommendationProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('AIRecommendationProvider.submitFeedback error: $e');
     }
+  }
+
+  // ── Firestore Stats Realtime Listener ───────────────────────────────
+  void listenToUserChanges(String uid) {
+    _userSubscription?.cancel();
+    _userSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .listen((snapshot) async {
+      if (!snapshot.exists) return;
+      final data = snapshot.data() ?? {};
+      final completedSwaps = (data['completedSwaps'] as num?)?.toInt() ?? 0;
+      final learningSkills = List<String>.from(data['learningSkills'] ?? []);
+
+      if (_lastCompletedSwaps != null &&
+          (completedSwaps > _lastCompletedSwaps! ||
+           !_listsEqual(learningSkills, _lastLearningSkills ?? []))) {
+        debugPrint('[AI Provider] Detected completed swaps or learning skills change in Firestore. Auto-refreshing recommendations.');
+        _lastCompletedSwaps = completedSwaps;
+        _lastLearningSkills = learningSkills;
+
+        // Perform a background refresh of recommendations dynamically
+        Future.microtask(() => refreshRecommendations(uid: uid, force: false));
+      }
+    });
+  }
+
+  bool _listsEqual(List<dynamic> a, List<dynamic> b) {
+    if (a.length != b.length) return false;
+    final sortedA = List.from(a)..sort();
+    final sortedB = List.from(b)..sort();
+    for (int i = 0; i < sortedA.length; i++) {
+      if (sortedA[i] != sortedB[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  void dispose() {
+    _userSubscription?.cancel();
+    super.dispose();
   }
 }

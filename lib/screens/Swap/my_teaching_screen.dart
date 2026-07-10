@@ -75,8 +75,7 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                           if (_selectedFilter != 'All') {
                             swapsList = swapsList.where((swap) {
                               if (_selectedFilter == 'Ongoing') {
-                                return swap.status.toLowerCase() == 'ongoing' ||
-                                    swap.status.toLowerCase() == 'completion_requested';
+                                return swap.status.toLowerCase() != 'completed';
                               }
                               return swap.status.toLowerCase() == _selectedFilter.toLowerCase();
                             }).toList();
@@ -196,7 +195,8 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
   Widget _buildInsights(AnalyticsData data) {
     final xp = data.totalXp;
     final totalHours = data.teachingHours.toStringAsFixed(1);
-    final rating = data.averageRating;
+    // Use teachingRating: the average of ratings received specifically as a mentor
+    final rating = data.teachingRating;
     final growthText = data.weeklyGrowthPercentage >= 0 
         ? '+${data.weeklyGrowthPercentage.toStringAsFixed(0)}% this week' 
         : '${data.weeklyGrowthPercentage.toStringAsFixed(0)}% this week';
