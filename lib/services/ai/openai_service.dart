@@ -2,45 +2,30 @@
 // Thin client for the three Firebase Cloud Functions that proxy OpenAI.
 // The OpenAI API key never leaves the server — stored in Secret Manager.
 
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:cloud_functions/cloud_functions.dart';
 
 class OpenAIService {
   static final OpenAIService _instance = OpenAIService._internal();
   factory OpenAIService() => _instance;
   OpenAIService._internal();
 
-  // Replace with your actual Firebase project region and project ID
-  static const String _projectId = 'YOUR_PROJECT_ID';
   static const String _region = 'us-central1';
-  static const String _baseUrl =
-      'https://$_region-$_projectId.cloudfunctions.net';
+  final FirebaseFunctions _functions =
+      FirebaseFunctions.instanceFor(region: _region);
 
   Future<Map<String, dynamic>> _callFunction(
-      String functionName,
-      Map<String, dynamic> payload, {
-        Duration timeout = const Duration(seconds: 30),
-      }) async {
-    final uri = Uri.parse('$_baseUrl/$functionName');
+    String functionName,
+    Map<String, dynamic> payload, {
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
     try {
-      final response = await http
-          .post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'data': payload}),
-      )
-          .timeout(timeout);
-
-      if (response.statusCode != 200) {
-        throw Exception(
-          'Cloud Function $functionName failed: ${response.statusCode} ${response.body}',
-        );
-      }
-
-      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      // Firebase callable functions wrap results in {"result": ...}
-      return (decoded['result'] as Map<String, dynamic>?) ?? decoded;
+      final callable = _functions.httpsCallable(
+        functionName,
+        options: HttpsCallableOptions(timeout: timeout),
+      );
+      final result = await callable.call(payload);
+      return Map<String, dynamic>.from(_normalize(result.data) as Map);
     } catch (e) {
       debugPrint('OpenAIService.$functionName error: $e');
       rethrow;
@@ -56,10 +41,22 @@ class OpenAIService {
     return embeddings
         .map(
           (e) => List<double>.from(
-        (e as List).map((v) => (v as num).toDouble()),
-      ),
-    )
+            (e as List).map((v) => (v as num).toDouble()),
+          ),
+        )
         .toList();
+  }
+
+  dynamic _normalize(dynamic value) {
+    if (value is Map) {
+      return value.map((key, nestedValue) {
+        return MapEntry(key.toString(), _normalize(nestedValue));
+      });
+    }
+    if (value is List) {
+      return value.map(_normalize).toList();
+    }
+    return value;
   }
 
   // ── Career Compass ──────────────────────────────────────────────────

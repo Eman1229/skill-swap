@@ -97,7 +97,7 @@ class AppSettings {
   void _applyFromFirestore(Map<String, dynamic> data) {
     notificationsEnabled.value = data['pushEnabled'] ?? data['notificationsEnabled'] ?? true;
     swapRequestsEnabled.value = data['swapRequestsEnabled'] ?? true;
-    chatMessagesEnabled.value = data['chatMessagesEnabled'] ?? true;
+    chatMessagesEnabled.value = data['chatMessagesEnabled'] ?? data['directMessagesEnabled'] ?? data['messagesEnabled'] ?? true;
     weeklyTipsEnabled.value = data['weeklyTipsEnabled'] ?? true;
     marketingEmailsEnabled.value = data['marketingEmailsEnabled'] ?? false;
     soundEnabled.value = data['soundEnabled'] ?? true;
@@ -111,6 +111,8 @@ class AppSettings {
       'pushEnabled': notificationsEnabled.value,
       'swapRequestsEnabled': swapRequestsEnabled.value,
       'chatMessagesEnabled': chatMessagesEnabled.value,
+      'directMessagesEnabled': chatMessagesEnabled.value,
+      'messagesEnabled': chatMessagesEnabled.value,
       'weeklyTipsEnabled': weeklyTipsEnabled.value,
       'marketingEmailsEnabled': marketingEmailsEnabled.value,
       'soundEnabled': soundEnabled.value,

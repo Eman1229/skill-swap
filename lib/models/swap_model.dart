@@ -14,6 +14,9 @@ class SwapModel {
   final int totalSessions;
   final DateTime? lastSessionAt;
   final DateTime createdAt;
+  final String? completionRequestedBy;
+  final DateTime? completionRequestedAt;
+  final DateTime? completedAt;
 
   SwapModel({
     required this.id,
@@ -29,6 +32,9 @@ class SwapModel {
     required this.totalSessions,
     this.lastSessionAt,
     required this.createdAt,
+    this.completionRequestedBy,
+    this.completionRequestedAt,
+    this.completedAt,
   });
 
   factory SwapModel.fromDoc(DocumentSnapshot doc) {
@@ -47,6 +53,9 @@ class SwapModel {
       totalSessions: d['totalSessions'] ?? 0,
       lastSessionAt: (d['lastSessionAt'] as Timestamp?)?.toDate(),
       createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      completionRequestedBy: d['completionRequestedBy'],
+      completionRequestedAt: (d['completionRequestedAt'] as Timestamp?)?.toDate(),
+      completedAt: (d['completedAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -64,6 +73,9 @@ class SwapModel {
       'totalSessions': totalSessions,
       'lastSessionAt': lastSessionAt != null ? Timestamp.fromDate(lastSessionAt!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
+      'completionRequestedBy': completionRequestedBy,
+      'completionRequestedAt': completionRequestedAt != null ? Timestamp.fromDate(completionRequestedAt!) : null,
+      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
     };
   }
 }

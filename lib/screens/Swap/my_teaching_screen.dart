@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/models/analytics_data.dart';
@@ -17,7 +16,6 @@ class MyTeachingScreen extends StatefulWidget {
 }
 
 class _MyTeachingScreenState extends State<MyTeachingScreen> {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final SkillExchangeService _exchangeService = SkillExchangeService();
   String _selectedFilter = 'All';
@@ -76,6 +74,10 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                           // Filter logic
                           if (_selectedFilter != 'All') {
                             swapsList = swapsList.where((swap) {
+                              if (_selectedFilter == 'Ongoing') {
+                                return swap.status.toLowerCase() == 'ongoing' ||
+                                    swap.status.toLowerCase() == 'completion_requested';
+                              }
                               return swap.status.toLowerCase() == _selectedFilter.toLowerCase();
                             }).toList();
                           }
@@ -192,7 +194,6 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
   }
 
   Widget _buildInsights(AnalyticsData data) {
-    final completedSwaps = data.completedSwaps;
     final xp = data.totalXp;
     final totalHours = data.teachingHours.toStringAsFixed(1);
     final rating = data.averageRating;
@@ -247,7 +248,7 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
             ],
           ),
           SizedBox(height: 20),
-          Divider(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6)),
+          Divider(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6)),
           SizedBox(height: 20),
           Row(
             children: [
@@ -256,6 +257,12 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                   value: totalHours,
                   icon: Icons.timer_outlined,
                   color: Theme.of(context).colorScheme.primary),
+              Spacer(),
+              _StatItem(
+                  label: 'Active Swaps',
+                  value: data.activeTeachingSwapsCount.toString(),
+                  icon: Icons.sync_rounded,
+                  color: Colors.orangeAccent),
               Spacer(),
               _StatItem(
                   label: 'Rating',

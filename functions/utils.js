@@ -1,6 +1,8 @@
 // utils.js
 const admin = require('firebase-admin');
-admin.initializeApp();
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 /**
  * Retrieves a user's notification settings document.

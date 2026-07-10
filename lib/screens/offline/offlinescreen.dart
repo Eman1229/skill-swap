@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:skill_swap/Ui_helper/Ui_helper.dart';
+import 'package:skill_swap/ui_helper/ui_helper.dart';
 
 class OfflineScreen extends StatelessWidget {
   const OfflineScreen({super.key});
@@ -24,7 +24,6 @@ class OfflineScreen extends StatelessWidget {
             Text(
               "No Internet connection found. Check",
               style: TextStyle(
-                fontFamily: "Inter",
                 fontSize: 14,
                 color: Color(0XFF888888),
               ),
@@ -33,7 +32,6 @@ class OfflineScreen extends StatelessWidget {
             Text(
               "your connection or try again.",
               style: TextStyle(
-                fontFamily: "Inter",
                 fontSize: 14,
                 color: Color(0XFF888888),
               ),

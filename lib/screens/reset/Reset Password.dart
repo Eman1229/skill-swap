@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:skill_swap/Ui_helper/Ui_helper.dart';
+import 'package:skill_swap/ui_helper/ui_helper.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 
 class NewPasswordScreen extends StatefulWidget {
   final String email;

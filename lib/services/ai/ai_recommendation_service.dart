@@ -13,6 +13,7 @@ import 'package:skill_swap/services/ai/career_compass_service.dart';
 import 'package:skill_swap/services/ai/mentor_compass_service.dart';
 import 'package:skill_swap/services/ai/learning_roadmap_service.dart';
 import 'package:skill_swap/repositories/ai/ai_recommendation_repository.dart';
+import 'package:skill_swap/services/skill_exchange_service.dart';
 
 class AIRecommendationService {
   static final AIRecommendationService _instance = AIRecommendationService._internal();
@@ -67,6 +68,9 @@ class AIRecommendationService {
     if (uid == null) return;
 
     try {
+      // 0. Auto-sync profile stats from ground-truth swaps in Firestore
+      await SkillExchangeService().syncUserProfile(uid);
+
       // 1. Fetch current profile statistics for cache checks
       final userDoc = await _db.collection('users').doc(uid).get();
       final userData = userDoc.data() ?? {};

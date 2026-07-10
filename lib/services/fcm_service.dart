@@ -10,6 +10,7 @@ import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Notifications/notifications_screen.dart';
 import 'package:skill_swap/screens/Swap/course_assets_screen.dart';
 import 'package:skill_swap/models/notification_settings.dart';
+import 'package:skill_swap/screens/Swap/confirm_swap_completion_screen.dart';
 import 'package:skill_swap/services/session_reminder_service.dart';
 
 @pragma('vm:entry-point')
@@ -107,7 +108,28 @@ class FcmService {
       if (!settings.pushEnabled) return;
 
       final type = msg.data['type'] as String?;
-      if (type == 'chat_message' && !settings.directMessagesEnabled) return;
+      if (type == 'chat_message') {
+        final settingsData = settingsDoc.data();
+        final bool chatMuted = settingsData?['chatNotificationsMuted'] ?? false;
+        if (chatMuted) return;
+
+        if (convoId != null) {
+          final convoDoc = await FirebaseFirestore.instance
+              .collection('conversations')
+              .doc(convoId)
+              .get();
+          if (convoDoc.exists) {
+            final convoData = convoDoc.data();
+            final mutedMap = convoData?['muted'] as Map?;
+            if (mutedMap?[uid] == true) {
+              debugPrint("FCM Service: Suppressed foreground notification for muted conversation $convoId");
+              return;
+            }
+          }
+        }
+
+        if (!settings.directMessagesEnabled) return;
+      }
       if (type == 'swap_request' && !settings.swapProposalEnabled) return;
 
       _showLocalNotification(msg, settings);
@@ -208,7 +230,28 @@ class FcmService {
     if (!settings.pushEnabled) return;
 
     final type = data['type'] as String?;
-    if (type == 'chat_message' && !settings.directMessagesEnabled) return;
+    if (type == 'chat_message') {
+      final settingsData = settingsDoc.data();
+      final bool chatMuted = settingsData?['chatNotificationsMuted'] ?? false;
+      if (chatMuted) return;
+
+      if (convoId != null) {
+        final convoDoc = await FirebaseFirestore.instance
+            .collection('conversations')
+            .doc(convoId)
+            .get();
+        if (convoDoc.exists) {
+          final convoData = convoDoc.data();
+          final mutedMap = convoData?['muted'] as Map?;
+          if (mutedMap?[uid] == true) {
+            debugPrint("FCM Service: Suppressed Firestore-triggered notification for muted conversation $convoId");
+            return;
+          }
+        }
+      }
+
+      if (!settings.directMessagesEnabled) return;
+    }
     if (type == 'swap_request' && !settings.swapProposalEnabled) return;
 
     String title = data['title'] ?? 'Skill Swap';
@@ -336,6 +379,8 @@ class FcmService {
 
   void _handleNotificationClick(Map<String, dynamic> data) {
     final type = data['type'] as String?;
+    final actionRoute = data['actionRoute'] as String?;
+    final swapId = data['actionId'] ?? data['swapId'] ?? '';
 
     if (type == 'session_reminder') {
       SessionReminderService().handleNotificationTap(data);
@@ -358,9 +403,13 @@ class FcmService {
           return;
         }
       }
-      if (type == 'chat_message' ||
-          type == 'session' ||
-          type == 'swap_request') {
+      if (actionRoute == '/confirm_completion' || type == 'completion_request') {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => ConfirmSwapCompletionScreen(swapId: swapId),
+          ),
+        );
+      } else if (type == 'chat_message' || type == 'session' || type == 'swap_request') {
         _openChat(data);
       } else {
         navigatorKey.currentState?.push(

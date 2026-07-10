@@ -2,11 +2,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:skill_swap/Ui_helper/Ui_helper.dart';
+import 'package:skill_swap/ui_helper/ui_helper.dart';
 import 'package:skill_swap/screens/reset/Reset Password.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 //  STEP 1 — Email Entry Screen
 // ─────────────────────────────────────────────────────────────────────────────

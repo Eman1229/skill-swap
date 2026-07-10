@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:skill_swap/models/swap_model.dart';
+import 'package:skill_swap/services/notification_service.dart';
 import 'package:skill_swap/services/session_reminder_service.dart';
 
 class SkillExchangeService {
@@ -185,7 +186,7 @@ class SkillExchangeService {
       if (!freshSwap.exists || !freshSession.exists) return;
 
       final currentSwap = freshSwap.data() ?? {};
-      final currentSession = freshSession.data() as Map<String, dynamic>? ?? {};
+      final currentSession = freshSession.data() ?? {};
       if (_text(currentSession['status']).toLowerCase() == 'completed') return;
 
       final completed =
@@ -393,24 +394,28 @@ class SkillExchangeService {
           .where((skill) => skill.isNotEmpty)
           .toSet();
 
-      if (learned.isNotEmpty && taught.isNotEmpty) {
-        learning.add(learned.first);
-        teaching.add(taught.first);
+      if (learned.isNotEmpty) {
+        learning.addAll(learned);
+      }
+      if (taught.isNotEmpty) {
+        teaching.addAll(taught);
+      }
+      if (learned.isNotEmpty || taught.isNotEmpty) {
         completedExchangeIds.add(entry.key);
       }
     }
 
+    final learningList = learning.toList()..sort();
+    final teachingList = teaching.toList()..sort();
     final balancedCount = learning.length < teaching.length
         ? learning.length
         : teaching.length;
-    final learningList = learning.toList()..sort();
-    final teachingList = teaching.toList()..sort();
 
     await _db.collection('users').doc(uid).set({
-      'learningSkills': learningList.take(balancedCount).toList(),
-      'teachingSkills': teachingList.take(balancedCount).toList(),
-      'skillsLearnedCount': balancedCount,
-      'skillsTeachingCount': balancedCount,
+      'learningSkills': learningList,
+      'teachingSkills': teachingList,
+      'skillsLearnedCount': learning.length,
+      'skillsTeachingCount': teaching.length,
       'completedSwaps': completedExchangeIds.length,
       'skillExchangeCount': balancedCount,
       'skillStatsSyncedAt': FieldValue.serverTimestamp(),
@@ -476,5 +481,153 @@ class SkillExchangeService {
   static double _num(dynamic value) {
     if (value is num) return value.toDouble();
     return double.tryParse(value?.toString() ?? '') ?? 0.0;
+  }
+
+  Future<void> requestSwapCompletion({
+    required String swapId,
+    required String teacherId,
+    required String learnerId,
+    required String skillName,
+    required String teacherName,
+  }) async {
+    final swapRef = _db.collection('swaps').doc(swapId);
+    await swapRef.update({
+      'status': 'completion_requested',
+      'completionRequestedBy': teacherId,
+      'completionRequestedAt': FieldValue.serverTimestamp(),
+    });
+
+    // Send notification
+    await NotificationService().sendNotification(
+      receiverId: learnerId,
+      type: 'swap',
+      title: 'Swap Completion Requested',
+      body: '$teacherName has requested to mark "$skillName" as complete. Please review and confirm.',
+      actionRoute: '/confirm_completion',
+      actionId: swapId,
+      data: {
+        'type': 'completion_request',
+        'swapId': swapId,
+      },
+    );
+  }
+
+  Future<void> confirmSwapCompletion({
+    required String swapId,
+    required String learnerId,
+    required String teacherId,
+    required String skillName,
+    required String learnerName,
+  }) async {
+    final swapRef = _db.collection('swaps').doc(swapId);
+    final swapSnap = await swapRef.get();
+
+    if (!swapSnap.exists) {
+      throw Exception("Swap not found.");
+    }
+
+    final data = swapSnap.data() as Map<String, dynamic>;
+    final exchangeId = _exchangeId(swapId, data);
+    final pairQuery = await _db
+        .collection('swaps')
+        .where('exchangeId', isEqualTo: exchangeId)
+        .get();
+
+    await _db.runTransaction((transaction) async {
+      final freshSwapSnap = await transaction.get(swapRef);
+      if (!freshSwapSnap.exists) {
+        throw Exception("Swap not found.");
+      }
+      
+      final freshData = freshSwapSnap.data() as Map<String, dynamic>;
+      final status = freshData['status']?.toString().toLowerCase() ?? '';
+
+      if (status == 'completed') {
+        // Already completed, no need to do anything
+        return;
+      }
+
+      // Update the main swap
+      transaction.update(swapRef, {
+        'status': 'completed',
+        'progress': 1.0,
+        'completedAt': FieldValue.serverTimestamp(),
+      });
+
+      for (var doc in pairQuery.docs) {
+        if (doc.id != swapId) {
+          transaction.update(doc.reference, {
+            'status': 'completed',
+            'progress': 1.0,
+            'completedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      // Update the swap request status if applicable
+      final requestId = freshData['requestId']?.toString() ?? '';
+      if (requestId.isNotEmpty) {
+        transaction.update(_db.collection('swap_requests').doc(requestId), {
+          'status': 'completed',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Activity Logs
+      final now = DateTime.now();
+      final mentorLogId = 'swap_completed_${swapId}_$teacherId';
+      final learnerLogId = 'swap_completed_${swapId}_$learnerId';
+
+      final mentorActivityRef = _db
+          .collection('users')
+          .doc(teacherId)
+          .collection('activities')
+          .doc(mentorLogId);
+      final learnerActivityRef = _db
+          .collection('users')
+          .doc(learnerId)
+          .collection('activities')
+          .doc(learnerLogId);
+
+      transaction.set(mentorActivityRef, {
+        'type': 'swap_completed',
+        'role': 'mentor',
+        'timestamp': Timestamp.fromDate(now),
+        'xp': 250,
+        'skillName': skillName,
+        'swapId': swapId,
+        'details': 'Completed teaching $skillName',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      transaction.set(learnerActivityRef, {
+        'type': 'swap_completed',
+        'role': 'learner',
+        'timestamp': Timestamp.fromDate(now),
+        'xp': 250,
+        'skillName': skillName,
+        'swapId': swapId,
+        'details': 'Completed learning $skillName',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    });
+
+    // Sync profiles (outside transaction because it performs its own operations)
+    await syncUserProfile(learnerId);
+    await syncUserProfile(teacherId);
+
+    // Send notification
+    await NotificationService().sendNotification(
+      receiverId: teacherId,
+      type: 'swap',
+      title: 'Swap Completed!',
+      body: '$learnerName has confirmed completion of the swap "$skillName".',
+      actionRoute: '/skill_detail',
+      actionId: swapId,
+      data: {
+        'type': 'swap_completed',
+        'swapId': swapId,
+      },
+    );
   }
 }

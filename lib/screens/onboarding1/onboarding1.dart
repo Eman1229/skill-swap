@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 
-import '../../Ui_helper/Ui_helper.dart';
+import '../../ui_helper/ui_helper.dart';
 
 class OnBoardingScreen extends StatelessWidget {
   OnBoardingScreen({super.key});
@@ -20,7 +20,7 @@ class OnBoardingScreen extends StatelessWidget {
                 ), textAlign: TextAlign.center,
               ),
               SizedBox(height: 12),
-              Text("Trade Skills, Learn cool stuff, No money needed", style: TextStyle(fontFamily:"Inter",fontSize: 14,
+              Text("Trade Skills, Learn cool stuff, No money needed", style: TextStyle(fontSize: 14,
                 fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,

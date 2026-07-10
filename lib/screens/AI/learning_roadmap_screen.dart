@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/providers/ai/ai_recommendation_provider.dart';
 import 'package:skill_swap/models/ai/learning_roadmap_model.dart';
 import 'package:skill_swap/screens/AI/roadmap_all_steps_screen.dart';
@@ -13,13 +14,23 @@ class LearningRoadmapScreen extends StatefulWidget {
   State<LearningRoadmapScreen> createState() => _LearningRoadmapScreenState();
 }
 
-class _LearningRoadmapScreenState extends State<LearningRoadmapScreen> with SingleTickerProviderStateMixin {
+class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider =
+          Provider.of<AIRecommendationProvider>(context, listen: false);
+      if (provider.learningRoadmap == null && !provider.isLoading) {
+        provider.loadRecommendations(
+          uid: FirebaseAuth.instance.currentUser?.uid,
+        );
+      }
+    });
   }
 
   @override
@@ -153,7 +164,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen> with Sing
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.12),
+                        color: const Color(0xFF10B981).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
@@ -270,7 +281,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen> with Sing
             height: 32,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.12),
+              color: statusColor.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Text(
@@ -299,7 +310,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen> with Sing
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.12),
+              color: statusColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -409,7 +420,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen> with Sing
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.12),
+                  color: primaryColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(resIcon, color: primaryColor, size: 20),
@@ -473,9 +484,9 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen> with Sing
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: primaryColor.withOpacity(0.08),
+              color: primaryColor.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: primaryColor.withOpacity(0.2)),
+              border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
@@ -487,7 +498,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen> with Sing
                     style: TextStyle(
                       fontSize: 12.5,
                       fontStyle: FontStyle.italic,
-                      color: isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
+                      color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
                     ),
                   ),
                 ),
@@ -556,7 +567,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen> with Sing
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: ms.isCompleted
-              ? const Color(0xFFFFD700).withOpacity(0.3)
+              ? const Color(0xFFFFD700).withValues(alpha: 0.3)
               : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
       ),
@@ -636,7 +647,7 @@ class _ActivityChartPainter extends CustomPainter {
 
     final fillPaint = Paint()
       ..shader = LinearGradient(
-        colors: [primaryColor.withOpacity(0.35), primaryColor.withOpacity(0.01)],
+        colors: [primaryColor.withValues(alpha: 0.35), primaryColor.withValues(alpha: 0.01)],
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));

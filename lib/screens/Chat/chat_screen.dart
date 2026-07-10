@@ -446,8 +446,81 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Future<void> _markAllAsRead() async {
+    try {
+      await _chatRepo.markAllConversationsAsRead();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All messages marked as read')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error marking messages as read: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearAllChats() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Clear all chats?',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'Are you sure you want to clear all chat conversations? This action cannot be undone.',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            TextButton(
+              child: const Text(
+                'Clear All',
+                style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        await _chatRepo.clearAllConversations();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('All chats cleared successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error clearing chats: $e')),
+          );
+        }
+      }
+    }
+  }
+
   Widget _buildHeader({required bool showSearch}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentUid = _auth.currentUser?.uid ?? '';
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Column(
@@ -467,7 +540,12 @@ class _ChatScreenState extends State<ChatScreen> {
               Expanded(
                 child: Text('Messages', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold)),
               ),
-              _ThreeDotMenu(),
+              if (currentUid.isNotEmpty)
+                _ThreeDotMenu(
+                  currentUid: currentUid,
+                  onMarkAllAsRead: _markAllAsRead,
+                  onClearAllChats: _clearAllChats,
+                ),
             ],
           ),
           if (showSearch) ...[
@@ -501,19 +579,92 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 
 class _ThreeDotMenu extends StatelessWidget {
+  final String currentUid;
+  final VoidCallback onMarkAllAsRead;
+  final VoidCallback onClearAllChats;
+
+  const _ThreeDotMenu({
+    required this.currentUid,
+    required this.onMarkAllAsRead,
+    required this.onClearAllChats,
+  });
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return PopupMenuButton<String>(
-      color: isDark ? const Color(0xFF1E293B) : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      icon: Icon(Icons.more_vert_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 22),
-      itemBuilder: (_) => [
-        PopupMenuItem(value: 'mute', child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Mute Notifications', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13)), Switch(value: false, onChanged: (_) {}, activeTrackColor: const Color(0xFF00C2FF))])),
-        PopupMenuItem(value: 'mark', child: Text('Mark all as read', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13))),
-        const PopupMenuDivider(),
-        const PopupMenuItem(value: 'clear', child: Text('Clear all chats', style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13))),
-      ],
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUid)
+          .collection('settings')
+          .doc('notifications')
+          .snapshots(),
+      builder: (context, snapshot) {
+        bool isMuted = false;
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          isMuted = data?['chatNotificationsMuted'] ?? false;
+        }
+
+        return PopupMenuButton<String>(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          icon: Icon(Icons.more_vert_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 22),
+          onSelected: (val) async {
+            if (val == 'mute') {
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(currentUid)
+                  .collection('settings')
+                  .doc('notifications')
+                  .set({
+                'chatNotificationsMuted': !isMuted,
+                'updatedAt': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
+            } else if (val == 'mark') {
+              onMarkAllAsRead();
+            } else if (val == 'clear') {
+              onClearAllChats();
+            }
+          },
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'mute',
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Mute Notifications', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13)),
+                  Switch(
+                    value: isMuted,
+                    onChanged: (v) async {
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(currentUid)
+                          .collection('settings')
+                          .doc('notifications')
+                          .set({
+                        'chatNotificationsMuted': v,
+                        'updatedAt': FieldValue.serverTimestamp(),
+                      }, SetOptions(merge: true));
+                      Navigator.of(context).pop();
+                    },
+                    activeTrackColor: const Color(0xFF00C2FF),
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'mark',
+              child: Text('Mark all as read', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13)),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem(
+              value: 'clear',
+              child: Text('Clear all chats', style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
+            ),
+          ],
+        );
+      },
     );
   }
 }

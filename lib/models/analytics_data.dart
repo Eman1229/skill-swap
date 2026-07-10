@@ -9,6 +9,8 @@ class AnalyticsData {
   final double teachingHours;
   final int skillsLearnedCount;
   final int skillsTeachingCount;
+  final int activeTeachingSwapsCount;
+  final int activeLearningSwapsCount;
   final double averageRating;
   final double weeklyGrowthPercentage;
   final double monthlyGrowthPercentage;
@@ -44,6 +46,8 @@ class AnalyticsData {
     required this.teachingHours,
     required this.skillsLearnedCount,
     required this.skillsTeachingCount,
+    required this.activeTeachingSwapsCount,
+    required this.activeLearningSwapsCount,
     required this.averageRating,
     required this.weeklyGrowthPercentage,
     required this.monthlyGrowthPercentage,
@@ -86,6 +90,8 @@ class AnalyticsData {
       teachingHours: 0.0,
       skillsLearnedCount: 0,
       skillsTeachingCount: 0,
+      activeTeachingSwapsCount: 0,
+      activeLearningSwapsCount: 0,
       averageRating: 0.0,
       weeklyGrowthPercentage: 0.0,
       monthlyGrowthPercentage: 0.0,

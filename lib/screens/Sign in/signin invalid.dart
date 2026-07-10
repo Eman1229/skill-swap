@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:skill_swap/Ui_helper/Ui_helper.dart';
+import 'package:skill_swap/ui_helper/ui_helper.dart';
 
 class SignInvalidScreen extends StatefulWidget {
   SignInvalidScreen({Key? key}) : super(key: key);

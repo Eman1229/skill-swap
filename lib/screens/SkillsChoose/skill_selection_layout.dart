@@ -16,15 +16,15 @@ class SkillOption {
 }
 
 const List<SkillOption> skillSelectionOptions = [
-  SkillOption(name: 'AI', icon: Icons.auto_awesome, color: Color(0xFFFF5A5F)),
-  SkillOption(name: 'Coding', icon: Icons.code, color: Color(0xFF9B51E0)),
-  SkillOption(name: 'Drawing', icon: Icons.palette, color: Color(0xFFFFC107)),
-  SkillOption(name: 'Data Analysis', icon: Icons.dns, color: Color(0xFF00BFA5)),
-  SkillOption(name: 'Digital Marketing', icon: Icons.code, color: Color(0xFFFFC107)),
-  SkillOption(name: 'Design', icon: Icons.edit, color: Color(0xFF00BFA5)),
-  SkillOption(name: 'Music', icon: Icons.music_note, color: Color(0xFFFF5A5F)),
-  SkillOption(name: 'Photos', icon: Icons.camera_alt, color: Color(0xFF9B51E0)),
-  SkillOption(name: 'Others', icon: Icons.more_horiz, color: Color(0xFF00BFA5)),
+  SkillOption(name: 'AI', icon: Icons.auto_awesome, color: Color(0xFFFF6A6B)),
+  SkillOption(name: 'Coding', icon: Icons.code, color: Color(0xFF9D4EDD)),
+  SkillOption(name: 'Drawing', icon: Icons.palette, color: Color(0xFFF5CB1A)),
+  SkillOption(name: 'Data Analysis', icon: Icons.storage, color: Color(0xFF5FD5C7)),
+  SkillOption(name: 'Digital Marketing', icon: Icons.code, color: Color(0xFFF5CB1A)),
+  SkillOption(name: 'Design', icon: Icons.architecture, color: Color(0xFF6EE7E0)),
+  SkillOption(name: 'Music', icon: Icons.music_note, color: Color(0xFFFF6A6B)),
+  SkillOption(name: 'Photos', icon: Icons.camera_alt, color: Color(0xFF9D4EDD)),
+  SkillOption(name: 'Others', icon: Icons.more_horiz, color: Color(0xFF6EE7E0)),
 ];
 
 class SkillSelectionScaffold extends StatelessWidget {
@@ -44,27 +44,26 @@ class SkillSelectionScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     context.watch<LanguageProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 25, 18, 28),
+          padding: const EdgeInsets.fromLTRB(20, 45, 20, 30),
           child: Column(
             children: [
               Text(
                 title,
                 textAlign: TextAlign.center,
                 textScaler: TextScaler.noScaling,
-                style: TextStyle(
-                  color: colorScheme.primary,
-                  fontSize: 24,
-                  height: 1.2,
+                style: const TextStyle(
+                  color: Color(0xFF00C2FF),
+                  fontSize: 28,
+                  height: 1.3,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 45),
               Expanded(
                 child: GridView.builder(
                   padding: EdgeInsets.zero,
@@ -72,9 +71,9 @@ class SkillSelectionScaffold extends StatelessWidget {
                   itemCount: skillSelectionOptions.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
-                    crossAxisSpacing: 18,
-                    mainAxisSpacing: 8,
-                    childAspectRatio: 1.04,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 20,
+                    childAspectRatio: 0.76,
                   ),
                   itemBuilder: (context, index) {
                     final skill = skillSelectionOptions[index];
@@ -90,12 +89,12 @@ class SkillSelectionScaffold extends StatelessWidget {
               ),
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 48,
                 child: ElevatedButton(
                   onPressed: onNext,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    disabledBackgroundColor: Colors.grey[600],
+                    backgroundColor: const Color(0xFF00C2FF),
+                    disabledBackgroundColor: Colors.grey[800],
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -106,8 +105,8 @@ class SkillSelectionScaffold extends StatelessWidget {
                     textScaler: TextScaler.noScaling,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -134,7 +133,7 @@ class _SkillTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     context.watch<LanguageProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
+    final displayName = skill.name == 'Others' ? 'others' : skill.name;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -146,37 +145,55 @@ class _SkillTile extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Container(
-                width: 64,
-                height: 64,
+                width: 76,
+                height: 76,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: skill.color,
                   border: isSelected
                       ? Border.all(
-                          color: const Color(0xFF9B51E0),
-                          width: 3,
+                          color: const Color(0xFF9D4EDD),
+                          width: 3.5,
                         )
                       : null,
                 ),
                 child: Icon(
                   skill.icon,
                   color: Colors.white,
-                  size: 32,
+                  size: 34,
                 ),
               ),
+              if (isSelected)
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF9D4EDD),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
-            skill.name,
+            displayName,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textScaler: TextScaler.noScaling,
-            style: TextStyle(
-              color: colorScheme.onSurface,
-              fontSize: 12,
-              height: 1.2,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              height: 1.25,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -201,13 +218,12 @@ class OtherSkillScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     context.watch<LanguageProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 42, 28, 28),
+          padding: const EdgeInsets.fromLTRB(28, 45, 28, 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -215,18 +231,18 @@ class OtherSkillScaffold extends StatelessWidget {
                 title,
                 textAlign: TextAlign.center,
                 textScaler: TextScaler.noScaling,
-                style: TextStyle(
-                  color: colorScheme.primary,
-                  fontSize: 24,
-                  height: 1.2,
+                style: const TextStyle(
+                  color: Color(0xFF00C2FF),
+                  fontSize: 28,
+                  height: 1.3,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 45),
               TextField(
                 controller: controller,
-                style: TextStyle(
-                  color: colorScheme.onSurface,
+                style: const TextStyle(
+                  color: Colors.white,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -239,10 +255,10 @@ class OtherSkillScaffold extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
-                  prefixIcon: Icon(
+                  prefixIcon: const Icon(
                     Icons.lightbulb_outline,
-                    color: colorScheme.onSurface.withOpacity(0.75),
-                    size: 15,
+                    color: Colors.grey,
+                    size: 16,
                   ),
                   prefixIconConstraints: const BoxConstraints(
                     minWidth: 28,
@@ -251,18 +267,18 @@ class OtherSkillScaffold extends StatelessWidget {
                   enabledBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: Color(0xFF526071), width: 1),
                   ),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: colorScheme.primary, width: 1),
+                  focusedBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFF00C2FF), width: 1),
                   ),
                 ),
               ),
               const SizedBox(height: 32),
               SizedBox(
-                height: 50,
+                height: 48,
                 child: ElevatedButton(
                   onPressed: onNext,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
+                    backgroundColor: const Color(0xFF00C2FF),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -273,8 +289,8 @@ class OtherSkillScaffold extends StatelessWidget {
                     textScaler: TextScaler.noScaling,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
