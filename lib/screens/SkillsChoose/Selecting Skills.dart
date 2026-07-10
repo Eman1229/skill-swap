@@ -93,20 +93,20 @@ class _SkillsScreenState extends State<SkillsScreen> {
       onSkillTap: toggleSkill,
       onNext: selectedSkills.isNotEmpty
           ? () {
-              if (selectedSkills.contains('Others')) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => TeachOthersScreen()),
-                );
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => LearningSkillsScreen(),
-                  ),
-                );
-              }
-            }
+        if (selectedSkills.contains('Others')) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => TeachOthersScreen()),
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LearningSkillsScreen(),
+            ),
+          );
+        }
+      }
           : null,
     );
   }
