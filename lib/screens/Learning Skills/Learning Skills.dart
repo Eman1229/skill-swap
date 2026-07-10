@@ -14,7 +14,7 @@ class LearningSkillsScreen extends StatefulWidget {
 }
 
 class _LearningSkillsScreenState extends State<LearningSkillsScreen> {
-  List<String> selectedSkills = [];
+  Set<String> selectedSkills = {};
 
   final List<Map<String, dynamic>> skills = [
     {
@@ -87,18 +87,18 @@ class _LearningSkillsScreenState extends State<LearningSkillsScreen> {
       onSkillTap: toggleSkill,
       onNext: selectedSkills.isNotEmpty
           ? () {
-              if (selectedSkills.contains('Others')) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => LearningSkill1()),
-                );
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SignInScreen()),
-                );
-              }
-            }
+        if (selectedSkills.contains('Others')) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => LearningSkill1()),
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => SignInScreen()),
+          );
+        }
+      }
           : null,
     );
   }
