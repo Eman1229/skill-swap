@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -14,6 +17,7 @@ class MyProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final uid = FirebaseAuth.instance.currentUser?.uid;
     final isPushed = Navigator.canPop(context);
 
@@ -30,9 +34,9 @@ class MyProfileScreen extends StatelessWidget {
             )
           : null,
       body: uid == null
-          ? const _StateMessage(
+          ? _StateMessage(
               icon: Icons.lock_outline_rounded,
-              title: 'Profile Unavailable',
+              title:'profile_unavailable'.tr(),
               message: 'Sign In Again To View Your Profile.',
             )
           : StreamBuilder<AnalyticsData>(
@@ -44,16 +48,16 @@ class MyProfileScreen extends StatelessWidget {
                 if (snapshot.hasError) {
                   return _StateMessage(
                     icon: Icons.error_outline_rounded,
-                    title: 'Could Not Load Profile',
+                    title:'could_not_load_profile'.tr(),
                     message: snapshot.error.toString(),
                   );
                 }
 
                 final data = snapshot.data;
                 if (data == null) {
-                  return const _StateMessage(
+                  return _StateMessage(
                     icon: Icons.person_search_rounded,
-                    title: 'No Profile Data Yet',
+                    title:'no_profile_data'.tr(),
                     message: 'Create A Skill Listing To Start Building Your Profile.',
                   );
                 }
@@ -121,7 +125,7 @@ class _ProgressView extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _LoadingProfile();
         }
-        if (snapshot.hasError) return _StateMessage(icon: Icons.error, title: 'Error', message: snapshot.error.toString());
+        if (snapshot.hasError) return _StateMessage(icon: Icons.error, title:'error'.tr(), message: snapshot.error.toString());
         final data = snapshot.data;
         if (data == null) return const SizedBox.shrink();
 
@@ -144,15 +148,15 @@ class _ProgressView extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 18),
-              const _SectionHeader(title: 'Weekly Activity'),
+              _SectionHeader(title:'weekly_activity'.tr()),
               const SizedBox(height: 10),
               _ActivityGraph(values: data.weeklyActivity, compactLabels: true),
               const SizedBox(height: 18),
-              const _SectionHeader(title: 'Monthly Activity'),
+              _SectionHeader(title:'monthly_activity'.tr()),
               const SizedBox(height: 10),
               _ActivityGraph(values: data.monthlyActivity, compactLabels: false),
               const SizedBox(height: 18),
-              const _SectionHeader(title: 'Skill Growth'),
+              _SectionHeader(title:'skill_growth'.tr()),
               const SizedBox(height: 10),
               _SkillGrowthList(progress: data.skillGrowth),
             ],
@@ -182,7 +186,7 @@ class _BadgesViewState extends State<_BadgesView> {
       stream: AnalyticsService().watchAnalytics(uid),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return _LoadingProfile();
-        if (snapshot.hasError) return _StateMessage(icon: Icons.error, title: 'Error', message: snapshot.error.toString());
+        if (snapshot.hasError) return _StateMessage(icon: Icons.error, title:'error'.tr(), message: snapshot.error.toString());
         final data = snapshot.data;
         if (data == null) return const SizedBox.shrink();
 
@@ -202,14 +206,14 @@ class _BadgesViewState extends State<_BadgesView> {
             children: [
               _BadgesSummary(unlocked: unlocked.length, total: badges.length),
               const SizedBox(height: 18),
-              const _SectionHeader(title: 'Unlocked Badges'),
+              _SectionHeader(title:'unlocked_badges'.tr()),
               const SizedBox(height: 10),
               if (unlocked.isEmpty)
                 const _EmptyCard(message: 'Your Unlocked Badges Will Appear Here.')
               else
                 ...unlocked.map((badge) => _BadgeTile(badge: badge)),
               const SizedBox(height: 18),
-              const _SectionHeader(title: 'Locked Badges'),
+              _SectionHeader(title:'locked_badges'.tr()),
               const SizedBox(height: 10),
               ...locked.map((badge) => _BadgeTile(badge: badge)),
             ],
@@ -311,11 +315,11 @@ class _ProfileContent extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 18),
-            const _SectionHeader(title: 'Skills Teaching'),
+            _SectionHeader(title:'skills_teaching'.tr()),
             const SizedBox(height: 10),
             _SkillChips(skills: data.skillsTeaching),
             const SizedBox(height: 18),
-            const _SectionHeader(title: 'Skills Learned'),
+            _SectionHeader(title:'skills_learned'.tr()),
             const SizedBox(height: 10),
             _SkillChips(skills: data.skillsLearned),
           ],
@@ -1140,7 +1144,7 @@ class _BadgeCatalog {
     final badges = [
       _BadgeRule(
         id: 'first_swap',
-        title: 'First Swap',
+        title:'first_swap'.tr(),
         description: 'Complete your first skill swap.',
         icon: Icons.handshake_rounded,
         target: 1,
@@ -1149,7 +1153,7 @@ class _BadgeCatalog {
       ),
       _BadgeRule(
         id: 'skill_builder',
-        title: 'Skill Builder',
+        title:'skill_builder'.tr(),
         description: 'Learn three different skills.',
         icon: Icons.school_rounded,
         target: 3,
@@ -1158,7 +1162,7 @@ class _BadgeCatalog {
       ),
       _BadgeRule(
         id: 'mentor_mode',
-        title: 'Mentor Mode',
+        title:'mentor_mode'.tr(),
         description: 'Teach three skills to the community.',
         icon: Icons.record_voice_over_rounded,
         target: 3,
@@ -1167,7 +1171,7 @@ class _BadgeCatalog {
       ),
       _BadgeRule(
         id: 'level_five',
-        title: 'Level 5',
+        title:'level_5'.tr(),
         description: 'Reach level five through XP.',
         icon: Icons.military_tech_rounded,
         target: 5,
@@ -1176,7 +1180,7 @@ class _BadgeCatalog {
       ),
       _BadgeRule(
         id: 'trusted_swapper',
-        title: 'Trusted Swapper',
+        title:'trusted_swapper'.tr(),
         description: 'Maintain an 80% success rate.',
         icon: Icons.verified_rounded,
         target: 80,
@@ -1185,7 +1189,7 @@ class _BadgeCatalog {
       ),
       _BadgeRule(
         id: 'ten_swaps',
-        title: 'Swap Streak',
+        title:'swap_streak'.tr(),
         description: 'Complete ten skill swaps.',
         icon: Icons.local_fire_department_rounded,
         target: 10,

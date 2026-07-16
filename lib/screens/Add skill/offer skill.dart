@@ -1,10 +1,10 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; //  Supabase instead of Firebase Storage
 import 'dart:io';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 
@@ -128,7 +128,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('File uploaded successfully ✓'),
+            content: Text('file_uploaded_success'.tr()),
             backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
@@ -138,7 +138,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Upload failed: $e'),
+            content: Text("${'upload_failed'.tr()}: $e"),
             backgroundColor: Color(0xFFFF3B3B),
           ),
         );
@@ -228,7 +228,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text("${'error'.tr()}: $e"),
             backgroundColor: Color(0xFFFF3B3B),
           ),
         );
@@ -348,7 +348,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             fontSize: 14,
           ),
           decoration: InputDecoration(
-            hintText: 'Paste a link or tap to upload a doc',
+            hintText:'paste_link_or_tap'.tr(),
             hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13),
             filled: true,
             fillColor: Theme.of(context).colorScheme.surface,
@@ -369,7 +369,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                 : IconButton(
               icon: Icon(Icons.attach_file_rounded,
                   color: Theme.of(context).colorScheme.primary, size: 20),
-              tooltip: 'Upload portfolio doc',
+              tooltip:'upload_portfolio_doc'.tr(),
               onPressed: _pickedFile == null ? _pickAndUploadFile : null,
             ),
             border: OutlineInputBorder(
@@ -446,7 +446,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                   ),
                 ),
                 if (_isUploading)
-                  Text('Uploading…',
+                  Text('uploading'.tr(),
                       style: TextStyle(
                           color: Theme.of(context).colorScheme.primary, fontSize: 11))
                 else if (_uploadedFileUrl != null)
@@ -457,7 +457,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       color: Theme.of(context).colorScheme.primary.withAlpha(38),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text('Uploaded ✓',
+                    child: Text('uploaded'.tr(),
                         style: TextStyle(
                             color: Theme.of(context).colorScheme.primary, fontSize: 11)),
                   ),
@@ -520,7 +520,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                 fontSize: 13,
                 fontWeight: FontWeight.w600)),
         if (required)
-          Text(' *',
+          Text('*'.tr(),
               style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
       ],
     );

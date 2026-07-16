@@ -1,9 +1,9 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/models/analytics_data.dart';
 import 'package:skill_swap/screens/Swap/skill_detail_screen.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
 import 'package:skill_swap/services/chat_user_service.dart';
 import 'package:skill_swap/services/analytics_service.dart';
@@ -50,7 +50,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
         centerTitle: true,
       ),
       body: uid == null
-          ? Center(child: Text('Please login', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))
+          ? Center(child: Text('please_login'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))
           : StreamBuilder<AnalyticsData>(
               stream: AnalyticsService().watchAnalytics(uid),
               builder: (context, analyticsSnap) {
@@ -98,12 +98,12 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                                   return _LearningCard(swap: swap);
                                 }).toList(),
                                 SizedBox(height: 32),
-                                Text('Performance Insights',
+                                Text('performance_insights'.tr(),
                                     style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
                                 SizedBox(height: 16),
                                 _buildInsights(analyticsData),
                                 SizedBox(height: 32),
-                                Text('Weekly Engagement',
+                                Text('weekly_engagement'.tr(),
                                     style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
                                 SizedBox(height: 16),
                                 _buildEngagementChart(analyticsData),
@@ -134,7 +134,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
         children: [
           Icon(Icons.school_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
           SizedBox(width: 10),
-          Text('Total Skills Learning',
+          Text('total_skills_learning'.tr(),
               style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
           Spacer(),
           Container(
@@ -426,7 +426,7 @@ class _LearningCardState extends State<_LearningCard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Progress', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                  Text('progress_label'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
                   Text('${(calculatedProgress * 100).toInt()}%', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -444,13 +444,13 @@ class _LearningCardState extends State<_LearningCard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Session ${widget.swap.completedSessions} of ${widget.swap.totalSessions}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12)),
+                  Text("${'session_word'.tr()} ${widget.swap.completedSessions} ${'of_word'.tr()} ${widget.swap.totalSessions}", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12)),
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => SkillDetailScreen(swap: widget.swap)),
                     ),
-                    child: Text('View Details ›', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: Text('view_details_arrow'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

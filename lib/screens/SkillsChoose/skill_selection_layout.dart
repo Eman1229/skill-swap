@@ -1,5 +1,5 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 
@@ -100,8 +100,7 @@ class SkillSelectionScaffold extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text(
-                    'next'.tr(),
+                  child: Text('next'.tr(),
                     textScaler: TextScaler.noScaling,
                     style: const TextStyle(
                       color: Colors.white,
@@ -284,8 +283,7 @@ class OtherSkillScaffold extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text(
-                    'next'.tr(),
+                  child: Text('next'.tr(),
                     textScaler: TextScaler.noScaling,
                     style: const TextStyle(
                       color: Colors.white,

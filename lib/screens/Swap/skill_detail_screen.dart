@@ -1,3 +1,4 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -258,9 +259,8 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                   children: [
                     const Icon(Icons.donut_large_rounded, color: Color(0xFF00C2FF), size: 20),
                     const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Progress',
+                    Expanded(
+                      child: Text('progress_label'.tr(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
@@ -484,7 +484,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                           }
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('No meeting link provided for this session.')),
+                            SnackBar(content: Text('no_meeting_link_provided'.tr())),
                           );
                         }
                       },
@@ -805,10 +805,10 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           ),
           const SizedBox(height: 16),
           if (sessions.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
               child: Center(
-                child: Text('No sessions planned yet.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                child: Text('no_sessions_planned'.tr(), style: TextStyle(color: Colors.grey, fontSize: 13)),
               ),
             )
           else
@@ -939,7 +939,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.check_circle_outline, color: Colors.green),
-                title: const Text('Mark Completed', style: TextStyle(color: Colors.white)),
+                title: Text('mark_completed'.tr(), style: TextStyle(color: Colors.white)),
                 onTap: () async {
                   Navigator.pop(context);
                   await SkillExchangeService().completeSessionAndSync(
@@ -948,7 +948,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                   );
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Session marked completed.'), backgroundColor: Colors.green),
+                      SnackBar(content: Text('session_marked_completed'.tr()), backgroundColor: Colors.green),
                     );
                   }
                 },
@@ -968,21 +968,21 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.delete_rounded, color: Colors.redAccent),
-                title: const Text('Delete Session', style: TextStyle(color: Colors.redAccent)),
+                title: Text('delete_session'.tr(), style: TextStyle(color: Colors.redAccent)),
                 onTap: () async {
                   Navigator.pop(context);
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
                       backgroundColor: const Color(0xFF131A2E),
-                      title: const Text('Delete Session?'),
-                      content: const Text('Delete this session plan?'),
+                      title: Text('delete_session_confirm_title'.tr()),
+                      content: Text('delete_session_plan_confirm'.tr()),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                        TextButton(onPressed: () => Navigator.pop(context, false), child: Text('cancel'.tr())),
                         ElevatedButton(
                           onPressed: () => Navigator.pop(context, true),
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                          child: const Text('Delete', style: TextStyle(color: Colors.white)),
+                          child: Text('delete'.tr(), style: TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),
@@ -1272,7 +1272,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       ),
-                      child: const Text('Leave a Review'),
+                      child: Text('leave_review'.tr()),
                     ),
                 ],
               ),
@@ -1301,9 +1301,8 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
             children: [
               const Icon(Icons.workspace_premium_rounded, color: Color(0xFF00C2FF), size: 20),
               const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Certificate',
+              Expanded(
+                child: Text('certificate'.tr(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
@@ -1647,7 +1646,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF131A2E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Mark Teaching Complete?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('mark_teaching_complete_confirm'.tr(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: const Text(
           'Are you sure you want to mark teaching as complete? This will lock editing and request completion confirmation from the learner.',
           style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
@@ -1655,7 +1654,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text('cancel'.tr(), style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1670,19 +1669,19 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                 );
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Completion request sent successfully!'), backgroundColor: Colors.green),
+                    SnackBar(content: Text('completion_request_sent'.tr()), backgroundColor: Colors.green),
                   );
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.redAccent),
+                    SnackBar(content: Text("${'error'.tr()}: $e"), backgroundColor: Colors.redAccent),
                   );
                 }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C2FF)),
-            child: const Text('Confirm', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            child: Text('confirm'.tr(), style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1695,7 +1694,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF131A2E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Request More Sessions?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('request_more_sessions_confirm'.tr(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: const Text(
           'Do you want to request more learning sessions? This will unlock session management for your mentor.',
           style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
@@ -1703,12 +1702,12 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text('cancel'.tr(), style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C2FF)),
-            child: const Text('Request', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            child: Text('request'.tr(), style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1724,7 +1723,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
         await NotificationService().sendNotification(
           receiverId: swap.mentorId,
           type: 'swap',
-          title: 'More Sessions Requested',
+          title:'more_sessions_requested_title'.tr(),
           body: '${swap.learnerName} has requested additional sessions for "${swap.skillName}".',
           actionRoute: '/skill_detail',
           actionId: swap.id,
@@ -1736,13 +1735,13 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Request sent to your mentor.'), backgroundColor: Colors.green),
+            SnackBar(content: Text('request_sent_mentor'.tr()), backgroundColor: Colors.green),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to request: $e'), backgroundColor: Colors.redAccent),
+            SnackBar(content: Text("${'error'.tr()}: $e"), backgroundColor: Colors.redAccent),
           );
         }
       }

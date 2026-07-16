@@ -1,11 +1,13 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
+import 'package:skill_swap/services/skill_exchange_service.dart';
 import 'package:skill_swap/services/notification_service.dart';
 import 'package:skill_swap/utils/user_display_name.dart';
-import 'package:skill_swap/services/skill_exchange_service.dart';
 
 class CreateSessionScreen extends StatefulWidget {
   final SwapModel swap;
@@ -152,7 +154,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         NotificationService().sendNotification(
           receiverId: otherId,
           type: 'session',
-          title: 'New Session Invitation',
+          title:'new_session_invitation'.tr(),
           body: '$senderName sent you a class invitation.',
           deepLinkScreen: 'chat',
           referenceId: conversationId,
@@ -181,7 +183,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text("${'error'.tr()}: $e"),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -202,6 +204,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -337,7 +340,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           ),
         ),
         if (required)
-          Text(' *', style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
+          Text('*'.tr(), style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
       ],
     );
   }
@@ -535,8 +538,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               ),
               padding: EdgeInsets.symmetric(vertical: 14),
             ),
-            child: Text(
-              'cancel'.tr(),
+            child: Text('cancel'.tr(),
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 14,

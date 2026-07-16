@@ -1,3 +1,4 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,7 +12,6 @@ import 'package:skill_swap/screens/Setting/privacy_security_screen.dart';
 import 'package:skill_swap/screens/Setting/language_settings_screen.dart';
 import 'package:skill_swap/screens/Setting/help_center_screen.dart';
 import 'package:skill_swap/screens/Setting/about_screen.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 
@@ -34,8 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(
-          'settings'.tr(),
+        title: Text('settings'.tr(),
           style: TextStyle(
             color: colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -83,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               return _buildSettingTile(
                 context: context,
                 icon: Icons.notifications_none_rounded,
-                title: 'notifications'.tr(),
+                title:'notifications'.tr(),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -134,7 +133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               return _buildSettingTile(
                 context: context,
                 icon: Icons.language_rounded,
-                title: 'language'.tr(),
+                title:'language'.tr(),
                 subtitle: currentLang,
                 onTap: () {
                   Navigator.push(

@@ -1,3 +1,4 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_request.dart';
@@ -105,7 +106,7 @@ class SwapRequestRepository {
     // 4. Send Push Notification
     await _sendPushNotification(
       receiverId: receiverId,
-      title: 'New Swap Request',
+      title:'new_swap_request_title'.tr(),
       body: '$senderName sent you a skill swap request.',
       data: {
         'type': 'swap_request',

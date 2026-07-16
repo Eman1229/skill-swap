@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,6 +24,7 @@ class SessionInviteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
     if (sessionId.isEmpty || swapId.isEmpty) {
@@ -250,7 +254,7 @@ class SessionInviteCard extends StatelessWidget {
   ) async {
     if (meetingLink.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No meeting link available.')),
+        SnackBar(content: Text('no_meeting_link'.tr())),
       );
       return;
     }
@@ -260,7 +264,7 @@ class SessionInviteCard extends StatelessWidget {
     if (uri == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid meeting link.')));
+      ).showSnackBar(SnackBar(content: Text('invalid_meeting_link'.tr())));
       return;
     }
 
@@ -268,7 +272,7 @@ class SessionInviteCard extends StatelessWidget {
     if (!context.mounted) return;
     if (!launched) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open meeting link.')),
+        SnackBar(content: Text('could_not_open_link'.tr())),
       );
     }
   }
@@ -569,8 +573,8 @@ class SessionInviteCard extends StatelessWidget {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Session completed successfully! 🎉'),
+        SnackBar(
+          content: Text('session_completed_success'.tr()),
           backgroundColor: Colors.green,
         ),
       );

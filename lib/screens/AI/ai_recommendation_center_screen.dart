@@ -1,5 +1,7 @@
 // lib/screens/AI/ai_recommendation_center_screen.dart
 
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -28,6 +30,7 @@ class _AIRecommendationCenterScreenState extends State<AIRecommendationCenterScr
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final provider = Provider.of<AIRecommendationProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
@@ -96,7 +99,7 @@ class _AIRecommendationCenterScreenState extends State<AIRecommendationCenterScr
 
                   // ── Mentor Compass Card ─────────────────────────────
                   _buildAIModuleCard(
-                    title: 'Mentor Compass',
+                    title:'mentor_compass'.tr(),
                     description: 'Get matched with top mentors based on skill compatibility and ratings.',
                     icon: Icons.explore_rounded,
                     badgeText: provider.mentorRecommendations.isNotEmpty
@@ -117,7 +120,7 @@ class _AIRecommendationCenterScreenState extends State<AIRecommendationCenterScr
 
                   // ── Career Compass Card ─────────────────────────────
                   _buildAIModuleCard(
-                    title: 'Career Compass',
+                    title:'career_compass'.tr(),
                     description: 'Analyze your skillset against market demands to find the best career paths.',
                     icon: Icons.track_changes_rounded,
                     badgeText: provider.careerRecommendation != null
@@ -138,7 +141,7 @@ class _AIRecommendationCenterScreenState extends State<AIRecommendationCenterScr
 
                   // ── Learning Roadmap Card ───────────────────────────
                   _buildAIModuleCard(
-                    title: 'Learning Roadmap',
+                    title:'learning_roadmap'.tr(),
                     description: 'Interactive step-by-step learning roadmap tailored to your target career.',
                     icon: Icons.map_rounded,
                     badgeText: provider.learningRoadmap != null

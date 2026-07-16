@@ -1,3 +1,4 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -18,7 +19,6 @@ import 'package:skill_swap/utils/user_display_name.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 // ─────────────────────────────────────────────────────────────────────
 // ANIMATED GRADIENT BORDER WIDGET
@@ -523,7 +523,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                     if (snapshot.hasError) {
                       return Center(
                         child: Text(
-                          'Error: ${snapshot.error}',
+                          "${'error'.tr()}: ${snapshot.error}",
                           style: TextStyle(
                             color: Theme.of(
                               context,
@@ -847,43 +847,6 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // EMPTY HOME STATE
-  // ─────────────────────────────────────────────────────────────────
-  Widget _buildEmptyHomeState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.search_off_rounded,
-            color: Theme.of(context).colorScheme.primary,
-            size: 64,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'no_swaps_available'.tr(),
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'check_back_later'.tr(),
-            style: TextStyle(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────
   // HEADER
   // ─────────────────────────────────────────────────────────────────
   Widget _buildHeader(double screenHeight, String? imageUrl, String initials) {
@@ -986,7 +949,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '${'Good $_greeting'.tr()}, $_userName',
+                      '${'good_${_greeting.toLowerCase()}'.tr()}, $_userName',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 17,
@@ -1405,7 +1368,7 @@ class LiveSessionCard extends StatelessWidget {
     final meetingLink = session.meetingLink.trim();
     if (meetingLink.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No meeting link available.')),
+        SnackBar(content: Text('no_meeting_link'.tr())),
       );
       return;
     }
@@ -1415,14 +1378,14 @@ class LiveSessionCard extends StatelessWidget {
     if (uri == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid meeting link.')));
+      ).showSnackBar(SnackBar(content: Text('invalid_meeting_link'.tr())));
       return;
     }
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!context.mounted) return;
     if (!launched) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open meeting link.')),
+        SnackBar(content: Text('could_not_open_link'.tr())),
       );
     }
   }
@@ -1569,49 +1532,6 @@ class LiveSessionCard extends StatelessWidget {
       return AnimatedGradientBorder(child: card);
     }
     return card;
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// LIVE BADGE
-// ─────────────────────────────────────────────────────────────────────
-class _LiveBadge extends StatelessWidget {
-  const _LiveBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            'Live',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

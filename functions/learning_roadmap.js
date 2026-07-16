@@ -114,9 +114,9 @@ Create exactly 5 stages: Foundation, Skill Building, Real World Practice, Grow &
 Each stage: 3-5 tasks, 2-3 resources, 1 milestone.`;
 
   const apiKey = await getOpenAiKey();
-  const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
+  const fetchFn = typeof globalThis.fetch === 'function' ? globalThis.fetch : (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetchFn('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

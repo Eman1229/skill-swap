@@ -1,10 +1,11 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/session_model.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/services/notification_service.dart';
-import 'package:skill_swap/utils/user_display_name.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
 
 class EditSessionScreen extends StatefulWidget {
@@ -99,7 +100,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
       await NotificationService().sendNotification(
         receiverId: otherId,
         type: 'session',
-        title: 'Session Rescheduled',
+        title:'session_rescheduled_title'.tr(),
         body: '$senderName rescheduled the session "${_titleController.text.trim()}".',
         actionRoute: '/chat',
         actionId: widget.session.swapId,
@@ -113,8 +114,8 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Session updated and rescheduled.'),
+          SnackBar(
+            content: Text('session_updated_rescheduled'.tr()),
             backgroundColor: Colors.green,
           ),
         );
@@ -123,7 +124,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text("${'error'.tr()}: $e"),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -138,17 +139,17 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        title: const Text('Delete Session?'),
-        content: const Text('Are you sure you want to delete this session? This action cannot be undone.'),
+        title: Text('delete_session_confirm_title'.tr()),
+        content: Text('delete_session_confirm'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: Text('delete'.tr(), style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -171,8 +172,8 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Session deleted successfully.'),
+          SnackBar(
+            content: Text('session_deleted_success'.tr()),
             backgroundColor: Colors.green,
           ),
         );
@@ -182,7 +183,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error deleting session: $e'),
+            content: Text("${'error'.tr()} deleting session: $e"),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -201,6 +202,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -339,7 +341,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
           ),
         ),
         if (required)
-          const Text(' *', style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
+          Text('*'.tr(), style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
       ],
     );
   }
@@ -533,8 +535,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            child: Text(
-              'cancel'.tr(),
+            child: Text('cancel'.tr(),
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 14,

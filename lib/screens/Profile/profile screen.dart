@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -100,6 +103,7 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final double size = widget.size;
     final double cameraIconSize = size * 0.28;
 
@@ -337,8 +341,7 @@ class _ImageSourceSheet extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: Text(
-                  'Cancel',
+                child: Text('cancel'.tr(),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 14,
@@ -526,7 +529,7 @@ class ProfileScreen extends StatelessWidget {
                                     children: [
                                       Icon(Icons.report_gmailerrorred_rounded, color: Colors.redAccent, size: 20),
                                       const SizedBox(width: 12),
-                                      Text('Report User', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
+                                      Text('report_user'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
                                     ],
                                   ),
                                 ),
@@ -558,14 +561,14 @@ class ProfileScreen extends StatelessWidget {
                                   final confirm = await showDialog<bool>(
                                     context: context,
                                     builder: (context) => AlertDialog(
-                                      title: const Text('Delete Skill'),
-                                      content: const Text('Are You Sure You Want To Permanently Remove This Skill Offer?'),
+                                      title: Text('delete_skill'.tr()),
+                                      content: Text('delete_skill_confirm'.tr()),
                                       actions: [
-                                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                                        TextButton(onPressed: () => Navigator.pop(context, false), child: Text('cancel'.tr())),
                                         TextButton(
                                           onPressed: () => Navigator.pop(context, true),
                                           style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-                                          child: const Text('Delete'),
+                                          child: Text('delete'.tr()),
                                         ),
                                       ],
                                     ),
@@ -574,7 +577,7 @@ class ProfileScreen extends StatelessWidget {
                                     await FirebaseFirestore.instance.collection('swapListings').doc(swap.id).delete();
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Listing Deleted'), behavior: SnackBarBehavior.floating),
+                                        SnackBar(content: Text('listing_deleted'.tr()), behavior: SnackBarBehavior.floating),
                                       );
                                       Navigator.pop(context);
                                     }
@@ -588,7 +591,7 @@ class ProfileScreen extends StatelessWidget {
                                     children: [
                                       Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
                                       const SizedBox(width: 12),
-                                      Text('Edit Skill', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
+                                      Text('edit_skill'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
                                     ],
                                   ),
                                 ),
@@ -598,7 +601,7 @@ class ProfileScreen extends StatelessWidget {
                                     children: [
                                       const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
                                       const SizedBox(width: 12),
-                                      Text('Delete Skill', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
+                                      Text('delete_skill'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
                                     ],
                                   ),
                                 ),
@@ -715,8 +718,7 @@ class ProfileScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Description',
+                            Text('description_label'.tr(),
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 15,
@@ -837,8 +839,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           padding: EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: Text(
-                          'Message',
+                        child: Text('message'.tr(),
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                             fontSize: 15,
@@ -1062,7 +1063,7 @@ class ProfileScreen extends StatelessWidget {
     try {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Opening $fileName...'),
+          content: Text("${'opening'.tr()} $fileName..."),
           backgroundColor: Theme.of(context).colorScheme.primary,
           duration: Duration(seconds: 2),
         ),
@@ -1075,7 +1076,7 @@ class ProfileScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not open document: $e'),
+            content: Text("${'could_not_open_document'.tr()}: $e"),
             backgroundColor: Color(0xFFEF4444),
           ),
         );

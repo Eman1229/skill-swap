@@ -1,6 +1,6 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Setting/app_settings.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 
@@ -39,8 +39,7 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
               icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
-            title: Text(
-              'notifications'.tr(),
+            title: Text('notifications'.tr(),
               style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
             ),
             centerTitle: true,

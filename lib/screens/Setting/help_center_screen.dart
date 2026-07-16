@@ -1,5 +1,5 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
@@ -448,7 +448,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
+        SnackBar(content: Text("${'error'.tr()}: $e")),
       );
     }
   }

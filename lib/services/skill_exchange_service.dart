@@ -1,3 +1,4 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:skill_swap/models/swap_model.dart';
@@ -506,7 +507,7 @@ class SkillExchangeService {
     await NotificationService().sendNotification(
       receiverId: learnerId,
       type: 'swap',
-      title: 'Swap Completion Requested',
+      title:'swap_completion_requested_title'.tr(),
       body: '$teacherName has requested to mark "$skillName" as complete. Please review and confirm.',
       actionRoute: '/confirm_completion',
       actionId: swapId,
@@ -637,7 +638,7 @@ class SkillExchangeService {
     await NotificationService().sendNotification(
       receiverId: teacherId,
       type: 'swap',
-      title: 'Swap Completed!',
+      title:'swap_completed_title'.tr(),
       body: '$learnerName has confirmed completion of the swap "$skillName".',
       actionRoute: '/skill_detail',
       actionId: swapId,
@@ -651,7 +652,7 @@ class SkillExchangeService {
     await NotificationService().sendNotification(
       receiverId: learnerId,
       type: 'swap',
-      title: 'Swap Completed!',
+      title:'swap_completed_title'.tr(),
       body: 'Your swap "$skillName" with $teacherName has been successfully completed.',
       actionRoute: '/skill_detail',
       actionId: swapId,

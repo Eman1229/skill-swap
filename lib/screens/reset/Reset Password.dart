@@ -1,3 +1,5 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/ui_helper/ui_helper.dart';
@@ -96,6 +98,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
 
     return Scaffold(

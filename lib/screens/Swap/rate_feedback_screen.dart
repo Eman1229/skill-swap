@@ -1,8 +1,10 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_model.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
 
 class RateFeedbackScreen extends StatefulWidget {
@@ -156,8 +158,8 @@ class _RateFeedbackScreenState extends State<RateFeedbackScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Thank you for your feedback!'),
+          SnackBar(
+            content: Text('thank_you_feedback'.tr()),
             backgroundColor: Colors.green,
           ),
         );
@@ -168,7 +170,7 @@ class _RateFeedbackScreenState extends State<RateFeedbackScreen> {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit feedback: ${e.toString()}'),
+            content: Text("${'feedback_submit_failed'.tr()}: ${e.toString()}"),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -178,6 +180,7 @@ class _RateFeedbackScreenState extends State<RateFeedbackScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return StreamBuilder<DocumentSnapshot>(
       stream: _db.collection('swaps').doc(widget.swapId).snapshots(),
       builder: (context, snapshot) {
@@ -275,7 +278,7 @@ class _RateFeedbackScreenState extends State<RateFeedbackScreen> {
                   minLines: 3,
                   style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                   decoration: InputDecoration(
-                    hintText: 'Describe your learning experience, what you liked, and how they helped you...',
+                    hintText:'feedback_hint'.tr(),
                     hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5), fontSize: 14),
                     filled: true,
                     fillColor: Theme.of(context).colorScheme.surface,

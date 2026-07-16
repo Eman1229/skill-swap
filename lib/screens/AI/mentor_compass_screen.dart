@@ -1,5 +1,7 @@
 // lib/screens/AI/mentor_compass_screen.dart
 
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/ai/ai_recommendation_provider.dart';
@@ -12,14 +14,14 @@ class MentorCompassScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final provider = Provider.of<AIRecommendationProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Mentor Compass',
+        title: Text('mentor_compass'.tr(),
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),

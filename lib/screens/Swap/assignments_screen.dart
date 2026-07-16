@@ -1,4 +1,6 @@
-import 'dart:typed_data';
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -28,6 +30,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -94,7 +97,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               },
               backgroundColor: Theme.of(context).colorScheme.primary,
               icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('Add Assignment', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              label: Text('add_assignment'.tr(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
           : null,
     );
@@ -294,7 +297,7 @@ class _AssignmentTile extends StatelessWidget {
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Submit Homework'),
+                        child: Text('submit_homework'.tr()),
                       ),
                     ],
                   );
@@ -371,7 +374,7 @@ class _AssignmentTile extends StatelessWidget {
             Future<void> submit() async {
               if (textController.text.trim().isEmpty && selectedFile == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please add text feedback or upload a file.')),
+                  SnackBar(content: Text('add_feedback_or_file_warning'.tr())),
                 );
                 return;
               }
@@ -421,7 +424,7 @@ class _AssignmentTile extends StatelessWidget {
                 await NotificationService().sendNotification(
                   receiverId: swap.mentorId,
                   type: 'assignment',
-                  title: 'New Assignment Submission',
+                  title:'new_assignment_submission'.tr(),
                   body: '${swap.learnerName} submitted homework for "${assignment.title}".',
                   actionRoute: '/skill_detail',
                   actionId: swap.id,
@@ -435,14 +438,14 @@ class _AssignmentTile extends StatelessWidget {
                 if (context.mounted) {
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Homework submitted successfully!'), backgroundColor: Colors.green),
+                    SnackBar(content: Text('homework_submitted_success'.tr()), backgroundColor: Colors.green),
                   );
                 }
               } catch (e) {
                 setDialogState(() => isUploading = false);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Submission failed: $e'), backgroundColor: Colors.redAccent),
+                    SnackBar(content: Text("${'submission_failed'.tr()}: $e"), backgroundColor: Colors.redAccent),
                   );
                 }
               }
@@ -450,7 +453,7 @@ class _AssignmentTile extends StatelessWidget {
 
             return AlertDialog(
               backgroundColor: Theme.of(context).colorScheme.surface,
-              title: Text('Submit Assignment', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+              title: Text('submit_assignment'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -459,9 +462,9 @@ class _AssignmentTile extends StatelessWidget {
                     maxLines: 3,
                     enabled: !isUploading,
                     style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Comments / Written Answer',
-                      hintText: 'Enter your message here...',
+                      hintText:'enter_message_hint'.tr(),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -475,13 +478,13 @@ class _AssignmentTile extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: isUploading ? null : () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text('cancel'.tr()),
                 ),
                 ElevatedButton(
                   onPressed: isUploading ? null : submit,
                   child: isUploading
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Submit'),
+                      : Text('submit'.tr()),
                 ),
               ],
             );
@@ -504,7 +507,7 @@ class _AssignmentTile extends StatelessWidget {
             Future<void> saveGrade() async {
               if (gradeController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a grade.')),
+                  SnackBar(content: Text('enter_grade_warning'.tr())),
                 );
                 return;
               }
@@ -547,7 +550,7 @@ class _AssignmentTile extends StatelessWidget {
                 await NotificationService().sendNotification(
                   receiverId: swap.learnerId,
                   type: 'assignment',
-                  title: 'Assignment Graded!',
+                  title:'assignment_graded'.tr(),
                   body: '${swap.mentorName} graded "${assignment.title}": ${gradeController.text.trim()}.',
                   actionRoute: '/skill_detail',
                   actionId: swap.id,
@@ -561,14 +564,14 @@ class _AssignmentTile extends StatelessWidget {
                 if (context.mounted) {
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Submission graded successfully!'), backgroundColor: Colors.green),
+                    SnackBar(content: Text('submission_graded_success'.tr()), backgroundColor: Colors.green),
                   );
                 }
               } catch (e) {
                 setDialogState(() => isSaving = false);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Grading failed: $e'), backgroundColor: Colors.redAccent),
+                    SnackBar(content: Text("${'grading_failed'.tr()}: $e"), backgroundColor: Colors.redAccent),
                   );
                 }
               }
@@ -576,21 +579,21 @@ class _AssignmentTile extends StatelessWidget {
 
             return AlertDialog(
               backgroundColor: Theme.of(context).colorScheme.surface,
-              title: const Text('Review Homework Submission'),
+              title: Text('review_homework'.tr()),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Submitted By: ${submission.learnerName}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text("${'submitted_by'.tr()}: ${submission.learnerName}", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     if (submission.submissionText.isNotEmpty) ...[
-                      const Text('Written Answer:', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text('written_answer'.tr(), style: TextStyle(fontWeight: FontWeight.w600)),
                       Text(submission.submissionText),
                       const SizedBox(height: 12),
                     ],
                     if (submission.fileUrl.isNotEmpty) ...[
-                      const Text('Attached File:', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text('attached_file'.tr(), style: TextStyle(fontWeight: FontWeight.w600)),
                       InkWell(
                         onTap: () async {
                           final uri = Uri.tryParse(submission.fileUrl);
@@ -624,8 +627,8 @@ class _AssignmentTile extends StatelessWidget {
                       maxLines: 3,
                       enabled: !isSaving,
                       style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                      decoration: const InputDecoration(
-                        labelText: 'Feedback Comments',
+                      decoration: InputDecoration(
+                        labelText:'feedback_comments'.tr(),
                       ),
                     ),
                   ],
@@ -634,13 +637,13 @@ class _AssignmentTile extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text('cancel'.tr()),
                 ),
                 ElevatedButton(
                   onPressed: isSaving ? null : saveGrade,
                   child: isSaving
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Submit Grade'),
+                      : Text('submit_grade'.tr()),
                 ),
               ],
             );

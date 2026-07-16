@@ -1,5 +1,7 @@
 // lib/screens/AI/learning_roadmap_screen.dart
 
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -41,13 +43,14 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final provider = Provider.of<AIRecommendationProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     if (provider.isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Learning Roadmap')),
+        appBar: AppBar(title: Text('learning_roadmap'.tr())),
         body: Center(child: CircularProgressIndicator(color: primaryColor)),
       );
     }
@@ -55,7 +58,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
     final roadmap = provider.learningRoadmap;
     if (roadmap == null || roadmap.stages.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Learning Roadmap')),
+        appBar: AppBar(title: Text('learning_roadmap'.tr())),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -232,7 +235,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
                     MaterialPageRoute(builder: (_) => const RoadmapAllStepsScreen()),
                   );
                 },
-                child: const Text('View Details'),
+                child: Text('view_details'.tr()),
               ),
             ],
           ),
@@ -393,7 +396,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
     final resources = roadmap.stages.expand((s) => s.resources).toList();
 
     if (resources.isEmpty) {
-      return const Center(child: Text('No recommended resources.'));
+      return Center(child: Text('no_recommended_resources'.tr()));
     }
 
     return ListView.builder(

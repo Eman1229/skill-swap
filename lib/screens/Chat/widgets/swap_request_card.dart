@@ -1,3 +1,5 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/models/swap_request.dart';
@@ -15,6 +17,7 @@ class SwapRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final SwapRequestRepository repo = SwapRequestRepository();
 
     return StreamBuilder<DocumentSnapshot>(

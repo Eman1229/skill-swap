@@ -1,8 +1,10 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/services/swap_request_repository.dart';
 
 class ConfirmSwapScreen extends StatefulWidget {
@@ -26,7 +28,7 @@ class _ConfirmSwapScreenState extends State<ConfirmSwapScreen> {
 
     if (uid == widget.swap.userId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('You cannot swap with yourself!')),
+        SnackBar(content: Text('cannot_swap_with_yourself'.tr())),
       );
       return;
     }
@@ -40,7 +42,7 @@ class _ConfirmSwapScreenState extends State<ConfirmSwapScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('A ${existing.status.name} request already exists between you and ${widget.swap.name}.'),
+              content: Text("${'request_already_exists'.tr()} ${existing.status.name} ${'and'.tr()} ${widget.swap.name}."),
               backgroundColor: Colors.orangeAccent,
             ),
           );
@@ -102,7 +104,7 @@ class _ConfirmSwapScreenState extends State<ConfirmSwapScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text("${'error'.tr()}: ${e.toString()}"),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
@@ -115,6 +117,7 @@ class _ConfirmSwapScreenState extends State<ConfirmSwapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final swap = widget.swap;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -320,8 +323,7 @@ class _ConfirmSwapScreenState extends State<ConfirmSwapScreen> {
                         backgroundColor:
                         Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
                       ),
-                      child: Text(
-                        'message'.tr(),
+                      child: Text('message'.tr(),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 15,

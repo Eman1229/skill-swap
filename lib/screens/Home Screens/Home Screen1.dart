@@ -1,3 +1,4 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,13 +9,10 @@ import 'package:skill_swap/screens/Notifications/notifications_screen.dart';
 import 'package:skill_swap/screens/Profile/my_profile_screen.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 import 'package:skill_swap/screens/Home%20Screens/see%20all.dart';
 
-import 'package:skill_swap/models/swap_listing.dart' as model;
 import 'package:skill_swap/models/session_model.dart';
-import 'package:skill_swap/utils/user_display_name.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart' as available;
 import '../Add skill/offer skill.dart';
 
@@ -240,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          '${'Good $_greeting'.tr()}, $_userName',
+                          '${'good_${_greeting.toLowerCase()}'.tr()}, $_userName',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 17,
@@ -606,7 +604,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       stream: _acceptedSessionsStream,
                       builder: (context, sessionSnapshot) {
                         if (sessionSnapshot.hasError) {
-                          return Center(child: Text('Error loading sessions', style: TextStyle(color: Colors.red)));
+                          return Center(child: Text('error_loading_sessions'.tr(), style: TextStyle(color: Colors.red)));
                         }
                         final sessions = _activeSessionsOnly(sessionSnapshot.data ?? []);
                         if (sessionSnapshot.connectionState == ConnectionState.waiting && !sessionSnapshot.hasData) {

@@ -37,15 +37,18 @@ class AIRecommendationProvider extends ChangeNotifier {
 
   // ── Load All Data ───────────────────────────────────────────────────
   Future<void> loadRecommendations({String? uid}) async {
+    debugPrint('[AI Provider] loadRecommendations called (uid: $uid)');
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
       if (uid != null) {
+        debugPrint('[AI Provider] Syncing user profile stats for $uid');
         await SkillExchangeService().syncUserProfile(uid);
       }
 
+      debugPrint('[AI Provider] Fetching latest recommendations from Firestore...');
       final mentors = await _service.getLatestMentors();
       final career = await _service.getLatestCareer();
       final roadmap = await _service.getLatestRoadmap();
@@ -53,6 +56,7 @@ class AIRecommendationProvider extends ChangeNotifier {
       _mentorRecommendations = mentors;
       _careerRecommendation = career;
       _learningRoadmap = roadmap;
+      debugPrint('[AI Provider] Loaded: ${mentors.length} mentors, career: ${career != null ? "Found" : "Null"}, roadmap: ${roadmap != null ? "Found" : "Null"}');
 
       if (uid != null) {
         _analyticsSnapshot = await _repository.getLatestAnalyticsSnapshot(uid);
@@ -62,6 +66,7 @@ class AIRecommendationProvider extends ChangeNotifier {
         _lastCompletedSwaps = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
         _lastLearningSkills = List<String>.from(userData['learningSkills'] ?? []);
 
+        debugPrint('[AI Provider] Initializing listener with lastCompletedSwaps: $_lastCompletedSwaps, skills count: ${_lastLearningSkills?.length}');
         listenToUserChanges(uid);
       }
 
@@ -69,7 +74,9 @@ class AIRecommendationProvider extends ChangeNotifier {
         final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
         final userData = userDoc.data() ?? {};
         final completedSwaps = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
+        debugPrint('[AI Provider] No career recommendation yet. User completedSwaps count: $completedSwaps');
         if (completedSwaps > 0) {
+          debugPrint('[AI Provider] User has completed swaps but no career analysis. Force-refreshing recommendations...');
           _isLoading = false;
           await refreshRecommendations(uid: uid, force: true);
           return;
@@ -78,7 +85,8 @@ class AIRecommendationProvider extends ChangeNotifier {
 
       _isLoading = false;
       notifyListeners();
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[AI Provider] loadRecommendations error: $e\n$stack');
       _isLoading = false;
       _error = e.toString();
       notifyListeners();
@@ -87,13 +95,16 @@ class AIRecommendationProvider extends ChangeNotifier {
 
   // ── Refresh/Regenerate ──────────────────────────────────────────────
   Future<void> refreshRecommendations({String? careerGoal, bool force = false, String? uid}) async {
+    debugPrint('[AI Provider] refreshRecommendations called (force: $force, uid: $uid)');
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
+      debugPrint('[AI Provider] Calling service refreshIfStale (force: $force)...');
       await _service.refreshIfStale(careerGoal: careerGoal, force: force);
       
+      debugPrint('[AI Provider] Fetching latest recommendations after refresh...');
       final mentors = await _service.getLatestMentors();
       final career = await _service.getLatestCareer();
       final roadmap = await _service.getLatestRoadmap();
@@ -101,6 +112,7 @@ class AIRecommendationProvider extends ChangeNotifier {
       _mentorRecommendations = mentors;
       _careerRecommendation = career;
       _learningRoadmap = roadmap;
+      debugPrint('[AI Provider] Post-refresh Loaded: ${mentors.length} mentors, career: ${career != null ? "Found" : "Null"}, roadmap: ${roadmap != null ? "Found" : "Null"}');
 
       if (uid != null) {
         _analyticsSnapshot = await _repository.getLatestAnalyticsSnapshot(uid);
@@ -109,11 +121,13 @@ class AIRecommendationProvider extends ChangeNotifier {
         final userData = userDoc.data() ?? {};
         _lastCompletedSwaps = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
         _lastLearningSkills = List<String>.from(userData['learningSkills'] ?? []);
+        debugPrint('[AI Provider] Reset listener tracking fields to swaps: $_lastCompletedSwaps, skills: ${_lastLearningSkills?.length}');
       }
 
       _isLoading = false;
       notifyListeners();
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[AI Provider] refreshRecommendations error: $e\n$stack');
       _isLoading = false;
       _error = e.toString();
       notifyListeners();
@@ -128,6 +142,7 @@ class AIRecommendationProvider extends ChangeNotifier {
     required int completedSwaps,
     required double averageRating,
   }) async {
+    debugPrint('[AI Provider] generateRoadmap called for "${careerPath.title}"');
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -143,9 +158,11 @@ class AIRecommendationProvider extends ChangeNotifier {
       );
 
       _learningRoadmap = roadmap;
+      debugPrint('[AI Provider] Roadmap generated successfully for target: ${roadmap.targetCareer}');
       _isLoading = false;
       notifyListeners();
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[AI Provider] generateRoadmap error: $e\n$stack');
       _isLoading = false;
       _error = e.toString();
       notifyListeners();
@@ -154,6 +171,7 @@ class AIRecommendationProvider extends ChangeNotifier {
 
   // ── Toggle Roadmap Task ─────────────────────────────────────────────
   Future<void> toggleRoadmapTask(String taskId, bool isCompleted) async {
+    debugPrint('[AI Provider] toggleRoadmapTask called (taskId: $taskId, isCompleted: $isCompleted)');
     try {
       await _roadmapService.toggleTaskCompletion(taskId, isCompleted);
       
@@ -161,7 +179,8 @@ class AIRecommendationProvider extends ChangeNotifier {
       final roadmap = await _roadmapService.getLatestRoadmap();
       _learningRoadmap = roadmap;
       notifyListeners();
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[AI Provider] toggleRoadmapTask error: $e\n$stack');
       _error = e.toString();
       notifyListeners();
     }

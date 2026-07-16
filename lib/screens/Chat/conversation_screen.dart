@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -400,6 +403,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final uid = _auth.currentUser?.uid ?? '';
 
     return Scaffold(
@@ -522,7 +526,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(profile.name, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 15)),
               if (_otherTyping)
-                Text('Typing...', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontStyle: FontStyle.italic)),
+                Text('typing'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontStyle: FontStyle.italic)),
               if (!_otherTyping)
                 Row(children: [
                   Container(width: 6, height: 6, margin: const EdgeInsets.only(right: 5), decoration: BoxDecoration(color: profile.isOnline ? const Color(0xFF22C55E) : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), shape: BoxShape.circle)),
@@ -556,7 +560,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   children: [
                     const Icon(Icons.report_gmailerrorred_rounded, color: Colors.redAccent, size: 20),
                     const SizedBox(width: 12),
-                    Text('Report User', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
+                    Text('report_user'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
                   ],
                 ),
               ),
@@ -572,7 +576,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(width: 70, height: 70, decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.surface, border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2))), child: Icon(Icons.chat_bubble_outline_rounded, color: Theme.of(context).colorScheme.primary, size: 30)),
         const SizedBox(height: 14),
-        Text('Start Chatting With ${widget.swap.name}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
+        Text("${'start_chatting_with'.tr()} ${widget.swap.name}", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
       ]),
     );
   }
@@ -609,7 +613,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 controller: _msgController,
                 onChanged: _onMessageChanged,
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
-                decoration: InputDecoration(hintText: 'Type A Message...', hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), fontSize: 13), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
+                decoration: InputDecoration(hintText:'type_message'.tr(), hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), fontSize: 13), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
                 onSubmitted: sendMessage,
               ),
             ),

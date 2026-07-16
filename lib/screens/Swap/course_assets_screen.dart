@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -23,6 +26,7 @@ class CourseAssetsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     if (initialCourse != null) {
       return _CourseAssetsScaffold(
         course: initialCourse!,
@@ -160,7 +164,7 @@ class _CourseAssetsSectionState extends State<CourseAssetsSection> {
                 TextButton.icon(
                   onPressed: _showUploadDialog,
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Material'),
+                  label: Text('add_material'.tr()),
                   style: TextButton.styleFrom(
                     foregroundColor: Theme.of(context).colorScheme.primary,
                   ),
@@ -270,8 +274,8 @@ class _CourseAssetsSectionState extends State<CourseAssetsSection> {
               final title = titleController.text.trim();
               if (title.isEmpty || file == null || file.bytes == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter a title and choose a file.'),
+                  SnackBar(
+                    content: Text('enter_title_and_file_warning'.tr()),
                   ),
                 );
                 return;
@@ -302,7 +306,7 @@ class _CourseAssetsSectionState extends State<CourseAssetsSection> {
                 if (mounted) {
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Asset uploaded.')),
+                    SnackBar(content: Text('asset_uploaded'.tr())),
                   );
                 }
               } catch (e) {
@@ -310,7 +314,7 @@ class _CourseAssetsSectionState extends State<CourseAssetsSection> {
                 if (mounted) {
                   ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+                  ).showSnackBar(SnackBar(content: Text("${'upload_failed'.tr()}: $e")));
                 }
               }
             }
@@ -329,8 +333,8 @@ class _CourseAssetsSectionState extends State<CourseAssetsSection> {
                   TextField(
                     controller: titleController,
                     enabled: !uploading,
-                    decoration: const InputDecoration(
-                      labelText: 'Document Title',
+                    decoration: InputDecoration(
+                      labelText:'document_title'.tr(),
                       prefixIcon: Icon(Icons.description_outlined),
                     ),
                   ),
@@ -354,7 +358,7 @@ class _CourseAssetsSectionState extends State<CourseAssetsSection> {
               actions: [
                 TextButton(
                   onPressed: uploading ? null : () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text('cancel'.tr()),
                 ),
                 ElevatedButton(
                   onPressed: uploading ? null : upload,
@@ -364,7 +368,7 @@ class _CourseAssetsSectionState extends State<CourseAssetsSection> {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Upload'),
+                      : Text('upload_btn'.tr()),
                 ),
               ],
             );
@@ -386,12 +390,12 @@ class _CourseAssetsSectionState extends State<CourseAssetsSection> {
         ),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(labelText: 'Document Name'),
+          decoration: InputDecoration(labelText:'document_name'.tr()),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -402,7 +406,7 @@ class _CourseAssetsSectionState extends State<CourseAssetsSection> {
               );
               if (context.mounted) Navigator.pop(context);
             },
-            child: const Text('Save'),
+            child: Text('save'.tr()),
           ),
         ],
       ),
@@ -427,11 +431,11 @@ class _CourseAssetsSectionState extends State<CourseAssetsSection> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr()),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text('delete'.tr(), style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -534,9 +538,9 @@ class _AssetCard extends StatelessWidget {
                 if (value == 'edit') onEdit();
                 if (value == 'delete') onDelete();
               },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'edit', child: Text('Edit')),
-                PopupMenuItem(value: 'delete', child: Text('Delete')),
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'edit', child: Text('edit'.tr())),
+                PopupMenuItem(value: 'delete', child: Text('delete'.tr())),
               ],
             ),
         ],
