@@ -57,6 +57,9 @@ class ChatRepository {
     required String conversationId,
     required String text,
     required String type, // 'text', 'image', etc.
+    String? messageId,
+    List<String>? participants,
+    Map<String, dynamic>? newConvoData,
   }) async {
     final uid = _auth.currentUser?.uid ?? '';
     if (uid.isEmpty) return;
@@ -65,7 +68,10 @@ class ChatRepository {
     final convoRef = _db.collection('conversations').doc(conversationId);
     
     // Add message
-    final msgRef = convoRef.collection('messages').doc();
+    final msgRef = messageId != null
+        ? convoRef.collection('messages').doc(messageId)
+        : convoRef.collection('messages').doc();
+
     final msg = ChatMessage(
       id: msgRef.id,
       senderId: uid,
@@ -76,17 +82,37 @@ class ChatRepository {
     );
     batch.set(msgRef, msg.toMap());
     
-    // Update conversation meta
-    batch.update(convoRef, {
-      'lastMessage': text,
-      'lastMessageAt': FieldValue.serverTimestamp(),
-      'unreadCount.$uid': 0, // Reset self unread
-    });
+    // Update conversation meta or initialize conversation
+    if (newConvoData != null) {
+      batch.set(convoRef, {
+        ...newConvoData,
+        'lastMessage': text,
+        'lastMessageAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } else {
+      batch.update(convoRef, {
+        'lastMessage': text,
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'unreadCount.$uid': 0, // Reset self unread
+      });
+    }
     
     // Increment unread for other participants
-    final convoSnap = await convoRef.get();
-    final participants = List<String>.from(convoSnap.data()?['participants'] ?? []);
-    for (final p in participants) {
+    List<String> actualParticipants = [];
+    if (participants != null && participants.isNotEmpty) {
+      actualParticipants = participants;
+    } else {
+      try {
+        final convoSnap = await convoRef.get();
+        if (convoSnap.exists) {
+          actualParticipants = List<String>.from(convoSnap.data()?['participants'] ?? []);
+        }
+      } catch (e) {
+        debugPrint("Error fetching participants for unread count: $e");
+      }
+    }
+
+    for (final p in actualParticipants) {
       if (p != uid) {
         batch.update(convoRef, {'unreadCount.$p': FieldValue.increment(1)});
       }
@@ -94,27 +120,38 @@ class ChatRepository {
     
     await batch.commit();
 
-    // ── NOTIFICATION ──────────────────────────────────────────────────
-    final otherUid = participants.firstWhere((p) => p != uid, orElse: () => '');
+    // ── NOTIFICATION (Run in background, do not await!) ──────────────────
+    final otherUid = actualParticipants.firstWhere((p) => p != uid, orElse: () => '');
     if (otherUid.isNotEmpty) {
-      String senderName = _auth.currentUser?.displayName ?? 'Someone';
-      String senderProfilePic = _auth.currentUser?.photoURL ?? '';
-      
-      try {
-        final senderDoc = await _db.collection('users').doc(uid).get();
-        if (senderDoc.exists) {
-          final sData = senderDoc.data();
-          if (sData?['name'] != null && sData!['name'].toString().isNotEmpty) {
-            senderName = sData['name'];
-          }
-          if (sData?['imageUrl'] != null && sData!['imageUrl'].toString().isNotEmpty) {
-            senderProfilePic = sData['imageUrl'];
-          }
-        }
-      } catch (e) {
-        debugPrint("Error fetching sender details for notification: $e");
-      }
+      _sendNotificationInBackground(uid, otherUid, text, conversationId);
+    }
+  }
 
+  void _sendNotificationInBackground(
+    String uid,
+    String otherUid,
+    String text,
+    String conversationId,
+  ) async {
+    String senderName = _auth.currentUser?.displayName ?? 'Someone';
+    String senderProfilePic = _auth.currentUser?.photoURL ?? '';
+    
+    try {
+      final senderDoc = await _db.collection('users').doc(uid).get();
+      if (senderDoc.exists) {
+        final sData = senderDoc.data();
+        if (sData?['name'] != null && sData!['name'].toString().isNotEmpty) {
+          senderName = sData['name'];
+        }
+        if (sData?['imageUrl'] != null && sData!['imageUrl'].toString().isNotEmpty) {
+          senderProfilePic = sData['imageUrl'];
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching sender details for notification: $e");
+    }
+
+    try {
       await _db.collection('notifications').add({
         'senderId': uid,
         'senderName': senderName,
@@ -136,6 +173,8 @@ class ChatRepository {
           'type': 'chat_message',
         },
       });
+    } catch (e) {
+      debugPrint("Error adding push notification: $e");
     }
   }
 

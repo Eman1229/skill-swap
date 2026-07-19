@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/models/swap_request.dart';
 import 'package:skill_swap/services/swap_request_repository.dart';
 
-class SwapRequestCard extends StatelessWidget {
+class SwapRequestCard extends StatefulWidget {
   final String requestId;
   final bool isMine;
 
@@ -16,6 +16,41 @@ class SwapRequestCard extends StatelessWidget {
   });
 
   @override
+  State<SwapRequestCard> createState() => _SwapRequestCardState();
+}
+
+class _SwapRequestCardState extends State<SwapRequestCard> {
+  bool _isProcessing = false;
+  SwapRequestStatus? _loadingAction; // SwapRequestStatus.accepted or SwapRequestStatus.rejected
+
+  Future<void> _updateStatus(SwapRequestRepository repo, SwapRequestStatus newStatus) async {
+    if (_isProcessing) return;
+
+    setState(() {
+      _isProcessing = true;
+      _loadingAction = newStatus;
+    });
+
+    try {
+      await repo.updateRequestStatus(widget.requestId, newStatus);
+    } catch (e) {
+      debugPrint("Error updating swap request status: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _loadingAction = null;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     context.watch<LanguageProvider>();
     final SwapRequestRepository repo = SwapRequestRepository();
@@ -23,7 +58,7 @@ class SwapRequestCard extends StatelessWidget {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection('swap_requests')
-          .doc(requestId)
+          .doc(widget.requestId)
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -91,8 +126,8 @@ class SwapRequestCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _SkillColumn(
-                            label: isMine ? 'You Offer' : 'They Offer',
-                            skill: isMine ? request.offeredSkill : request.requestedSkill,
+                            label: widget.isMine ? 'You Offer' : 'They Offer',
+                            skill: widget.isMine ? request.offeredSkill : request.requestedSkill,
                             color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
@@ -110,8 +145,8 @@ class SwapRequestCard extends StatelessWidget {
                         ),
                         Expanded(
                           child: _SkillColumn(
-                            label: isMine ? 'You Want' : 'They Want',
-                            skill: isMine ? request.requestedSkill : request.offeredSkill,
+                            label: widget.isMine ? 'You Want' : 'They Want',
+                            skill: widget.isMine ? request.requestedSkill : request.offeredSkill,
                             color: const Color(0xFF6B8AFF),
                             isRight: true,
                           ),
@@ -119,7 +154,7 @@ class SwapRequestCard extends StatelessWidget {
                       ],
                     ),
 
-                    if (request.status == SwapRequestStatus.pending && !isMine) ...[
+                    if (request.status == SwapRequestStatus.pending && !widget.isMine) ...[
                       const SizedBox(height: 20),
                       Row(
                         children: [
@@ -127,8 +162,10 @@ class SwapRequestCard extends StatelessWidget {
                             child: _ActionButton(
                               label: 'Reject',
                               color: Colors.redAccent,
-                              onPressed: () => repo.updateRequestStatus(
-                                requestId, SwapRequestStatus.rejected),
+                              isLoading: _isProcessing && _loadingAction == SwapRequestStatus.rejected,
+                              onPressed: _isProcessing
+                                  ? null
+                                  : () => _updateStatus(repo, SwapRequestStatus.rejected),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -137,8 +174,10 @@ class SwapRequestCard extends StatelessWidget {
                               label: 'Accept',
                               color: Theme.of(context).colorScheme.primary,
                               isPrimary: true,
-                              onPressed: () => repo.updateRequestStatus(
-                                requestId, SwapRequestStatus.accepted),
+                              isLoading: _isProcessing && _loadingAction == SwapRequestStatus.accepted,
+                              onPressed: _isProcessing
+                                  ? null
+                                  : () => _updateStatus(repo, SwapRequestStatus.accepted),
                             ),
                           ),
                         ],
@@ -229,33 +268,57 @@ class _SkillColumn extends StatelessWidget {
 class _ActionButton extends StatelessWidget {
   final String label;
   final Color color;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool isPrimary;
+  final bool isLoading;
 
   const _ActionButton({
     required this.label,
     required this.color,
     required this.onPressed,
     this.isPrimary = false,
+    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final finalTextColor = isPrimary ? Theme.of(context).colorScheme.onSurface : color;
+    final defaultTextColor = isPrimary ? Theme.of(context).colorScheme.onSurface : color;
+    final finalTextColor = onPressed == null ? Colors.grey : defaultTextColor;
 
     return SizedBox(
       height: 42, // Scaled down for card layout
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isPrimary ? color : Colors.transparent,
+          backgroundColor: onPressed == null
+              ? Colors.grey.withOpacity(0.1)
+              : (isPrimary ? color : Colors.transparent),
           foregroundColor: finalTextColor,
           elevation: 0,
-          side: BorderSide(color: color, width: 1.5),
+          side: BorderSide(
+            color: onPressed == null ? Colors.grey : color,
+            width: 1.5,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: EdgeInsets.zero,
         ),
-        child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: finalTextColor)),
+        child: isLoading
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(finalTextColor),
+                ),
+              )
+            : Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: finalTextColor,
+                ),
+              ),
       ),
     );
   }

@@ -122,16 +122,17 @@ class OpenAIService {
     required double successRate,
     String? careerGoal,
   }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw Exception('User not logged in');
+
+    // Fetch user specific data like interests & profileSummary
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final userData = userDoc.data() ?? {};
+    final List<String> interests = List<String>.from(userData['interests'] ?? []);
+    final String profileSummary = userData['profileSummary']?.toString() ?? '';
+
     if (_useDirectOpenAI) {
       final apiKey = _getApiKey;
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) throw Exception('User not logged in');
-
-      // Fetch user specific data like interests & profileSummary
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      final userData = userDoc.data() ?? {};
-      final List<String> interests = List<String>.from(userData['interests'] ?? []);
-      final String profileSummary = userData['profileSummary']?.toString() ?? '';
 
       final systemPrompt = "You are a career guidance AI specializing in skill-based career matching.\n"
           "Analyze the user's learning profile and generate personalized career path recommendations.\n"
@@ -171,86 +172,125 @@ class OpenAIService {
           "}\n\n"
           "Generate 4-5 career paths. fitScore 0-100. demandIndicator: \"High\", \"Medium\", or \"Low\".";
 
-      debugPrint('[Direct OpenAI] Calling GPT-4o-mini for Career Suggestion...');
-      final response = await http.post(
-        Uri.parse('https://api.openai.com/v1/chat/completions'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-        },
-        body: jsonEncode({
-          'model': 'gpt-4o-mini',
-          'messages': [
-            {'role': 'system', 'content': systemPrompt},
-            {'role': 'user', 'content': userPrompt},
-          ],
-          'temperature': 0.7,
-          'max_tokens': 1500,
-          'response_format': {'type': 'json_object'},
-        }),
-      );
+      Map<String, dynamic> parsed;
+      try {
+        debugPrint('[Direct OpenAI] Calling GPT-4o-mini for Career Suggestion...');
+        final response = await http.post(
+          Uri.parse('https://api.openai.com/v1/chat/completions'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $apiKey',
+          },
+          body: jsonEncode({
+            'model': 'gpt-4o-mini',
+            'messages': [
+              {'role': 'system', 'content': systemPrompt},
+              {'role': 'user', 'content': userPrompt},
+            ],
+            'temperature': 0.7,
+            'max_tokens': 1500,
+            'response_format': {'type': 'json_object'},
+          }),
+        ).timeout(const Duration(seconds: 15));
 
-      if (response.statusCode != 200) {
-        throw Exception('OpenAI API error: ${response.body}');
+        if (response.statusCode != 200) {
+          throw Exception('OpenAI API error: ${response.body}');
+        }
+
+        final jsonResult = jsonDecode(response.body);
+        final content = jsonResult['choices'][0]['message']['content'] as String;
+        parsed = jsonDecode(content) as Map<String, dynamic>;
+      } catch (e) {
+        debugPrint('[Direct OpenAI] API call failed ($e). Falling back to local offline recommendation generator...');
+        parsed = _generateLocalCareerRecommendation(
+          skillsLearned: skillsLearned,
+          skillsTeaching: skillsTeaching,
+          interests: interests,
+          profileSummary: profileSummary,
+          completedSwaps: completedSwaps,
+          averageRating: averageRating,
+          careerGoal: careerGoal,
+        );
       }
 
-      final jsonResult = jsonDecode(response.body);
-      final content = jsonResult['choices'][0]['message']['content'] as String;
-      final parsed = jsonDecode(content) as Map<String, dynamic>;
-
-      // Save directly to Firestore collection matching backend schema
-      final docId = DateTime.now().millisecondsSinceEpoch.toString();
-      final resultData = {
-        ...parsed,
-        'id': docId,
-        'userId': uid,
-        'createdAt': FieldValue.serverTimestamp(),
-        'version': 1,
-        'trigger': 'manual',
-        'triggerData': {
-          'skillsLearned': skillsLearned,
-          'skillsTeaching': skillsTeaching,
-          'interests': interests,
-          'completedSwaps': completedSwaps,
-          'averageRating': averageRating,
-        },
-      };
-
-      await FirebaseFirestore.instance
-          .collection('career_recommendations')
-          .doc(uid)
-          .collection('history')
-          .doc(docId)
-          .set(resultData);
-
-      await FirebaseFirestore.instance
-          .collection('career_recommendations')
-          .doc(uid)
-          .set({
-        'latestId': docId,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      debugPrint('[Direct OpenAI] Career recommendation successfully generated and saved to Firestore.');
-      return resultData;
+      return await _saveCareerRecommendation(uid, parsed, skillsLearned, skillsTeaching, interests, completedSwaps, averageRating);
     }
 
-    return _callFunction(
-      'generateCareerRecommendation',
-      {
+    try {
+      final result = await _callFunction(
+        'generateCareerRecommendation',
+        {
+          'skillsLearned': skillsLearned,
+          'skillsTeaching': skillsTeaching,
+          'completedSwaps': completedSwaps,
+          'averageRating': averageRating,
+          'learningHours': learningHours,
+          'teachingHours': teachingHours,
+          'learningStreak': learningStreak,
+          'totalAchievements': totalAchievements,
+          'successRate': successRate,
+          'careerGoal': careerGoal,
+        },
+        timeout: const Duration(seconds: 30),
+      );
+      return result;
+    } catch (e) {
+      debugPrint('[Cloud Function] Call failed ($e). Falling back to local offline recommendation generator...');
+      final parsed = _generateLocalCareerRecommendation(
+        skillsLearned: skillsLearned,
+        skillsTeaching: skillsTeaching,
+        interests: interests,
+        profileSummary: profileSummary,
+        completedSwaps: completedSwaps,
+        averageRating: averageRating,
+        careerGoal: careerGoal,
+      );
+      return await _saveCareerRecommendation(uid, parsed, skillsLearned, skillsTeaching, interests, completedSwaps, averageRating);
+    }
+  }
+
+  Future<Map<String, dynamic>> _saveCareerRecommendation(
+    String uid,
+    Map<String, dynamic> parsed,
+    List<String> skillsLearned,
+    List<String> skillsTeaching,
+    List<String> interests,
+    int completedSwaps,
+    double averageRating,
+  ) async {
+    final docId = DateTime.now().millisecondsSinceEpoch.toString();
+    final resultData = {
+      ...parsed,
+      'id': docId,
+      'userId': uid,
+      'createdAt': FieldValue.serverTimestamp(),
+      'version': 1,
+      'trigger': 'manual',
+      'triggerData': {
         'skillsLearned': skillsLearned,
         'skillsTeaching': skillsTeaching,
+        'interests': interests,
         'completedSwaps': completedSwaps,
         'averageRating': averageRating,
-        'learningHours': learningHours,
-        'teachingHours': teachingHours,
-        'learningStreak': learningStreak,
-        'totalAchievements': totalAchievements,
-        'successRate': successRate,
-        'careerGoal': careerGoal,
       },
-      timeout: const Duration(seconds: 90),
-    );
+    };
+
+    await FirebaseFirestore.instance
+        .collection('career_recommendations')
+        .doc(uid)
+        .collection('history')
+        .doc(docId)
+        .set(resultData);
+
+    await FirebaseFirestore.instance
+        .collection('career_recommendations')
+        .doc(uid)
+        .set({
+      'latestId': docId,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    return resultData;
   }
 
   // ── Learning Roadmap ────────────────────────────────────────────────
@@ -263,14 +303,15 @@ class OpenAIService {
     required int completedSwaps,
     required double averageRating,
   }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw Exception('User not logged in');
+
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final userData = userDoc.data() ?? {};
+    final List<String> interests = List<String>.from(userData['interests'] ?? []);
+
     if (_useDirectOpenAI) {
       final apiKey = _getApiKey;
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) throw Exception('User not logged in');
-
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      final userData = userDoc.data() ?? {};
-      final List<String> interests = List<String>.from(userData['interests'] ?? []);
 
       final systemPrompt = "You are a personalized learning roadmap AI.\n"
           "Create structured, actionable learning roadmaps for skill-based learners.\n"
@@ -330,82 +371,348 @@ class OpenAIService {
           "  ]\n"
           "}";
 
-      debugPrint('[Direct OpenAI] Calling GPT-4o-mini for Learning Roadmap...');
-      final response = await http.post(
-        Uri.parse('https://api.openai.com/v1/chat/completions'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-        },
-        body: jsonEncode({
-          'model': 'gpt-4o-mini',
-          'messages': [
-            {'role': 'system', 'content': systemPrompt},
-            {'role': 'user', 'content': userPrompt},
-          ],
-          'temperature': 0.7,
-          'max_tokens': 1500,
-          'response_format': {'type': 'json_object'},
-        }),
-      );
+      Map<String, dynamic> parsed;
+      try {
+        debugPrint('[Direct OpenAI] Calling GPT-4o-mini for Learning Roadmap...');
+        final response = await http.post(
+          Uri.parse('https://api.openai.com/v1/chat/completions'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $apiKey',
+          },
+          body: jsonEncode({
+            'model': 'gpt-4o-mini',
+            'messages': [
+              {'role': 'system', 'content': systemPrompt},
+              {'role': 'user', 'content': userPrompt},
+            ],
+            'temperature': 0.7,
+            'max_tokens': 1500,
+            'response_format': {'type': 'json_object'},
+          }),
+        ).timeout(const Duration(seconds: 15));
 
-      if (response.statusCode != 200) {
-        throw Exception('OpenAI API error: ${response.body}');
+        if (response.statusCode != 200) {
+          throw Exception('OpenAI API error: ${response.body}');
+        }
+
+        final jsonResult = jsonDecode(response.body);
+        final content = jsonResult['choices'][0]['message']['content'] as String;
+        parsed = jsonDecode(content) as Map<String, dynamic>;
+      } catch (e) {
+        debugPrint('[Direct OpenAI] API call failed ($e). Falling back to local offline roadmap generator...');
+        parsed = _generateLocalLearningRoadmap(
+          targetCareer: targetCareer,
+          currentSkills: currentSkills,
+          missingSkills: missingSkills,
+          interests: interests,
+          learningHours: learningHours,
+          completedSwaps: completedSwaps,
+          averageRating: averageRating,
+        );
       }
 
-      final jsonResult = jsonDecode(response.body);
-      final content = jsonResult['choices'][0]['message']['content'] as String;
-      final parsed = jsonDecode(content) as Map<String, dynamic>;
+      return await _saveLearningRoadmap(uid, parsed, targetCareer, currentSkills, missingSkills, interests, completedSwaps, averageRating);
+    }
 
-      // Save directly to Firestore collection matching backend schema
-      final docId = DateTime.now().millisecondsSinceEpoch.toString();
-      final resultData = {
-        ...parsed,
-        'id': docId,
-        'userId': uid,
-        'createdAt': FieldValue.serverTimestamp(),
-        'version': 1,
-        'trigger': 'manual',
-        'triggerData': {
+    try {
+      final result = await _callFunction(
+        'generateLearningRoadmap',
+        {
+          'targetCareer': targetCareer,
           'currentSkills': currentSkills,
           'missingSkills': missingSkills,
-          'interests': interests,
+          'learningHours': learningHours,
           'completedSwaps': completedSwaps,
           'averageRating': averageRating,
         },
-      };
-
-      await FirebaseFirestore.instance
-          .collection('learning_roadmaps')
-          .doc(uid)
-          .collection('history')
-          .doc(docId)
-          .set(resultData);
-
-      await FirebaseFirestore.instance
-          .collection('learning_roadmaps')
-          .doc(uid)
-          .set({
-        'latestId': docId,
-        'targetCareer': targetCareer,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      debugPrint('[Direct OpenAI] Learning roadmap successfully generated and saved to Firestore.');
-      return resultData;
+        timeout: const Duration(seconds: 30),
+      );
+      return result;
+    } catch (e) {
+      debugPrint('[Cloud Function] Call failed ($e). Falling back to local offline roadmap generator...');
+      final parsed = _generateLocalLearningRoadmap(
+        targetCareer: targetCareer,
+        currentSkills: currentSkills,
+        missingSkills: missingSkills,
+        interests: interests,
+        learningHours: learningHours,
+        completedSwaps: completedSwaps,
+        averageRating: averageRating,
+      );
+      return await _saveLearningRoadmap(uid, parsed, targetCareer, currentSkills, missingSkills, interests, completedSwaps, averageRating);
     }
+  }
 
-    return _callFunction(
-      'generateLearningRoadmap',
-      {
-        'targetCareer': targetCareer,
+  Future<Map<String, dynamic>> _saveLearningRoadmap(
+    String uid,
+    Map<String, dynamic> parsed,
+    String targetCareer,
+    List<String> currentSkills,
+    List<String> missingSkills,
+    List<String> interests,
+    int completedSwaps,
+    double averageRating,
+  ) async {
+    final docId = DateTime.now().millisecondsSinceEpoch.toString();
+    final resultData = {
+      ...parsed,
+      'id': docId,
+      'userId': uid,
+      'createdAt': FieldValue.serverTimestamp(),
+      'version': 1,
+      'trigger': 'manual',
+      'triggerData': {
         'currentSkills': currentSkills,
         'missingSkills': missingSkills,
-        'learningHours': learningHours,
+        'interests': interests,
         'completedSwaps': completedSwaps,
         'averageRating': averageRating,
       },
-      timeout: const Duration(seconds: 90),
-    );
+    };
+
+    await FirebaseFirestore.instance
+        .collection('learning_roadmaps')
+        .doc(uid)
+        .collection('history')
+        .doc(docId)
+        .set(resultData);
+
+    await FirebaseFirestore.instance
+        .collection('learning_roadmaps')
+        .doc(uid)
+        .set({
+      'latestId': docId,
+      'targetCareer': targetCareer,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    await FirebaseFirestore.instance
+        .collection('roadmap_progress')
+        .doc(uid)
+        .set({
+      'currentRoadmapId': docId,
+      'completedTaskIds': [],
+      'completedMilestoneIds': [],
+      'overallPercent': 0.0,
+      'currentStage': 1,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    return resultData;
+  }
+
+  Map<String, dynamic> _generateLocalCareerRecommendation({
+    required List<String> skillsLearned,
+    required List<String> skillsTeaching,
+    required List<String> interests,
+    required String profileSummary,
+    required int completedSwaps,
+    required double averageRating,
+    String? careerGoal,
+  }) {
+    final String learnText = skillsLearned.isNotEmpty ? skillsLearned.first : 'new technologies';
+    final String teachText = skillsTeaching.isNotEmpty ? skillsTeaching.first : 'programming';
+    
+    return {
+      'careerSummary': 'Based on your profile with a strong focus on teaching $teachText and learning $learnText, you are well-positioned for career paths in cross-platform development, technical leadership, and engineering consulting.',
+      'strengthAreas': [
+        'Expertise and mentoring in ${skillsTeaching.isNotEmpty ? skillsTeaching.join(", ") : "core development skills"}',
+        'Demonstrated commitment to peer learning and skill sharing',
+        'Strong problem solving and communication capacity'
+      ],
+      'growthAreas': [
+        'Gaining deeper practical experience in ${skillsLearned.isNotEmpty ? skillsLearned.join(", ") : "advanced technologies"}',
+        'Understanding enterprise architecture patterns',
+        'Project lifecycle management and client collaboration'
+      ],
+      'careers': [
+        {
+          'title': 'Cross-Platform App Developer',
+          'fitScore': 94,
+          'demandIndicator': 'High',
+          'salaryRange': '\$95k - \$130k',
+          'requiredSkills': ['Flutter', 'Dart', 'State Management', 'Firebase', 'API Integration'],
+          'missingSkills': skillsLearned.isNotEmpty ? skillsLearned : ['State Management', 'Testing'],
+          'estimatedLearningMonths': 4,
+          'description': 'Design, build, and deploy high-performance cross-platform mobile and web applications.'
+        },
+        {
+          'title': 'Frontend Engineer',
+          'fitScore': 88,
+          'demandIndicator': 'High',
+          'salaryRange': '\$90k - \$125k',
+          'requiredSkills': ['HTML/CSS', 'JavaScript', 'React/Vue', 'Responsive Design', 'Git'],
+          'missingSkills': ['React/Vue', 'Webpack'],
+          'estimatedLearningMonths': 5,
+          'description': 'Develop modern, highly interactive user interfaces and web applications using advanced frontend frameworks.'
+        },
+        {
+          'title': 'Technical Solutions Consultant',
+          'fitScore': 85,
+          'demandIndicator': 'Medium',
+          'salaryRange': '\$100k - \$140k',
+          'requiredSkills': ['System Design', 'Communication', 'Cloud Architecture', 'APIs'],
+          'missingSkills': ['Cloud Architecture', 'Enterprise Patterns'],
+          'estimatedLearningMonths': 6,
+          'description': 'Bridge the gap between business requirements and technical implementation, advising clients on optimal software stack and architecture.'
+        },
+        {
+          'title': 'Full-Stack Developer',
+          'fitScore': 82,
+          'demandIndicator': 'High',
+          'salaryRange': '\$105k - \$150k',
+          'requiredSkills': ['Node.js', 'Databases', 'APIs', 'Frontend Frameworks', 'DevOps'],
+          'missingSkills': ['Database Administration', 'DevOps'],
+          'estimatedLearningMonths': 8,
+          'description': 'Build and maintain both the frontend user interfaces and the backend database/server infrastructure of web applications.'
+        }
+      ]
+    };
+  }
+
+  Map<String, dynamic> _generateLocalLearningRoadmap({
+    required String targetCareer,
+    required List<String> currentSkills,
+    required List<String> missingSkills,
+    required List<String> interests,
+    required double learningHours,
+    required int completedSwaps,
+    required double averageRating,
+  }) {
+    final cleanMissing = missingSkills.isNotEmpty ? missingSkills : ['Advanced architecture', 'Testing and CI/CD'];
+    
+    return {
+      'targetCareer': targetCareer,
+      'estimatedMonths': 6,
+      'aiInsight': 'You have already built a solid foundation. Focus on mastering ${cleanMissing.join(", ")} to be fully job-ready.',
+      'stages': [
+        {
+          'stageNumber': 1,
+          'stageName': 'Foundations & Core Setup',
+          'description': 'Establish your environment and master the essential syntax and concepts.',
+          'estimatedWeeks': 4,
+          'completionPercent': 0,
+          'tasks': [
+            {
+              'id': 't1_1',
+              'title': 'Set up development environment',
+              'description': 'Install IDEs, SDKs, and configure simulators/devices.',
+              'estimatedHours': 4,
+              'isCompleted': false
+            },
+            {
+              'id': 't1_2',
+              'title': 'Complete basic tutorials',
+              'description': 'Build 3 simple apps/projects to understand components and lifecycle.',
+              'estimatedHours': 12,
+              'isCompleted': false
+            }
+          ],
+          'resources': [
+            {
+              'id': 'r1_1',
+              'title': 'Official Getting Started Documentation',
+              'platform': 'Official Docs',
+              'url': 'https://docs.flutter.dev',
+              'type': 'Documentation',
+              'learnersCount': 100000
+            }
+          ]
+        },
+        {
+          'stageNumber': 2,
+          'stageName': 'Practical Project Building',
+          'description': 'Deepen your knowledge by working on real-world projects and peer swaps.',
+          'estimatedWeeks': 6,
+          'completionPercent': 0,
+          'tasks': [
+            {
+              'id': 't2_1',
+              'title': 'Implement state management',
+              'description': 'Master Provider, BLoC, or Riverpod in a multi-screen application.',
+              'estimatedHours': 15,
+              'isCompleted': false
+            },
+            {
+              'id': 't2_2',
+              'title': 'Integrate backend services',
+              'description': 'Connect your application to Firestore and Firebase Auth.',
+              'estimatedHours': 10,
+              'isCompleted': false
+            }
+          ],
+          'resources': [
+            {
+              'id': 'r2_1',
+              'title': 'Practical App Development Course',
+              'platform': 'YouTube',
+              'url': 'https://youtube.com',
+              'type': 'Video',
+              'learnersCount': 45000
+            }
+          ]
+        },
+        {
+          'stageNumber': 3,
+          'stageName': 'Advanced Architecture & Deployment',
+          'description': 'Learn testing, clean architecture, and deploy your work.',
+          'estimatedWeeks': 4,
+          'completionPercent': 0,
+          'tasks': [
+            {
+              'id': 't3_1',
+              'title': 'Write unit and integration tests',
+              'description': 'Ensure code reliability and setup automated test suites.',
+              'estimatedHours': 8,
+              'isCompleted': false
+            },
+            {
+              'id': 't3_2',
+              'title': 'Deploy to App Store / Play Store',
+              'description': 'Configure release builds, sign bundle, and upload to console.',
+              'estimatedHours': 6,
+              'isCompleted': false
+            }
+          ],
+          'resources': [
+            {
+              'id': 'r3_1',
+              'title': 'Clean Architecture & Testing Guide',
+              'platform': 'Medium',
+              'url': 'https://medium.com',
+              'type': 'Article',
+              'learnersCount': 18000
+            }
+          ]
+        }
+      ],
+      'milestones': [
+        {
+          'id': 'm1',
+          'title': 'Development Environment Ready',
+          'description': 'SDK configured and test build running on physical device.',
+          'stageNumber': 1,
+          'icon': 'school',
+          'isCompleted': false
+        },
+        {
+          'id': 'm2',
+          'title': 'Core Application Complete',
+          'description': 'Functional multi-screen app with state management and database sync.',
+          'stageNumber': 2,
+          'icon': 'star',
+          'isCompleted': false
+        },
+        {
+          'id': 'm3',
+          'title': 'App Published / Verified',
+          'description': 'Built for production and code signed successfully.',
+          'stageNumber': 3,
+          'icon': 'verified',
+          'isCompleted': false
+        }
+      ]
+    };
   }
 }

@@ -189,7 +189,7 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
                         ),
                       ),
                       child: Text(
-                        _categories[index],
+                        "category_${_categories[index].toLowerCase().replaceAll(' ', '_')}".tr(),
                         style: TextStyle(
                           color: selected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 13,

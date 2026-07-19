@@ -16,6 +16,25 @@ class OfferSkillScreen extends StatefulWidget {
 }
 
 class _OfferSkillScreenState extends State<OfferSkillScreen> {
+
+  String _translateItem(String item) {
+    final map = {
+      'Creative & Design': 'category_creative_design'.tr(),
+      'Tech & Digital': 'category_tech_digital'.tr(),
+      'Entrepreneurship': 'category_entrepreneurship'.tr(),
+      'Professional Growth': 'category_professional_growth'.tr(),
+      'Language': 'category_language'.tr(),
+      'Music & Art': 'category_music_art'.tr(),
+      'Lifestyle': 'category_lifestyle'.tr(),
+      'Tutoring': 'category_tutoring'.tr(),
+      'Beginner': 'level_beginner'.tr(),
+      'Intermediate': 'level_intermediate'.tr(),
+      'Advanced': 'level_advanced'.tr(),
+      'Expert': 'level_expert'.tr(),
+    };
+    return map[item] ?? item;
+  }
+
   final _formKey = GlobalKey<FormState>();
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -260,7 +279,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       SizedBox(height: 8),
                       _buildTextField(
                         controller: _titleController,
-                        hint: 'e.g. Web Engineering',
+                        hint: 'title_hint'.tr(),
                         validator: (v) => v == null || v.trim().isEmpty
                             ? 'Title is required'
                             : null,
@@ -270,26 +289,26 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       _buildLabel('category_label'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildDropdown(
-                        hint: 'Select a category',
+                        hint: 'select_category_hint'.tr(),
                         value: _selectedCategory,
                         items: _categories,
                         onChanged: (v) =>
                             setState(() => _selectedCategory = v),
                         validator: (v) =>
-                        v == null ? 'Please select a category' : null,
+                        v == null ? 'category_required'.tr() : null,
                       ),
                       SizedBox(height: 20),
 
                       _buildLabel('experience_level'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildDropdown(
-                        hint: 'Your experience level',
+                        hint: 'experience_level_hint'.tr(),
                         value: _selectedExperience,
                         items: _experienceLevels,
                         onChanged: (v) =>
                             setState(() => _selectedExperience = v),
                         validator: (v) =>
-                        v == null ? 'Please select a level' : null,
+                        v == null ? 'level_required'.tr() : null,
                       ),
                       SizedBox(height: 20),
 
@@ -297,7 +316,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       SizedBox(height: 8),
                       _buildTextField(
                         controller: _lookingForController,
-                        hint: 'Exchange skill preferences',
+                        hint: 'looking_for_hint'.tr(),
                         validator: (v) => v == null || v.trim().isEmpty
                             ? 'Please enter what you want'
                             : null,
@@ -617,7 +636,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       items: items
           .map((e) => DropdownMenuItem(
         value: e,
-        child: Text(e,
+        child: Text(_translateItem(e),
             style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
       ))

@@ -9,6 +9,118 @@ class AppLocalizationsHi extends AppLocalizations {
   AppLocalizationsHi([String locale = 'hi']) : super(locale);
 
   @override
+  String get category_digital_marketing => 'डिजिटल मार्केटिंग';
+
+  @override
+  String get category_others => 'अन्य';
+
+  @override
+  String get category_creative_design => 'रचनात्मक और डिजाइन';
+
+  @override
+  String get category_tech_digital => 'तकनीक और डिजिटल';
+
+  @override
+  String get category_entrepreneurship => 'उद्यमिता';
+
+  @override
+  String get category_professional_growth => 'व्यावसायिक विकास';
+
+  @override
+  String get category_language => 'भाषा';
+
+  @override
+  String get category_music_art => 'संगीत और कला';
+
+  @override
+  String get category_lifestyle => 'जीवन शैली';
+
+  @override
+  String get category_tutoring => 'ट्यूशन';
+
+  @override
+  String get level_beginner => 'शुरुआती';
+
+  @override
+  String get level_intermediate => 'मध्यम';
+
+  @override
+  String get level_advanced => 'उन्नत';
+
+  @override
+  String get level_expert => 'विशेषज्ञ';
+
+  @override
+  String get title_hint => 'जैसे वेब इंजीनियरिंग';
+
+  @override
+  String get looking_for_hint => 'कौशल विनिमय प्राथमिकताएं';
+
+  @override
+  String get description_hint =>
+      'अपने कौशल, अनुभव स्तर और आप क्या पेशकश कर सकते हैं इसका वर्णन करें...';
+
+  @override
+  String get title_required => 'शीर्षक आवश्यक है';
+
+  @override
+  String get category_required => 'कृपया एक श्रेणी चुनें';
+
+  @override
+  String get level_required => 'कृपया एक स्तर चुनें';
+
+  @override
+  String get looking_for_required => 'कृपया दर्ज करें कि आप क्या चाहते हैं';
+
+  @override
+  String get portfolio_required => 'पोर्टफोलियो लिंक या दस्तावेज़ आवश्यक है';
+
+  @override
+  String get select_category_hint => 'एक श्रेणी चुनें';
+
+  @override
+  String get experience_level_hint => 'आपका अनुभव स्तर';
+
+  @override
+  String get category_all => 'सभी';
+
+  @override
+  String get category_design => 'डिजाइन';
+
+  @override
+  String get category_coding => 'कोडिंग';
+
+  @override
+  String get category_photos => 'तस्वीरें';
+
+  @override
+  String get category_data_analysis => 'डेटा विश्लेषण';
+
+  @override
+  String get category_ai => 'एआई';
+
+  @override
+  String get category_music => 'संगीत';
+
+  @override
+  String get category_drawing => 'ड्राइंग';
+
+  @override
+  String get your_student => 'आपका छात्र';
+
+  @override
+  String get your_instructor => 'आपके शिक्षक';
+
+  @override
+  String get with_partner => 'के साथ';
+
+  @override
+  String get join => 'शामिल हों';
+
+  @override
+  String get looking_for_label => 'तलाश है:';
+
+  @override
   String get enter_title_and_file_warning =>
       'कृपया एक शीर्षक दर्ज करें और एक फ़ाइल चुनें।';
 

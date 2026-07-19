@@ -132,7 +132,7 @@ class _SkillTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     context.watch<LanguageProvider>();
-    final displayName = skill.name == 'Others' ? 'others' : skill.name;
+    final displayName = "category_${skill.name.toLowerCase().replaceAll(' ', '_')}".tr();
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,

@@ -9,6 +9,118 @@ class AppLocalizationsUr extends AppLocalizations {
   AppLocalizationsUr([String locale = 'ur']) : super(locale);
 
   @override
+  String get category_digital_marketing => 'ڈیجیٹل مارکیٹنگ';
+
+  @override
+  String get category_others => 'دوسرے';
+
+  @override
+  String get category_creative_design => 'تخلیقی اور ڈیزائن';
+
+  @override
+  String get category_tech_digital => 'ٹیک اور ڈیجیٹل';
+
+  @override
+  String get category_entrepreneurship => 'کاروبار';
+
+  @override
+  String get category_professional_growth => 'پیشہ ورانہ ترقی';
+
+  @override
+  String get category_language => 'زبان';
+
+  @override
+  String get category_music_art => 'موسیقی اور آرٹ';
+
+  @override
+  String get category_lifestyle => 'طرز زندگی';
+
+  @override
+  String get category_tutoring => 'ٹیوٹرنگ';
+
+  @override
+  String get level_beginner => 'مبتدی';
+
+  @override
+  String get level_intermediate => 'درمیانہ';
+
+  @override
+  String get level_advanced => 'جدید';
+
+  @override
+  String get level_expert => 'ماہر';
+
+  @override
+  String get title_hint => 'مثلاً ویب انجینئرنگ';
+
+  @override
+  String get looking_for_hint => 'مہارت کے تبادلے کی ترجیحات';
+
+  @override
+  String get description_hint =>
+      'اپنی مہارت، تجربہ کا درجہ اور آپ کیا پیش کر سکتے ہیں اس کی تفصیل بتائیں...';
+
+  @override
+  String get title_required => 'عنوان درکار ہے';
+
+  @override
+  String get category_required => 'براہ کرم ایک زمرہ منتخب کریں';
+
+  @override
+  String get level_required => 'براہ کرم ایک درجہ منتخب کریں';
+
+  @override
+  String get looking_for_required => 'براہ کرم درج کریں کہ آپ کیا چاہتے ہیں';
+
+  @override
+  String get portfolio_required => 'پورٹ فولیو لنک یا دستاویز درکار ہے';
+
+  @override
+  String get select_category_hint => 'زمرہ منتخب کریں';
+
+  @override
+  String get experience_level_hint => 'آپ کے تجربے کا درجہ';
+
+  @override
+  String get category_all => 'تمام';
+
+  @override
+  String get category_design => 'ڈیزائن';
+
+  @override
+  String get category_coding => 'کوڈنگ';
+
+  @override
+  String get category_photos => 'تصاویر';
+
+  @override
+  String get category_data_analysis => 'ڈیٹا کا تجزیہ';
+
+  @override
+  String get category_ai => 'اے آئی';
+
+  @override
+  String get category_music => 'موسیقی';
+
+  @override
+  String get category_drawing => 'ڈرائنگ';
+
+  @override
+  String get your_student => 'آپ کا طالب علم';
+
+  @override
+  String get your_instructor => 'آپ کا انسٹرکٹر';
+
+  @override
+  String get with_partner => 'کے ساتھ';
+
+  @override
+  String get join => 'شامل ہوں';
+
+  @override
+  String get looking_for_label => 'تلاش ہے:';
+
+  @override
   String get enter_title_and_file_warning =>
       'براہ کرم ایک عنوان درج کریں اور ایک فائل منتخب کریں۔';
 

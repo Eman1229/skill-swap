@@ -18,6 +18,25 @@ class EditListingScreen extends StatefulWidget {
 }
 
 class _EditListingScreenState extends State<EditListingScreen> {
+
+  String _translateItem(String item) {
+    final map = {
+      'Creative & Design': 'category_creative_design'.tr(),
+      'Tech & Digital': 'category_tech_digital'.tr(),
+      'Entrepreneurship': 'category_entrepreneurship'.tr(),
+      'Professional Growth': 'category_professional_growth'.tr(),
+      'Language': 'category_language'.tr(),
+      'Music & Art': 'category_music_art'.tr(),
+      'Lifestyle': 'category_lifestyle'.tr(),
+      'Tutoring': 'category_tutoring'.tr(),
+      'Beginner': 'level_beginner'.tr(),
+      'Intermediate': 'level_intermediate'.tr(),
+      'Advanced': 'level_advanced'.tr(),
+      'Expert': 'level_expert'.tr(),
+    };
+    return map[item] ?? item;
+  }
+
   final _formKey = GlobalKey<FormState>();
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -226,30 +245,30 @@ class _EditListingScreenState extends State<EditListingScreen> {
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: _titleController,
-                        hint: 'e.g. Web Engineering',
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Title is required' : null,
+                        hint: 'title_hint'.tr(),
+                        validator: (v) => v == null || v.trim().isEmpty ? 'title_required'.tr() : null,
                       ),
                       const SizedBox(height: 20),
 
                       _buildLabel('category_label'.tr(), required: true),
                       const SizedBox(height: 8),
                       _buildDropdown(
-                        hint: 'Select a category',
+                        hint: 'select_category_hint'.tr(),
                         value: _selectedCategory,
                         items: _categories,
                         onChanged: (v) => setState(() => _selectedCategory = v),
-                        validator: (v) => v == null ? 'Please select a category' : null,
+                        validator: (v) => v == null ? 'category_required'.tr() : null,
                       ),
                       const SizedBox(height: 20),
 
                       _buildLabel('experience_level'.tr(), required: true),
                       const SizedBox(height: 8),
                       _buildDropdown(
-                        hint: 'Your experience level',
+                        hint: 'experience_level_hint'.tr(),
                         value: _selectedExperience,
                         items: _experienceLevels,
                         onChanged: (v) => setState(() => _selectedExperience = v),
-                        validator: (v) => v == null ? 'Please select a level' : null,
+                        validator: (v) => v == null ? 'level_required'.tr() : null,
                       ),
                       const SizedBox(height: 20),
 
@@ -257,8 +276,8 @@ class _EditListingScreenState extends State<EditListingScreen> {
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: _lookingForController,
-                        hint: 'Exchange skill preferences',
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Please enter what you want' : null,
+                        hint: 'looking_for_hint'.tr(),
+                        validator: (v) => v == null || v.trim().isEmpty ? 'looking_for_required'.tr() : null,
                       ),
                       const SizedBox(height: 20),
 
@@ -271,7 +290,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: _descriptionController,
-                        hint: 'Describe your skill, experience level and what you can offer…',
+                        hint: 'description_hint'.tr(),
                         maxLines: 4,
                       ),
                       const SizedBox(height: 36),
@@ -374,7 +393,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFFF3B3B))),
       ),
-      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)))).toList(),
+      items: items.map((e) => DropdownMenuItem(value: e, child: Text(_translateItem(e), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)))).toList(),
     );
   }
 
@@ -385,7 +404,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
         TextFormField(
           controller: _portfolioController,
           readOnly: _pickedFile != null,
-          validator: (v) => v == null || v.trim().isEmpty ? 'Portfolio link or document is required' : null,
+          validator: (v) => v == null || v.trim().isEmpty ? 'portfolio_required'.tr() : null,
           style: TextStyle(color: _pickedFile != null ? Theme.of(context).colorScheme.onSurfaceVariant : Theme.of(context).colorScheme.onSurface, fontSize: 14),
           decoration: InputDecoration(
             hintText:'paste_link_or_tap'.tr(),

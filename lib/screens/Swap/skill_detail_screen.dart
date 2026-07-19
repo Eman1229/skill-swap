@@ -34,6 +34,7 @@ class SkillDetailScreen extends StatefulWidget {
 class _SkillDetailScreenState extends State<SkillDetailScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final Map<String, bool> _launchingMeetings = {};
 
   String get _currentUserId => _auth.currentUser?.uid ?? '';
 
@@ -476,18 +477,31 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: ElevatedButton(
-                      onPressed: () async {
-                        if (session.meetingLink.isNotEmpty) {
-                          final uri = Uri.tryParse(session.meetingLink);
-                          if (uri != null) {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
-                          }
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('no_meeting_link_provided'.tr())),
-                          );
-                        }
-                      },
+                      onPressed: _launchingMeetings[session.id] == true
+                          ? null
+                          : () async {
+                              if (session.meetingLink.isNotEmpty) {
+                                final uri = Uri.tryParse(session.meetingLink);
+                                if (uri != null) {
+                                  setState(() {
+                                    _launchingMeetings[session.id] = true;
+                                  });
+                                  try {
+                                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                  } finally {
+                                    if (mounted) {
+                                      setState(() {
+                                        _launchingMeetings[session.id] = false;
+                                      });
+                                    }
+                                  }
+                                }
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('no_meeting_link_provided'.tr())),
+                                );
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -496,10 +510,19 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       ),
-                      child: const Text(
-                        'Join Session',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
-                      ),
+                      child: _launchingMeetings[session.id] == true
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text(
+                              'Join Session',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 6),

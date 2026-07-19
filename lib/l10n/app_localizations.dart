@@ -102,6 +102,228 @@ abstract class AppLocalizations {
     Locale('ur'),
   ];
 
+  /// No description provided for @category_digital_marketing.
+  ///
+  /// In en, this message translates to:
+  /// **'Digital Marketing'**
+  String get category_digital_marketing;
+
+  /// No description provided for @category_others.
+  ///
+  /// In en, this message translates to:
+  /// **'Others'**
+  String get category_others;
+
+  /// No description provided for @category_creative_design.
+  ///
+  /// In en, this message translates to:
+  /// **'Creative & Design'**
+  String get category_creative_design;
+
+  /// No description provided for @category_tech_digital.
+  ///
+  /// In en, this message translates to:
+  /// **'Tech & Digital'**
+  String get category_tech_digital;
+
+  /// No description provided for @category_entrepreneurship.
+  ///
+  /// In en, this message translates to:
+  /// **'Entrepreneurship'**
+  String get category_entrepreneurship;
+
+  /// No description provided for @category_professional_growth.
+  ///
+  /// In en, this message translates to:
+  /// **'Professional Growth'**
+  String get category_professional_growth;
+
+  /// No description provided for @category_language.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get category_language;
+
+  /// No description provided for @category_music_art.
+  ///
+  /// In en, this message translates to:
+  /// **'Music & Art'**
+  String get category_music_art;
+
+  /// No description provided for @category_lifestyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifestyle'**
+  String get category_lifestyle;
+
+  /// No description provided for @category_tutoring.
+  ///
+  /// In en, this message translates to:
+  /// **'Tutoring'**
+  String get category_tutoring;
+
+  /// No description provided for @level_beginner.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner'**
+  String get level_beginner;
+
+  /// No description provided for @level_intermediate.
+  ///
+  /// In en, this message translates to:
+  /// **'Intermediate'**
+  String get level_intermediate;
+
+  /// No description provided for @level_advanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get level_advanced;
+
+  /// No description provided for @level_expert.
+  ///
+  /// In en, this message translates to:
+  /// **'Expert'**
+  String get level_expert;
+
+  /// No description provided for @title_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Web Engineering'**
+  String get title_hint;
+
+  /// No description provided for @looking_for_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Exchange skill preferences'**
+  String get looking_for_hint;
+
+  /// No description provided for @description_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe your skill, experience level and what you can offer...'**
+  String get description_hint;
+
+  /// No description provided for @title_required.
+  ///
+  /// In en, this message translates to:
+  /// **'Title is required'**
+  String get title_required;
+
+  /// No description provided for @category_required.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a category'**
+  String get category_required;
+
+  /// No description provided for @level_required.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a level'**
+  String get level_required;
+
+  /// No description provided for @looking_for_required.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter what you want'**
+  String get looking_for_required;
+
+  /// No description provided for @portfolio_required.
+  ///
+  /// In en, this message translates to:
+  /// **'Portfolio link or document is required'**
+  String get portfolio_required;
+
+  /// No description provided for @select_category_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a category'**
+  String get select_category_hint;
+
+  /// No description provided for @experience_level_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your experience level'**
+  String get experience_level_hint;
+
+  /// No description provided for @category_all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get category_all;
+
+  /// No description provided for @category_design.
+  ///
+  /// In en, this message translates to:
+  /// **'Design'**
+  String get category_design;
+
+  /// No description provided for @category_coding.
+  ///
+  /// In en, this message translates to:
+  /// **'Coding'**
+  String get category_coding;
+
+  /// No description provided for @category_photos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get category_photos;
+
+  /// No description provided for @category_data_analysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Analysis'**
+  String get category_data_analysis;
+
+  /// No description provided for @category_ai.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get category_ai;
+
+  /// No description provided for @category_music.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get category_music;
+
+  /// No description provided for @category_drawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawing'**
+  String get category_drawing;
+
+  /// No description provided for @your_student.
+  ///
+  /// In en, this message translates to:
+  /// **'Your student'**
+  String get your_student;
+
+  /// No description provided for @your_instructor.
+  ///
+  /// In en, this message translates to:
+  /// **'Your instructor'**
+  String get your_instructor;
+
+  /// No description provided for @with_partner.
+  ///
+  /// In en, this message translates to:
+  /// **'With'**
+  String get with_partner;
+
+  /// No description provided for @join.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get join;
+
+  /// No description provided for @looking_for_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking For:'**
+  String get looking_for_label;
+
   /// No description provided for @enter_title_and_file_warning.
   ///
   /// In en, this message translates to:

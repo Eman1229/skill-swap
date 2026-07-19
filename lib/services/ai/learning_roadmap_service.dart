@@ -78,9 +78,22 @@ class LearningRoadmapService {
 
       // 3. Fetch current progress
       final progressDoc = await _db.collection('roadmap_progress').doc(uid).get();
-      final progress = progressDoc.exists
-          ? RoadmapProgress.fromMap(progressDoc.data()!)
-          : RoadmapProgress.empty();
+      RoadmapProgress progress;
+      if (!progressDoc.exists || (progressDoc.data()?['currentRoadmapId'] as String? ?? '').isEmpty) {
+        // Auto-initialize or repair progress doc with currentRoadmapId
+        final initialProgress = {
+          'currentRoadmapId': latestId,
+          'completedTaskIds': progressDoc.exists ? List<String>.from(progressDoc.data()?['completedTaskIds'] ?? []) : <String>[],
+          'completedMilestoneIds': progressDoc.exists ? List<String>.from(progressDoc.data()?['completedMilestoneIds'] ?? []) : <String>[],
+          'overallPercent': progressDoc.exists ? (progressDoc.data()?['overallPercent'] as num?)?.toDouble() ?? 0.0 : 0.0,
+          'currentStage': progressDoc.exists ? (progressDoc.data()?['currentStage'] as num?)?.toInt() ?? 1 : 1,
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        await _db.collection('roadmap_progress').doc(uid).set(initialProgress, SetOptions(merge: true));
+        progress = RoadmapProgress.fromMap(initialProgress);
+      } else {
+        progress = RoadmapProgress.fromMap(progressDoc.data()!);
+      }
 
       // 4. Map and apply progress to stages and tasks
       final baseRoadmap = LearningRoadmapModel.fromMap(roadmapData, roadmapDoc.id);

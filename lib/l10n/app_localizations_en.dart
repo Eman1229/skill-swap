@@ -9,6 +9,118 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get category_digital_marketing => 'Digital Marketing';
+
+  @override
+  String get category_others => 'Others';
+
+  @override
+  String get category_creative_design => 'Creative & Design';
+
+  @override
+  String get category_tech_digital => 'Tech & Digital';
+
+  @override
+  String get category_entrepreneurship => 'Entrepreneurship';
+
+  @override
+  String get category_professional_growth => 'Professional Growth';
+
+  @override
+  String get category_language => 'Language';
+
+  @override
+  String get category_music_art => 'Music & Art';
+
+  @override
+  String get category_lifestyle => 'Lifestyle';
+
+  @override
+  String get category_tutoring => 'Tutoring';
+
+  @override
+  String get level_beginner => 'Beginner';
+
+  @override
+  String get level_intermediate => 'Intermediate';
+
+  @override
+  String get level_advanced => 'Advanced';
+
+  @override
+  String get level_expert => 'Expert';
+
+  @override
+  String get title_hint => 'e.g. Web Engineering';
+
+  @override
+  String get looking_for_hint => 'Exchange skill preferences';
+
+  @override
+  String get description_hint =>
+      'Describe your skill, experience level and what you can offer...';
+
+  @override
+  String get title_required => 'Title is required';
+
+  @override
+  String get category_required => 'Please select a category';
+
+  @override
+  String get level_required => 'Please select a level';
+
+  @override
+  String get looking_for_required => 'Please enter what you want';
+
+  @override
+  String get portfolio_required => 'Portfolio link or document is required';
+
+  @override
+  String get select_category_hint => 'Select a category';
+
+  @override
+  String get experience_level_hint => 'Your experience level';
+
+  @override
+  String get category_all => 'All';
+
+  @override
+  String get category_design => 'Design';
+
+  @override
+  String get category_coding => 'Coding';
+
+  @override
+  String get category_photos => 'Photos';
+
+  @override
+  String get category_data_analysis => 'Data Analysis';
+
+  @override
+  String get category_ai => 'AI';
+
+  @override
+  String get category_music => 'Music';
+
+  @override
+  String get category_drawing => 'Drawing';
+
+  @override
+  String get your_student => 'Your student';
+
+  @override
+  String get your_instructor => 'Your instructor';
+
+  @override
+  String get with_partner => 'With';
+
+  @override
+  String get join => 'Join';
+
+  @override
+  String get looking_for_label => 'Looking For:';
+
+  @override
   String get enter_title_and_file_warning =>
       'Please enter a title and choose a file.';
 

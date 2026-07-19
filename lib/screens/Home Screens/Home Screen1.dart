@@ -433,7 +433,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                               child: Text(
-                                _categories[index],
+                                "category_${_categories[index].toLowerCase().replaceAll(' ', '_')}".tr(),
                                 style: TextStyle(
                                   color: selected
                                       ? Theme.of(context).colorScheme.onSurface

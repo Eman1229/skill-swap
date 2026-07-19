@@ -143,43 +143,56 @@ class SwapRequestRepository {
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    final String offeredSkill = request.offeredSkill;
-    final String targetUserId = uid == request.senderId ? request.receiverId : request.senderId;
-    final String myName = _auth.currentUser?.displayName ?? 'Someone';
     await batch.commit();
 
-    if (status == SwapRequestStatus.accepted) {
-      await _exchangeService.createMissingSwapPairFromRequest(
-        requestId: requestId,
-        request: {
-          'senderId': request.senderId,
-          'receiverId': request.receiverId,
-          'senderName': request.senderName,
-          'receiverName': request.receiverName,
-          'offeredSkill': request.offeredSkill,
-          'requestedSkill': request.requestedSkill,
+    // Run the remaining heavy synchronization and notification tasks in background
+    _runPostRequestUpdateActions(requestId, request, status, uid);
+  }
+
+  void _runPostRequestUpdateActions(
+    String requestId,
+    SwapRequest request,
+    SwapRequestStatus status,
+    String uid,
+  ) async {
+    try {
+      if (status == SwapRequestStatus.accepted) {
+        await _exchangeService.createMissingSwapPairFromRequest(
+          requestId: requestId,
+          request: {
+            'senderId': request.senderId,
+            'receiverId': request.receiverId,
+            'senderName': request.senderName,
+            'receiverName': request.receiverName,
+            'offeredSkill': request.offeredSkill,
+            'requestedSkill': request.requestedSkill,
+            'conversationId': request.conversationId,
+          },
+        );
+      } else if (status == SwapRequestStatus.rejected ||
+          status == SwapRequestStatus.cancelled) {
+        await _exchangeService.syncParticipants([request.senderId, request.receiverId]);
+      }
+
+      final String offeredSkill = request.offeredSkill;
+      final String targetUserId = uid == request.senderId ? request.receiverId : request.senderId;
+      final String myName = _auth.currentUser?.displayName ?? 'Someone';
+      final statusText = status.name.toLowerCase();
+      
+      await _sendPushNotification(
+        receiverId: targetUserId,
+        title: status == SwapRequestStatus.accepted ? 'Swap Accepted! 🎉' : 'Swap Request Update',
+        body: '$myName $statusText your request for "$offeredSkill".',
+        data: {
+          'type': 'swap_request',
+          'requestId': requestId,
+          'status': status.name,
           'conversationId': request.conversationId,
         },
       );
-    } else if (status == SwapRequestStatus.rejected ||
-        status == SwapRequestStatus.cancelled) {
-      await _exchangeService.syncParticipants([request.senderId, request.receiverId]);
+    } catch (e) {
+      debugPrint("Error in background post-request status actions: $e");
     }
-
-    // Notify the other user of status change
-    final statusText = status.name.toLowerCase();
-    
-    await _sendPushNotification(
-      receiverId: targetUserId,
-      title: status == SwapRequestStatus.accepted ? 'Swap Accepted! 🎉' : 'Swap Request Update',
-      body: '$myName $statusText your request for "$offeredSkill".',
-      data: {
-        'type': 'swap_request',
-        'requestId': requestId,
-        'status': status.name,
-        'conversationId': request.conversationId,
-      },
-    );
   }
 
   /// Sends push notification to a specific user

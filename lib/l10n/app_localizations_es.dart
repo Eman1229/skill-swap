@@ -9,6 +9,119 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get category_digital_marketing => 'Marketing Digital';
+
+  @override
+  String get category_others => 'Otros';
+
+  @override
+  String get category_creative_design => 'Creativo y Diseño';
+
+  @override
+  String get category_tech_digital => 'Tecnología y Digital';
+
+  @override
+  String get category_entrepreneurship => 'Emprendimiento';
+
+  @override
+  String get category_professional_growth => 'Crecimiento Profesional';
+
+  @override
+  String get category_language => 'Idioma';
+
+  @override
+  String get category_music_art => 'Música y Arte';
+
+  @override
+  String get category_lifestyle => 'Estilo de vida';
+
+  @override
+  String get category_tutoring => 'Tutoría';
+
+  @override
+  String get level_beginner => 'Principiante';
+
+  @override
+  String get level_intermediate => 'Intermedio';
+
+  @override
+  String get level_advanced => 'Avanzado';
+
+  @override
+  String get level_expert => 'Experto';
+
+  @override
+  String get title_hint => 'ej. Ingeniería Web';
+
+  @override
+  String get looking_for_hint => 'Preferencias de intercambio de habilidades';
+
+  @override
+  String get description_hint =>
+      'Describe tu habilidad, nivel de experiencia y lo que puedes ofrecer...';
+
+  @override
+  String get title_required => 'El título es obligatorio';
+
+  @override
+  String get category_required => 'Por favor seleccione una categoría';
+
+  @override
+  String get level_required => 'Por favor seleccione un nivel';
+
+  @override
+  String get looking_for_required => 'Por favor ingrese lo que desea';
+
+  @override
+  String get portfolio_required =>
+      'Se requiere el enlace o documento del portafolio';
+
+  @override
+  String get select_category_hint => 'Seleccionar una categoría';
+
+  @override
+  String get experience_level_hint => 'Tu nivel de experiencia';
+
+  @override
+  String get category_all => 'Todo';
+
+  @override
+  String get category_design => 'Diseño';
+
+  @override
+  String get category_coding => 'Codificación';
+
+  @override
+  String get category_photos => 'Fotos';
+
+  @override
+  String get category_data_analysis => 'Análisis de Datos';
+
+  @override
+  String get category_ai => 'IA';
+
+  @override
+  String get category_music => 'Música';
+
+  @override
+  String get category_drawing => 'Dibujo';
+
+  @override
+  String get your_student => 'Tu estudiante';
+
+  @override
+  String get your_instructor => 'Tu instructor';
+
+  @override
+  String get with_partner => 'Con';
+
+  @override
+  String get join => 'Unirse';
+
+  @override
+  String get looking_for_label => 'Buscando:';
+
+  @override
   String get enter_title_and_file_warning =>
       'Por favor ingrese un título y elija un archivo.';
 

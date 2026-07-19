@@ -172,16 +172,68 @@ class AIRecommendationProvider extends ChangeNotifier {
   // ── Toggle Roadmap Task ─────────────────────────────────────────────
   Future<void> toggleRoadmapTask(String taskId, bool isCompleted) async {
     debugPrint('[AI Provider] toggleRoadmapTask called (taskId: $taskId, isCompleted: $isCompleted)');
+    
+    final originalRoadmap = _learningRoadmap;
+    
+    // 1. Perform Optimistic Update locally in memory
+    if (_learningRoadmap != null) {
+      try {
+        final updatedStages = _learningRoadmap!.stages.map((stage) {
+          final hasTask = stage.tasks.any((t) => t.id == taskId);
+          if (!hasTask) return stage;
+
+          final updatedTasks = stage.tasks.map((task) {
+            if (task.id == taskId) {
+              return task.copyWith(isCompleted: isCompleted);
+            }
+            return task;
+          }).toList();
+
+          final completedCount = updatedTasks.where((t) => t.isCompleted).length;
+          final totalCount = updatedTasks.isEmpty ? 1 : updatedTasks.length;
+          final completionPercent = completedCount / totalCount;
+
+          return stage.copyWith(
+            tasks: updatedTasks,
+            completionPercent: completionPercent,
+          );
+        }).toList();
+
+        final updatedMilestones = _learningRoadmap!.milestones.map((milestone) {
+          final stage = updatedStages.firstWhere(
+            (s) => s.stageNumber == milestone.stageNumber,
+            orElse: () => updatedStages.first,
+          );
+          final allStageCompleted = stage.tasks.isNotEmpty && stage.tasks.every((t) => t.isCompleted);
+          return milestone.copyWith(isCompleted: allStageCompleted);
+        }).toList();
+
+        _learningRoadmap = _learningRoadmap!.copyWith(
+          stages: updatedStages,
+          milestones: updatedMilestones,
+        );
+        notifyListeners();
+      } catch (e) {
+        debugPrint('[AI Provider] Optimistic update failed: $e');
+      }
+    }
+
     try {
+      // 2. Perform actual database write in the background
       await _roadmapService.toggleTaskCompletion(taskId, isCompleted);
       
-      // Reload only the roadmap to update UI dynamically without full reload
+      // 3. Silently fetch database ground truth to ensure absolute alignment
       final roadmap = await _roadmapService.getLatestRoadmap();
-      _learningRoadmap = roadmap;
-      notifyListeners();
+      if (roadmap != null) {
+        _learningRoadmap = roadmap;
+        notifyListeners();
+      }
     } catch (e, stack) {
       debugPrint('[AI Provider] toggleRoadmapTask error: $e\n$stack');
       _error = e.toString();
+      
+      // Rollback to original state on failure
+      _learningRoadmap = originalRoadmap;
       notifyListeners();
     }
   }

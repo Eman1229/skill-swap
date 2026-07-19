@@ -1132,7 +1132,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                 ),
               ),
               child: Text(
-                _categories[index],
+                "category_${_categories[index].toLowerCase().replaceAll(' ', '_')}".tr(),
                 style: TextStyle(
                   color: selected
                       ? Theme.of(context).colorScheme.onSurface
@@ -1350,7 +1350,7 @@ class HorizontalSwapCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────
 // LIVE SESSION CARD
 // ─────────────────────────────────────────────────────────────────────
-class LiveSessionCard extends StatelessWidget {
+class LiveSessionCard extends StatefulWidget {
   final SessionModel session;
   final bool highlighted;
 
@@ -1360,45 +1360,65 @@ class LiveSessionCard extends StatelessWidget {
     this.highlighted = false,
   });
 
+  @override
+  State<LiveSessionCard> createState() => _LiveSessionCardState();
+}
+
+class _LiveSessionCardState extends State<LiveSessionCard> {
+  bool _isLaunching = false;
+
   String _formatDateTime(BuildContext context) {
-    return '${session.date.day}/${session.date.month}/${session.date.year} at ${TimeOfDay.fromDateTime(session.date).format(context)}';
+    return '${widget.session.date.day}/${widget.session.date.month}/${widget.session.date.year} at ${TimeOfDay.fromDateTime(widget.session.date).format(context)}';
   }
 
   Future<void> _openMeetingLink(BuildContext context) async {
-    final meetingLink = session.meetingLink.trim();
-    if (meetingLink.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('no_meeting_link'.tr())),
+    if (_isLaunching) return;
+    setState(() {
+      _isLaunching = true;
+    });
+
+    try {
+      final meetingLink = widget.session.meetingLink.trim();
+      if (meetingLink.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('no_meeting_link'.tr())),
+        );
+        return;
+      }
+      final uri = Uri.tryParse(
+        meetingLink.contains('://') ? meetingLink : 'https://$meetingLink',
       );
-      return;
-    }
-    final uri = Uri.tryParse(
-      meetingLink.contains('://') ? meetingLink : 'https://$meetingLink',
-    );
-    if (uri == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('invalid_meeting_link'.tr())));
-      return;
-    }
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!context.mounted) return;
-    if (!launched) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('could_not_open_link'.tr())),
-      );
+      if (uri == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('invalid_meeting_link'.tr())));
+        return;
+      }
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!context.mounted) return;
+      if (!launched) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('could_not_open_link'.tr())),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLaunching = false;
+        });
+      }
     }
   }
 
   Future<String> _resolveOtherName(String? uid) async {
-    final isMentor = uid == session.mentorId;
-    final storedName = isMentor ? session.learnerName : session.mentorName;
+    final isMentor = uid == widget.session.mentorId;
+    final storedName = isMentor ? widget.session.learnerName : widget.session.mentorName;
     if (UserDisplayName.isUsable(storedName)) {
       return storedName.trim();
     }
 
-    final otherId = isMentor ? session.learnerId : session.mentorId;
-    final fallback = isMentor ? 'Your student' : 'Your instructor';
+    final otherId = isMentor ? widget.session.learnerId : widget.session.mentorId;
+    final fallback = isMentor ? 'your_student'.tr() : 'your_instructor'.tr();
     final resolved = await UserDisplayName.resolve(
       FirebaseFirestore.instance,
       otherId,
@@ -1409,15 +1429,15 @@ class LiveSessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = session.title.trim().isNotEmpty
-        ? session.title.trim()[0].toUpperCase()
+    final initials = widget.session.title.trim().isNotEmpty
+        ? widget.session.title.trim()[0].toUpperCase()
         : 'S';
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
-    final storedOtherName = uid == session.mentorId
-        ? session.learnerName.trim()
-        : session.mentorName.trim();
+    final storedOtherName = uid == widget.session.mentorId
+        ? widget.session.learnerName.trim()
+        : widget.session.mentorName.trim();
     final initialOtherName = UserDisplayName.isUsable(storedOtherName)
         ? storedOtherName
         : '';
@@ -1427,12 +1447,12 @@ class LiveSessionCard extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: highlighted
+          color: widget.highlighted
               ? Theme.of(context).colorScheme.primary
               : Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
-          width: highlighted ? 2 : 1,
+          width: widget.highlighted ? 2 : 1,
         ),
-        boxShadow: highlighted
+        boxShadow: widget.highlighted
             ? [
                 BoxShadow(
                   color: Theme.of(
@@ -1445,7 +1465,7 @@ class LiveSessionCard extends StatelessWidget {
             : null,
       ),
       child: InkWell(
-        onTap: () => _openMeetingLink(context),
+        onTap: _isLaunching ? null : () => _openMeetingLink(context),
         borderRadius: BorderRadius.circular(18),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1475,7 +1495,7 @@ class LiveSessionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      session.title,
+                      widget.session.title,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
@@ -1490,11 +1510,11 @@ class LiveSessionCard extends StatelessWidget {
                         final otherName =
                             UserDisplayName.isUsable(snapshot.data)
                             ? snapshot.data!.trim()
-                            : uid == session.mentorId
+                            : uid == widget.session.mentorId
                             ? 'Your student'
                             : 'Your instructor';
                         return Text(
-                          'With $otherName',
+                          "${'with_partner'.tr()} $otherName",
                           style: TextStyle(
                             color: Theme.of(
                               context,
@@ -1507,7 +1527,7 @@ class LiveSessionCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${_formatDateTime(context)} - ${session.meetingLink}',
+                      '${_formatDateTime(context)} - ${widget.session.meetingLink}',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 11,
@@ -1519,8 +1539,9 @@ class LiveSessionCard extends StatelessWidget {
                 ),
               ),
               _GradientButton(
-                label: 'Join',
-                onTap: () => _openMeetingLink(context),
+                label: 'join'.tr(),
+                isLoading: _isLaunching,
+                onTap: _isLaunching ? null : () => _openMeetingLink(context),
               ),
             ],
           ),
@@ -1528,7 +1549,7 @@ class LiveSessionCard extends StatelessWidget {
       ),
     );
 
-    if (highlighted) {
+    if (widget.highlighted) {
       return AnimatedGradientBorder(child: card);
     }
     return card;
@@ -1540,21 +1561,30 @@ class LiveSessionCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────
 class _GradientButton extends StatelessWidget {
   final String label;
-  final VoidCallback onTap;
-  const _GradientButton({required this.label, required this.onTap});
+  final VoidCallback? onTap;
+  final bool isLoading;
+
+  const _GradientButton({
+    required this.label,
+    required this.onTap,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.primary,
-            const Color(0xFF6B8AFF),
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+        gradient: onTap == null
+            ? null
+            : LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  const Color(0xFF6B8AFF),
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+        color: onTap == null ? Colors.grey.withOpacity(0.3) : null,
         borderRadius: BorderRadius.circular(20),
       ),
       child: TextButton(
@@ -1564,14 +1594,25 @@ class _GradientButton extends StatelessWidget {
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Text(
+                label,
+                style: TextStyle(
+                  color: onTap == null
+                      ? Colors.grey
+                      : Theme.of(context).colorScheme.onSurface,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }

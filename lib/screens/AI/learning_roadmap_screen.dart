@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/providers/ai/ai_recommendation_provider.dart';
 import 'package:skill_swap/models/ai/learning_roadmap_model.dart';
 import 'package:skill_swap/screens/AI/roadmap_all_steps_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LearningRoadmapScreen extends StatefulWidget {
   const LearningRoadmapScreen({super.key});
@@ -408,58 +409,84 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
         if (res.type.toLowerCase() == 'video') resIcon = Icons.play_circle_outline_rounded;
         if (res.type.toLowerCase() == 'course') resIcon = Icons.school_rounded;
 
-        return Container(
+        return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
+            side: BorderSide(
               color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
             ),
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(resIcon, color: primaryColor, size: 20),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      res.title,
-                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${res.platform} • ${res.type}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () async {
+              if (res.url.isNotEmpty) {
+                final uri = Uri.tryParse(res.url);
+                if (uri != null) {
+                  try {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Could not open link: ${res.url}')),
+                    );
+                  }
+                }
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
                 children: [
-                  Text(
-                    '${res.learnersCount}',
-                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: primaryColor),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(resIcon, color: primaryColor, size: 20),
                   ),
-                  const Text(
-                    'LEARNERS',
-                    style: TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.bold),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          res.title,
+                          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${res.platform} • ${res.type}',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${res.learnersCount}',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: primaryColor),
+                      ),
+                      const Text(
+                        'LEARNERS',
+                        style: TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 10),
+                  Icon(
+                    Icons.open_in_new_rounded,
+                    size: 16,
+                    color: isDark ? Colors.white38 : Colors.black38,
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         );
       },

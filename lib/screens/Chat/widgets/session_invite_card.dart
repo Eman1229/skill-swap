@@ -10,7 +10,7 @@ import 'package:skill_swap/services/session_reminder_service.dart';
 import 'package:skill_swap/utils/user_display_name.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class SessionInviteCard extends StatelessWidget {
+class SessionInviteCard extends StatefulWidget {
   final String sessionId;
   final String swapId;
   final bool isMine; // True if the current user created the session invitation
@@ -23,24 +23,32 @@ class SessionInviteCard extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<SessionInviteCard> createState() => _SessionInviteCardState();
+}
+
+class _SessionInviteCardState extends State<SessionInviteCard> {
+  bool _isProcessing = false;
+  String? _loadingAction; // 'accept', 'reject', 'complete', 'join'
+
+  @override
   Widget build(BuildContext context) {
     context.watch<LanguageProvider>();
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
-    if (sessionId.isEmpty || swapId.isEmpty) {
+    if (widget.sessionId.isEmpty || widget.swapId.isEmpty) {
       return Center(
         child: Text(
           'Error: sessionId or swapId is empty!',
-          style: TextStyle(color: Colors.red),
+          style: const TextStyle(color: Colors.red),
         ),
       );
     }
 
     final sessionRef = FirebaseFirestore.instance
         .collection('swaps')
-        .doc(swapId)
+        .doc(widget.swapId)
         .collection('sessions')
-        .doc(sessionId);
+        .doc(widget.sessionId);
 
     return StreamBuilder<DocumentSnapshot>(
       stream: sessionRef.snapshots(),
@@ -178,7 +186,7 @@ class SessionInviteCard extends StatelessWidget {
                     ),
 
                     // Actions
-                    if (status == 'pending' && !isMine) ...[
+                    if (status == 'pending' && !widget.isMine) ...[
                       const SizedBox(height: 20),
                       Row(
                         children: [
@@ -186,11 +194,14 @@ class SessionInviteCard extends StatelessWidget {
                             child: _ActionButton(
                               label: 'REJECT',
                               color: Colors.redAccent,
-                              onPressed: () => _updateSessionStatus(
-                                context,
-                                sessionRef,
-                                'rejected',
-                              ),
+                              isLoading: _isProcessing && _loadingAction == 'rejected',
+                              onPressed: _isProcessing
+                                  ? null
+                                  : () => _updateSessionStatus(
+                                        context,
+                                        sessionRef,
+                                        'rejected',
+                                      ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -199,11 +210,14 @@ class SessionInviteCard extends StatelessWidget {
                               label: 'ACCEPT',
                               color: badgeColor,
                               isPrimary: true,
-                              onPressed: () => _updateSessionStatus(
-                                context,
-                                sessionRef,
-                                'accepted',
-                              ),
+                              isLoading: _isProcessing && _loadingAction == 'accepted',
+                              onPressed: _isProcessing
+                                  ? null
+                                  : () => _updateSessionStatus(
+                                        context,
+                                        sessionRef,
+                                        'accepted',
+                                      ),
                             ),
                           ),
                         ],
@@ -214,14 +228,16 @@ class SessionInviteCard extends StatelessWidget {
                       const SizedBox(height: 20),
                       Row(
                         children: [
-                          if (isMine) ...[
+                          if (widget.isMine) ...[
                             Expanded(
                               child: _ActionButton(
                                 label: 'COMPLETE',
                                 color: Colors.greenAccent,
                                 textColor: Colors.black,
-                                onPressed: () =>
-                                    _completeSession(context, sessionRef),
+                                isLoading: _isProcessing && _loadingAction == 'complete',
+                                onPressed: _isProcessing
+                                    ? null
+                                    : () => _completeSession(context, sessionRef),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -231,8 +247,10 @@ class SessionInviteCard extends StatelessWidget {
                               label: 'JOIN MEETING',
                               color: badgeColor,
                               isPrimary: true,
-                              onPressed: () =>
-                                  _openMeetingLink(context, meetingLink),
+                              isLoading: _isProcessing && _loadingAction == 'join',
+                              onPressed: _isProcessing
+                                  ? null
+                                  : () => _handleJoinMeeting(meetingLink),
                             ),
                           ),
                         ],
@@ -246,6 +264,24 @@ class SessionInviteCard extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _handleJoinMeeting(String meetingLink) async {
+    if (_isProcessing) return;
+    setState(() {
+      _isProcessing = true;
+      _loadingAction = 'join';
+    });
+    try {
+      await _openMeetingLink(context, meetingLink);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _loadingAction = null;
+        });
+      }
+    }
   }
 
   Future<void> _openMeetingLink(
@@ -282,67 +318,30 @@ class SessionInviteCard extends StatelessWidget {
     DocumentReference sessionRef,
     String newStatus,
   ) async {
+    setState(() {
+      _isProcessing = true;
+      _loadingAction = newStatus;
+    });
+
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      // Fetch session details to get title and creator ID
-      final sessionSnap = await sessionRef.get();
-      final sessionData = sessionSnap.data() as Map<String, dynamic>?;
-      final String sessionTitle = sessionData?['title'] ?? 'Session';
-
-      // The creator is the parent chat message sender (which is the mentor)
-      // Let's retrieve other details from the parent swap Listing
       final swapDoc = await FirebaseFirestore.instance
           .collection('swaps')
-          .doc(swapId)
+          .doc(widget.swapId)
           .get();
       final swapData = swapDoc.data();
-      final String mentorId = swapData?['mentorId'] ?? '';
-      final String learnerId = swapData?['learnerId'] ?? '';
-
-      final String targetUserId = uid == mentorId ? learnerId : mentorId;
-      final mentorName = await UserDisplayName.resolve(
-        FirebaseFirestore.instance,
-        mentorId,
-        fallback: UserDisplayName.isUsable(sessionData?['mentorName'])
-            ? sessionData!['mentorName'].toString().trim()
-            : UserDisplayName.isUsable(swapData?['mentorName'])
-            ? swapData!['mentorName'].toString().trim()
-            : '',
-        authDisplayName: uid == mentorId
-            ? FirebaseAuth.instance.currentUser?.displayName
-            : null,
-      );
-      final learnerName = await UserDisplayName.resolve(
-        FirebaseFirestore.instance,
-        learnerId,
-        fallback: UserDisplayName.isUsable(sessionData?['learnerName'])
-            ? sessionData!['learnerName'].toString().trim()
-            : UserDisplayName.isUsable(swapData?['learnerName'])
-            ? swapData!['learnerName'].toString().trim()
-            : '',
-        authDisplayName: uid == learnerId
-            ? FirebaseAuth.instance.currentUser?.displayName
-            : null,
-      );
-      final rawSenderName = uid == mentorId ? mentorName : learnerName;
-      final senderName = UserDisplayName.isUsable(rawSenderName)
-          ? rawSenderName
-          : 'Someone';
+      final String convoId = swapData?['conversationId'] ?? '';
 
       final batch = FirebaseFirestore.instance.batch();
       batch.update(sessionRef, {
         'status': newStatus,
-        if (UserDisplayName.isUsable(mentorName)) 'mentorName': mentorName,
-        if (UserDisplayName.isUsable(learnerName)) 'learnerName': learnerName,
         'statusUpdatedAt': FieldValue.serverTimestamp(),
         if (newStatus == 'accepted') 'acceptedAt': FieldValue.serverTimestamp(),
         if (newStatus == 'rejected') 'rejectedAt': FieldValue.serverTimestamp(),
       });
 
-      // Inject message to chat
-      final String convoId = swapData?['conversationId'] ?? '';
       if (convoId.isNotEmpty) {
         final msgRef = FirebaseFirestore.instance
             .collection('conversations')
@@ -372,19 +371,88 @@ class SessionInviteCard extends StatelessWidget {
       }
 
       await batch.commit();
+
+      // Trigger background calculations and updates asynchronously
+      _runPostSessionUpdateBackgroundActions(uid, newStatus, sessionRef, swapData);
+
+    } catch (e) {
+      debugPrint("Error updating session status: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating status: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _loadingAction = null;
+        });
+      }
+    }
+  }
+
+  void _runPostSessionUpdateBackgroundActions(
+    String uid,
+    String newStatus,
+    DocumentReference sessionRef,
+    Map<String, dynamic>? swapData,
+  ) async {
+    try {
+      final sessionSnap = await sessionRef.get();
+      final sessionData = sessionSnap.data() as Map<String, dynamic>?;
+      final String sessionTitle = sessionData?['title'] ?? 'Session';
+
+      final String mentorId = swapData?['mentorId'] ?? '';
+      final String learnerId = swapData?['learnerId'] ?? '';
+      final String targetUserId = uid == mentorId ? learnerId : mentorId;
+
+      final mentorName = await UserDisplayName.resolve(
+        FirebaseFirestore.instance,
+        mentorId,
+        fallback: UserDisplayName.isUsable(sessionData?['mentorName'])
+            ? sessionData!['mentorName'].toString().trim()
+            : UserDisplayName.isUsable(swapData?['mentorName'])
+            ? swapData!['mentorName'].toString().trim()
+            : '',
+        authDisplayName: uid == mentorId
+            ? FirebaseAuth.instance.currentUser?.displayName
+            : null,
+      );
+      final learnerName = await UserDisplayName.resolve(
+        FirebaseFirestore.instance,
+        learnerId,
+        fallback: UserDisplayName.isUsable(sessionData?['learnerName'])
+            ? sessionData!['learnerName'].toString().trim()
+            : UserDisplayName.isUsable(swapData?['learnerName'])
+            ? swapData!['learnerName'].toString().trim()
+            : '',
+        authDisplayName: uid == learnerId
+            ? FirebaseAuth.instance.currentUser?.displayName
+            : null,
+      );
+
+      final rawSenderName = uid == mentorId ? mentorName : learnerName;
+      final senderName = UserDisplayName.isUsable(rawSenderName) ? rawSenderName : 'Someone';
+
+      if (UserDisplayName.isUsable(mentorName) || UserDisplayName.isUsable(learnerName)) {
+        await sessionRef.update({
+          if (UserDisplayName.isUsable(mentorName)) 'mentorName': mentorName,
+          if (UserDisplayName.isUsable(learnerName)) 'learnerName': learnerName,
+        });
+      }
+
       await _deleteSessionNotification(uid);
 
       if (newStatus == 'accepted') {
         final dateField = sessionData?['date'] ?? sessionData?['sessionDate'];
-        final DateTime? startTime = dateField is Timestamp
-            ? dateField.toDate()
-            : null;
+        final DateTime? startTime = dateField is Timestamp ? dateField.toDate() : null;
         if (startTime != null) {
           final reminderService = SessionReminderService();
           final otherName = await reminderService.resolveOtherUserName(
             SessionModel(
-              id: sessionId,
-              swapId: swapId,
+              id: widget.sessionId,
+              swapId: widget.swapId,
               title: sessionTitle,
               date: startTime,
               duration: sessionData?['duration'] ?? '',
@@ -402,21 +470,21 @@ class SessionInviteCard extends StatelessWidget {
             uid,
           );
           await reminderService.scheduleSessionReminder(
-            sessionId: sessionId,
-            swapId: swapId,
+            sessionId: widget.sessionId,
+            swapId: widget.swapId,
             sessionStartTime: startTime,
             otherUserName: otherName,
           );
         }
       } else if (newStatus == 'rejected') {
         await SessionReminderService().disableSessionReminders(
-          sessionId: sessionId,
-          swapId: swapId,
+          sessionId: widget.sessionId,
+          swapId: widget.swapId,
         );
       }
 
-      // Send real-time notification
       if (targetUserId.isNotEmpty) {
+        final String convoId = swapData?['conversationId'] ?? '';
         final String notificationTitle = newStatus == 'accepted'
             ? 'Session Accepted! 🎉'
             : 'Session Declined';
@@ -439,15 +507,15 @@ class SessionInviteCard extends StatelessWidget {
           'imageUrl': '',
           'data': {
             'conversationId': convoId,
-            'sessionId': sessionId,
-            'swapId': swapId,
+            'sessionId': widget.sessionId,
+            'swapId': widget.swapId,
             'type': 'session',
             'status': newStatus,
           },
         });
       }
     } catch (e) {
-      debugPrint("Error updating session status: $e");
+      debugPrint("Error in background post-session update actions: $e");
     }
   }
 
@@ -464,7 +532,7 @@ class SessionInviteCard extends StatelessWidget {
       if (data['type'] != 'session') continue;
       final payload = data['data'];
       if (payload is! Map<String, dynamic>) continue;
-      if (payload['sessionId'] == sessionId || payload['swapId'] == swapId) {
+      if (payload['sessionId'] == widget.sessionId || payload['swapId'] == widget.swapId) {
         batch.delete(doc.reference);
         hasDeletes = true;
       }
@@ -478,28 +546,26 @@ class SessionInviteCard extends StatelessWidget {
     BuildContext context,
     DocumentReference sessionRef,
   ) async {
+    setState(() {
+      _isProcessing = true;
+      _loadingAction = 'complete';
+    });
+
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      // 1. Fetch swap and session data
       final parentSwapRef = FirebaseFirestore.instance
           .collection('swaps')
-          .doc(swapId);
+          .doc(widget.swapId);
       final swapSnap = await parentSwapRef.get();
       if (!swapSnap.exists) return;
 
       final sData = swapSnap.data();
-      final String learnerId = sData?['learnerId'] ?? '';
-
-      final sessionSnap = await sessionRef.get();
-      final sessionData = sessionSnap.data() as Map<String, dynamic>?;
-      final String sessionTitle = sessionData?['title'] ?? 'Session';
+      final String convoId = sData?['conversationId'] ?? '';
 
       final batch = FirebaseFirestore.instance.batch();
 
-      // Inject complete message to chat room
-      final String convoId = sData?['conversationId'] ?? '';
       if (convoId.isNotEmpty) {
         final msgRef = FirebaseFirestore.instance
             .collection('conversations')
@@ -525,13 +591,50 @@ class SessionInviteCard extends StatelessWidget {
       }
 
       await batch.commit();
+
       await SkillExchangeService().completeSessionAndSync(
-        swapId: swapId,
-        sessionId: sessionId,
+        swapId: widget.swapId,
+        sessionId: widget.sessionId,
       );
+
+      _runPostSessionCompleteBackgroundActions(uid, sessionRef, sData);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('session_completed_success'.tr()),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error completing session: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _loadingAction = null;
+        });
+      }
+    }
+  }
+
+  void _runPostSessionCompleteBackgroundActions(
+    String uid,
+    DocumentReference sessionRef,
+    Map<String, dynamic>? sData,
+  ) async {
+    try {
+      final String learnerId = sData?['learnerId'] ?? '';
+      final String convoId = sData?['conversationId'] ?? '';
+
+      final sessionSnap = await sessionRef.get();
+      final sessionData = sessionSnap.data() as Map<String, dynamic>?;
+      final String sessionTitle = sessionData?['title'] ?? 'Session';
+
       await SessionReminderService().disableSessionReminders(
-        sessionId: sessionId,
-        swapId: swapId,
+        sessionId: widget.sessionId,
+        swapId: widget.swapId,
       );
 
       final mentorName = await UserDisplayName.resolve(
@@ -542,11 +645,8 @@ class SessionInviteCard extends StatelessWidget {
             : '',
         authDisplayName: FirebaseAuth.instance.currentUser?.displayName,
       );
-      final displayMentorName = UserDisplayName.isUsable(mentorName)
-          ? mentorName
-          : 'Someone';
+      final displayMentorName = UserDisplayName.isUsable(mentorName) ? mentorName : 'Someone';
 
-      // 3. Send Completed Notification to the learner
       if (learnerId.isNotEmpty) {
         await FirebaseFirestore.instance.collection('notifications').add({
           'senderId': uid,
@@ -555,8 +655,7 @@ class SessionInviteCard extends StatelessWidget {
           'receiverId': learnerId,
           'type': 'session',
           'title': 'Session Completed! 🎉',
-          'body':
-              'Your session "$sessionTitle" with $displayMentorName has been completed.',
+          'body': 'Your session "$sessionTitle" with $displayMentorName has been completed.',
           'isRead': false,
           'createdAt': FieldValue.serverTimestamp(),
           'actionRoute': '/chat',
@@ -564,22 +663,15 @@ class SessionInviteCard extends StatelessWidget {
           'imageUrl': '',
           'data': {
             'conversationId': convoId,
-            'sessionId': sessionId,
-            'swapId': swapId,
+            'sessionId': widget.sessionId,
+            'swapId': widget.swapId,
             'type': 'session',
             'status': 'completed',
           },
         });
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('session_completed_success'.tr()),
-          backgroundColor: Colors.green,
-        ),
-      );
     } catch (e) {
-      debugPrint("Error completing session: $e");
+      debugPrint("Error in background session complete actions: $e");
     }
   }
 }
@@ -650,9 +742,10 @@ class _InfoRow extends StatelessWidget {
 class _ActionButton extends StatelessWidget {
   final String label;
   final Color color;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool isPrimary;
   final Color? textColor;
+  final bool isLoading;
 
   const _ActionButton({
     required this.label,
@@ -660,6 +753,7 @@ class _ActionButton extends StatelessWidget {
     required this.onPressed,
     this.isPrimary = false,
     this.textColor,
+    this.isLoading = false,
   });
 
   @override
@@ -667,17 +761,22 @@ class _ActionButton extends StatelessWidget {
     final defaultTextColor = isPrimary
         ? Theme.of(context).colorScheme.onSurface
         : color;
-    final finalTextColor = textColor ?? defaultTextColor;
+    final finalTextColor = onPressed == null ? Colors.grey : (textColor ?? defaultTextColor);
 
     return SizedBox(
       height: 42, // Scaled down for card layout
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isPrimary ? color : Colors.transparent,
+          backgroundColor: onPressed == null
+              ? Colors.grey.withOpacity(0.1)
+              : (isPrimary ? color : Colors.transparent),
           foregroundColor: finalTextColor,
           elevation: 0,
-          side: BorderSide(color: color, width: 1.5),
+          side: BorderSide(
+            color: onPressed == null ? Colors.grey : color,
+            width: 1.5,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(
               12,
@@ -685,14 +784,23 @@ class _ActionButton extends StatelessWidget {
           ),
           padding: EdgeInsets.zero,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13, // Scaled down for card layout
-            fontWeight: FontWeight.bold,
-            color: finalTextColor,
-          ),
-        ),
+        child: isLoading
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(finalTextColor),
+                ),
+              )
+            : Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13, // Scaled down for card layout
+                  fontWeight: FontWeight.bold,
+                  color: finalTextColor,
+                ),
+              ),
       ),
     );
   }
