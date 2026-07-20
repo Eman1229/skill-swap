@@ -314,8 +314,7 @@ class _ConfirmSwapScreenState extends State<ConfirmSwapScreen> {
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(
                             color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4)),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         padding: EdgeInsets.symmetric(vertical: 14),
                         backgroundColor:
                         Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
@@ -336,19 +335,15 @@ class _ConfirmSwapScreenState extends State<ConfirmSwapScreen> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(30),
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(15),
                       ),
                       child: ElevatedButton(
                         onPressed: _isSending ? null : _handleConfirmSwap,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          shape: StadiumBorder(),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           padding: EdgeInsets.symmetric(vertical: 14),
                         ),
                         child: _isSending
@@ -394,7 +389,7 @@ class _InfoChip extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(

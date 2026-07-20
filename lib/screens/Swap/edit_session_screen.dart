@@ -528,9 +528,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
               side: BorderSide(
                 color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
               ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             child: Text(
@@ -546,20 +544,15 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
         Expanded(
           child: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).colorScheme.primary,
-                  const Color(0xFF6B8AFF),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(30),
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(15),
             ),
             child: ElevatedButton(
               onPressed: _updateSession,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
-                shape: const StadiumBorder(),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: const Text(

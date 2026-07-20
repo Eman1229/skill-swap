@@ -96,9 +96,7 @@ class SkillSelectionScaffold extends StatelessWidget {
                     backgroundColor: const Color(0xFF00C2FF),
                     disabledBackgroundColor: Colors.grey[800],
                     elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
                   child: Text(
                     'next'.tr(),
@@ -280,9 +278,7 @@ class OtherSkillScaffold extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00C2FF),
                     elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
                   child: Text(
                     'next'.tr(),

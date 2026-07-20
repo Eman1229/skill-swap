@@ -55,8 +55,8 @@ class UiHelper {
             fontSize: 14,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-          prefixIcon: SizedBox(
-            width: 68,
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 4),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -65,16 +65,17 @@ class UiHelper {
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   size: 20,
                 ),
-                SizedBox(width: 12),
+                SizedBox(width: 8),
                 Container(
                   height: 20,
                   width: 1,
                   color: Theme.of(context).colorScheme.outlineVariant,
                 ),
-                SizedBox(width: 12),
+                SizedBox(width: 8),
               ],
             ),
           ),
+          prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
           suffixIcon: suffixIcon,
           contentPadding: EdgeInsets.symmetric(vertical: 12),
           errorStyle: TextStyle(color: Color(0xFFFF3B3B), fontSize: 12),

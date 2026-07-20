@@ -191,9 +191,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
       ),
       switchTheme: _buildSwitchTheme(colorScheme),
@@ -238,9 +236,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
       ),
       cardColor: const Color(0xFF1E293B),

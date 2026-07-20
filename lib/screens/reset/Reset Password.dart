@@ -197,9 +197,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(context).colorScheme.primary,
                             disabledBackgroundColor: Theme.of(context).colorScheme.primary.withAlpha(102),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           ),
                           child: loading
                               ? SizedBox(

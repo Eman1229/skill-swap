@@ -249,7 +249,7 @@ class _ActionButton extends StatelessWidget {
           foregroundColor: finalTextColor,
           elevation: 0,
           side: BorderSide(color: color, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           padding: EdgeInsets.zero,
         ),
         child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: finalTextColor)),

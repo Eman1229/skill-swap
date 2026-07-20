@@ -91,9 +91,7 @@ class _TeachOthersScreenState extends State<TeachOthersScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00C2FF),
                     elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
                   onPressed: _skillController.text.trim().isEmpty
                       ? null

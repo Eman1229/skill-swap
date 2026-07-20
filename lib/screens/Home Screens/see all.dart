@@ -169,15 +169,9 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
                       padding: EdgeInsets.symmetric(
                           horizontal: 18, vertical: 8),
                       decoration: BoxDecoration(
-                        gradient: selected
-                            ? LinearGradient(
-                          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                            : null,
-                        color: selected ? null : Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(20),
+                        
+                        color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(15),
                         border: Border.all(
                           color: selected
                               ? Colors.transparent

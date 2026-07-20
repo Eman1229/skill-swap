@@ -168,12 +168,8 @@ class _ProfileAvatarState extends State<ProfileAvatar> {
                       width: cameraIconSize + 6,
                       height: cameraIconSize + 6,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
+                        color: Theme.of(context).colorScheme.primary,
+            borderRadius: BorderRadius.circular(15),
                         border: Border.all(
                           color:
                               widget.borderColor ?? Theme.of(context).scaffoldBackgroundColor,
@@ -333,9 +329,7 @@ class _ImageSourceSheet extends StatelessWidget {
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 14),
                   backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
                 child: Text(
                   'Cancel',
@@ -832,9 +826,7 @@ class ProfileScreen extends StatelessWidget {
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(
                               color: Theme.of(context).colorScheme.primary, width: 1.5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           padding: EdgeInsets.symmetric(vertical: 14),
                         ),
                         child: Text(
@@ -851,12 +843,8 @@ class ProfileScreen extends StatelessWidget {
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          borderRadius: BorderRadius.circular(30),
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(15),
                         ),
                         child: ElevatedButton(
                           onPressed: () async {
@@ -889,7 +877,7 @@ class ProfileScreen extends StatelessWidget {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,
-                            shape: StadiumBorder(),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                             padding: EdgeInsets.symmetric(vertical: 14),
                           ),
                           child: Text(

@@ -413,20 +413,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                gradient: selected
-                                    ? LinearGradient(
-                                  colors: [
-                                    Theme.of(context).colorScheme.primary,
-                                    Color(0xFF6B8AFF),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                )
-                                    : null,
-                                color: selected
-                                    ? null
-                                    : Theme.of(context).colorScheme.surface,
-                                borderRadius: BorderRadius.circular(20),
+                                
+                                color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                                borderRadius: BorderRadius.circular(15),
                                 border: Border.all(
                                   color: selected
                                       ? Colors.transparent
@@ -549,22 +538,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                 SizedBox(height: 24),
                                 Container(
                                   decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Theme.of(context).colorScheme.primary,
-                                        Color(0xFF6B8AFF),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(30),
+                                    color: Theme.of(context).colorScheme.primary,
+                                    borderRadius: BorderRadius.circular(15),
                                   ),
                                   child: ElevatedButton(
                                     onPressed: _openOfferSkill,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.transparent,
                                       shadowColor: Colors.transparent,
-                                      shape: StadiumBorder(),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                                       padding: EdgeInsets.symmetric(
                                         horizontal: 36,
                                         vertical: 14,
@@ -636,18 +618,14 @@ class _HomeScreenState extends State<HomeScreen> {
       // ── Gradient FAB ──────────────────────────────────────────────
       floatingActionButton: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          shape: BoxShape.circle,
+          color: Theme.of(context).colorScheme.primary,
+            borderRadius: BorderRadius.circular(15),
         ),
         child: FloatingActionButton(
           onPressed: _openOfferSkill,
           backgroundColor: Colors.transparent,
           elevation: 0,
-          shape: CircleBorder(),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           child: Icon(Icons.add, color: Theme.of(context).colorScheme.onSurface, size: 30),
         ),
       ),

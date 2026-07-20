@@ -188,9 +188,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                             backgroundColor: Theme.of(context).colorScheme.primary,
                             disabledBackgroundColor:
                             Theme.of(context).colorScheme.primary.withAlpha(102),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           ),
                           child: loading
                               ? SizedBox(
@@ -529,9 +527,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             backgroundColor: Theme.of(context).colorScheme.primary,
                             disabledBackgroundColor:
                             Theme.of(context).colorScheme.primary.withOpacity(0.4),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           ),
                           child: loading
                               ? SizedBox(
