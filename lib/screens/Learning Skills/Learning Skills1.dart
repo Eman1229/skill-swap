@@ -1,5 +1,7 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/SkillsChoose/skill_selection_layout.dart';
 
@@ -15,6 +17,7 @@ class _LearningSkill1State extends State<LearningSkill1> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return OtherSkillScaffold(
       title: "what_want_learn".tr(),
       controller: _skillController,

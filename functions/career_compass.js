@@ -113,9 +113,9 @@ Return ONLY this JSON structure (no other text):
 Generate 4-5 career paths. fitScore 0-100. demandIndicator: "High", "Medium", or "Low".`;
 
   const apiKey = await getOpenAiKey();
-  const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
+  const fetchFn = typeof globalThis.fetch === 'function' ? globalThis.fetch : (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetchFn('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

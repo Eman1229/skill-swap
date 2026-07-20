@@ -42,8 +42,8 @@ exports.getEmbedding = functions.https.onCall(async (data, context) => {
 
   const apiKey = await getOpenAiKey();
 
-  const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
+  const fetchFn = typeof globalThis.fetch === 'function' ? globalThis.fetch : (...args) => import('node-fetch').then(({ default: f }) => f(...args));
+  const response = await fetchFn('https://api.openai.com/v1/embeddings', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

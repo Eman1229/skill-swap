@@ -65,7 +65,12 @@ class AIRecommendationService {
   // ── Staleness & Auto-Regeneration ──────────────────────────────────
   Future<void> refreshIfStale({String? careerGoal, bool force = false}) async {
     final uid = _auth.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) {
+      print('AIRecommendationService: refreshIfStale aborted - uid is null');
+      return;
+    }
+
+    print('AIRecommendationService: refreshIfStale called with force=$force, careerGoal=$careerGoal');
 
     try {
       // 0. Auto-sync profile stats from ground-truth swaps in Firestore
@@ -77,6 +82,8 @@ class AIRecommendationService {
       final currentSkills = List<String>.from(userData['learningSkills'] ?? []);
       final currentSwapCount = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
       final currentRating = (userData['averageRating'] as num?)?.toDouble() ?? 0.0;
+
+      print('AIRecommendationService: currentSwapCount=$currentSwapCount, skills=${currentSkills.length}, rating=$currentRating');
 
       // Check if Firestore already has fresh career recommendation
       bool isCareerDbFresh = false;
@@ -98,22 +105,25 @@ class AIRecommendationService {
               if (triggerData != null) {
                 final dbSwapCount = (triggerData['completedSwaps'] as num?)?.toInt() ?? 0;
                 final dbSkills = List<String>.from(triggerData['skillsLearned'] ?? []);
+                print('AIRecommendationService: dbSwapCount=$dbSwapCount, dbSkills=${dbSkills.length}');
                 if (dbSwapCount >= currentSwapCount && _listsEqual(dbSkills, currentSkills)) {
                   isCareerDbFresh = true;
                   await _cache.markCareerFresh(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
-                  debugPrint('AIRecommendationService: Firestore career recommendation is already fresh (swaps: $dbSwapCount). Skipping generation.');
+                  print('AIRecommendationService: Firestore career recommendation is already fresh (swaps: $dbSwapCount). Skipping generation.');
                 }
               }
             }
           }
         }
       } catch (e) {
-        debugPrint('AIRecommendationService: Error checking career db freshness: $e');
+        print('AIRecommendationService: Error checking career db freshness: $e');
       }
 
       // 2. Refresh Mentors
       final mentorStale = await _cache.isMentorStale(uid, currentSkills: currentSkills, currentSwapCount: currentSwapCount);
+      print('AIRecommendationService: mentorStale=$mentorStale');
       if (mentorStale || force) {
+        print('AIRecommendationService: Computing mentor recommendations...');
         await _mentorService.computeRecommendations();
         await _cache.markMentorFresh(uid, currentSkills: currentSkills, currentSwapCount: currentSwapCount);
         await _repository.logGeneration(userId: uid, type: 'mentor_generation', success: true);
@@ -121,7 +131,9 @@ class AIRecommendationService {
 
       // 3. Refresh Career Recommendations
       final careerStale = await _cache.isCareerStale(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
+      print('AIRecommendationService: careerStale=$careerStale, isCareerDbFresh=$isCareerDbFresh');
       if ((careerStale && !isCareerDbFresh) || force) {
+        print('AIRecommendationService: Triggering career recommendation generation...');
         await _careerService.generateRecommendation(careerGoal: careerGoal);
         await _cache.markCareerFresh(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
         await _repository.logGeneration(userId: uid, type: 'career_generation', success: true);

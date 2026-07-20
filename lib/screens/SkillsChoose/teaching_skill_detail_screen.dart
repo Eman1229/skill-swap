@@ -1,7 +1,9 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
@@ -62,6 +64,7 @@ class TeachingSkillDetailScreen extends StatefulWidget {
 class _TeachingSkillDetailScreenState extends State<TeachingSkillDetailScreen> {
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -343,8 +346,7 @@ class _TeachingSkillDetailScreenState extends State<TeachingSkillDetailScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'delete'.tr(),
+            child: Text('delete'.tr(),
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
@@ -416,7 +418,7 @@ class _TeachingSkillDetailScreenState extends State<TeachingSkillDetailScreen> {
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   child: SegmentedButton<AssetType>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                         value: AssetType.pdf,
                         label: Text('PDF'),
@@ -424,12 +426,12 @@ class _TeachingSkillDetailScreenState extends State<TeachingSkillDetailScreen> {
                       ),
                       ButtonSegment(
                         value: AssetType.video,
-                        label: Text('Video'),
+                        label: Text('video'.tr()),
                         icon: Icon(Icons.movie),
                       ),
                       ButtonSegment(
                         value: AssetType.link,
-                        label: Text('Link'),
+                        label: Text('link'.tr()),
                         icon: Icon(Icons.link),
                       ),
                     ],

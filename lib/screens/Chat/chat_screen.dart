@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -176,6 +179,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -314,7 +318,7 @@ class _ChatScreenState extends State<ChatScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
         ),
-        child: const Text('Explore Now!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+        child: Text('explore_now'.tr(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
       ),
     );
   }
@@ -327,7 +331,7 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Suggested Mentors', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('suggested_mentors'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
               GestureDetector(
                 onTap: () => setState(() => _showAllMentors = !_showAllMentors),
                 child: Text(_showAllMentors ? 'Show Less' : 'See All', style: const TextStyle(color: Color(0xFF00C2FF), fontSize: 13, fontWeight: FontWeight.w500)),
@@ -420,7 +424,7 @@ class _ChatScreenState extends State<ChatScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 20, bottom: 12),
-          child: Text('Recent Mentors', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 15, fontWeight: FontWeight.bold)),
+          child: Text('recent_mentors'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 15, fontWeight: FontWeight.bold)),
         ),
         SizedBox(
           height: 90,
@@ -451,13 +455,13 @@ class _ChatScreenState extends State<ChatScreen> {
       await _chatRepo.markAllConversationsAsRead();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All messages marked as read')),
+          SnackBar(content: Text('all_messages_read'.tr())),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error marking messages as read: $e')),
+          SnackBar(content: Text("${'error_marking_read'.tr()}: $e")),
         );
       }
     }
@@ -481,15 +485,13 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           actions: <Widget>[
             TextButton(
-              child: Text(
-                'Cancel',
+              child: Text('cancel'.tr(),
                 style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
               ),
               onPressed: () => Navigator.of(context).pop(false),
             ),
             TextButton(
-              child: const Text(
-                'Clear All',
+              child: Text('clear_all'.tr(),
                 style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
               ),
               onPressed: () => Navigator.of(context).pop(true),
@@ -504,13 +506,13 @@ class _ChatScreenState extends State<ChatScreen> {
         await _chatRepo.clearAllConversations();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('All chats cleared successfully')),
+            SnackBar(content: Text('all_chats_cleared'.tr())),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error clearing chats: $e')),
+            SnackBar(content: Text("${'error_clearing_chats'.tr()}: $e")),
           );
         }
       }
@@ -538,7 +540,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text('Messages', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold)),
+                child: Text('messages'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold)),
               ),
               if (currentUid.isNotEmpty)
                 _ThreeDotMenu(
@@ -563,7 +565,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 onChanged: _onMessageChanged,
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: 'Search conversations...',
+                  hintText:'search_conversations'.tr(),
                   hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6), fontSize: 13),
                   suffixIcon: Icon(Icons.search_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5), size: 20),
                   border: InputBorder.none,
@@ -633,7 +635,7 @@ class _ThreeDotMenu extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Mute Notifications', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13)),
+                  Text('mute_notifications'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13)),
                   Switch(
                     value: isMuted,
                     onChanged: (v) async {
@@ -655,12 +657,12 @@ class _ThreeDotMenu extends StatelessWidget {
             ),
             PopupMenuItem(
               value: 'mark',
-              child: Text('Mark all as read', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13)),
+              child: Text('mark_all_read'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13)),
             ),
             const PopupMenuDivider(),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'clear',
-              child: Text('Clear all chats', style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
+              child: Text('clear_all_chats'.tr(), style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
             ),
           ],
         );

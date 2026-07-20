@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,6 +12,7 @@ import 'package:skill_swap/screens/Chat/widgets/swap_request_card.dart';
 import 'package:skill_swap/screens/Chat/widgets/session_invite_card.dart';
 import 'package:skill_swap/services/fcm_service.dart';
 import 'package:skill_swap/screens/widgets/report_user_dialog.dart';
+import 'package:skill_swap/models/message.dart';
 
 class ConversationScreen extends StatefulWidget {
   final SwapListing swap;
@@ -26,8 +30,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
   final ScrollController _scrollController = ScrollController();
 
   String? _conversationId;
-  Stream<List<QueryDocumentSnapshot>>? _messagesStream;
+  Stream<List<ChatMessage>>? _messagesStream;
   Stream<ChatUserProfile>? _profileStream;
+  final Map<String, ChatMessage> _localMessages = {};
 
   // Pagination parameters
   int _limit = 20;
@@ -50,8 +55,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   Future<void> _initialize() async {
-    await _initConversation();
-    await _checkMessagePermissions();
+    await Future.wait([
+      _initConversation(),
+      _checkMessagePermissions(),
+    ]);
   }
 
   Future<void> _checkMessagePermissions() async {
@@ -235,8 +242,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
             final docs = snap.docs;
             // Mark incoming messages as read dynamically in background
             _markMessagesAsReadInStream(docs);
-            // Reverse list to display chronological ascending order
-            return docs.reversed.toList();
+            // Reverse list to display chronological ascending order and map to ChatMessage
+            return docs.reversed
+                .map((doc) => ChatMessage.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+                .toList();
           });
     });
   }
@@ -326,7 +335,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   Future<void> sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+    final trimmedText = text.trim();
+    if (trimmedText.isEmpty) return;
+
+    // Clear input controller immediately to prevent multiple submissions / duplicate messages
+    _msgController.clear();
 
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
@@ -334,41 +347,120 @@ class _ConversationScreenState extends State<ConversationScreen> {
     final otherId = widget.swap.userId ?? '';
     String convoId = _conversationId ?? '';
 
-    // If it is the first message in the conversation, dynamically create the conversation doc
+    // Generate local message ID and create an optimistic message object
+    final String tempMessageId = FirebaseFirestore.instance
+        .collection('conversations')
+        .doc(convoId.isEmpty ? 'dummy' : convoId)
+        .collection('messages')
+        .doc()
+        .id;
+
+    final optimisticMessage = ChatMessage(
+      id: tempMessageId,
+      senderId: uid,
+      text: trimmedText,
+      timestamp: Timestamp.now(),
+      status: MessageStatus.sending,
+      type: 'text',
+    );
+
+    setState(() {
+      _localMessages[tempMessageId] = optimisticMessage;
+    });
+
+    if (_shouldScrollToBottom) {
+      _scrollToBottom();
+    }
+
+    Map<String, dynamic>? newConvoData;
     if (convoId.isEmpty) {
       if (otherId.isEmpty) return;
 
       final newConvoRef = FirebaseFirestore.instance.collection('conversations').doc();
       convoId = newConvoRef.id;
 
-      await newConvoRef.set({
+      newConvoData = {
         'participants': [uid, otherId],
-        'lastMessage': text,
-        'lastMessageAt': FieldValue.serverTimestamp(),
         'skill': widget.swap.offering,
         'wanting': widget.swap.wanting,
         'unreadCount': {
           uid: 0,
           otherId: 1,
         },
-      });
+      };
 
       setState(() {
         _conversationId = convoId;
       });
       _updateMessagesStream();
-    } 
-
-    await _chatRepo.sendMessage(
-      conversationId: convoId,
-      text: text.trim(),
-      type: 'text',
-    );
-
-    _msgController.clear();
-    if (_shouldScrollToBottom) {
-      _scrollToBottom();
     }
+
+    // Call Repository in the background
+    _chatRepo.sendMessage(
+      conversationId: convoId,
+      text: trimmedText,
+      type: 'text',
+      messageId: tempMessageId,
+      participants: [uid, otherId],
+      newConvoData: newConvoData,
+    ).then((_) {
+      // Message successfully sent
+    }).catchError((error) {
+      if (mounted) {
+        setState(() {
+          _localMessages[tempMessageId] = ChatMessage(
+            id: tempMessageId,
+            senderId: uid,
+            text: trimmedText,
+            timestamp: optimisticMessage.timestamp,
+            status: MessageStatus.failed,
+            type: 'text',
+          );
+        });
+      }
+    });
+  }
+
+  void _retryMessage(ChatMessage msg) {
+    if (msg.status != MessageStatus.failed) return;
+
+    setState(() {
+      _localMessages[msg.id] = ChatMessage(
+        id: msg.id,
+        senderId: msg.senderId,
+        text: msg.text,
+        timestamp: Timestamp.now(),
+        status: MessageStatus.sending,
+        type: msg.type,
+      );
+    });
+
+    final uid = _auth.currentUser?.uid ?? '';
+    final otherId = widget.swap.userId ?? '';
+    final String convoId = _conversationId ?? '';
+
+    _chatRepo.sendMessage(
+      conversationId: convoId,
+      text: msg.text.trim(),
+      type: msg.type,
+      messageId: msg.id,
+      participants: [uid, otherId],
+    ).then((_) {
+      // Success
+    }).catchError((error) {
+      if (mounted) {
+        setState(() {
+          _localMessages[msg.id] = ChatMessage(
+            id: msg.id,
+            senderId: msg.senderId,
+            text: msg.text,
+            timestamp: msg.timestamp,
+            status: MessageStatus.failed,
+            type: msg.type,
+          );
+        });
+      }
+    });
   }
 
   void _scrollToBottom() {
@@ -400,6 +492,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final uid = _auth.currentUser?.uid ?? '';
 
     return Scaffold(
@@ -435,15 +528,22 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   : _conversationId!.isEmpty
                       ? _buildEmptyChat()
                       : _messagesStream != null 
-                        ? StreamBuilder<List<QueryDocumentSnapshot>>(
+                        ? StreamBuilder<List<ChatMessage>>(
                             stream: _messagesStream,
                             builder: (context, snap) {
                               if (snap.connectionState == ConnectionState.waiting && !snap.hasData) {
                                 return const Center(child: CircularProgressIndicator(color: Color(0xFF00C2FF)));
                               }
 
-                              final docs = snap.data ?? [];
-                              if (docs.isEmpty) {
+                              final streamMsgs = snap.data ?? [];
+                              final displayMsgs = List<ChatMessage>.from(streamMsgs);
+                              for (final localMsg in _localMessages.values) {
+                                if (!displayMsgs.any((m) => m.id == localMsg.id)) {
+                                  displayMsgs.add(localMsg);
+                                }
+                              }
+
+                              if (displayMsgs.isEmpty) {
                                 return _buildEmptyChat();
                               }
 
@@ -455,35 +555,38 @@ class _ConversationScreenState extends State<ConversationScreen> {
                               return ListView.builder(
                                 controller: _scrollController,
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                itemCount: docs.length + 1,
+                                itemCount: displayMsgs.length + 1,
                                 itemBuilder: (_, i) {
                                   if (i == 0) {
                                     return const _DateChip(label: 'Today');
                                   }
-                                  final d = docs[i - 1].data() as Map<String, dynamic>;
-                                  final isMine = d['senderId'] == uid;
-                                  final type = d['type'] as String? ?? 'text';
+                                  final chatMsg = displayMsgs[i - 1];
+                                  final isMine = chatMsg.senderId == uid;
+                                  final type = chatMsg.type;
 
                                   if (type == 'swap_request') {
                                     return SwapRequestCard(
-                                      requestId: d['requestId'] ?? '',
+                                      requestId: chatMsg.requestId ?? '',
                                       isMine: isMine,
                                     );
                                   }
 
                                   if (type == 'session_invite') {
                                     return SessionInviteCard(
-                                      sessionId: d['sessionId'] ?? '',
-                                      swapId: d['swapId'] ?? '',
+                                      sessionId: chatMsg.sessionId ?? '',
+                                      swapId: chatMsg.swapId ?? '',
                                       isMine: isMine,
                                     );
                                   }
 
                                   return _MessageBubble(
-                                    text: d['text'] as String? ?? '',
+                                    text: chatMsg.text,
                                     isMine: isMine,
-                                    timestamp: d['timestamp'] as Timestamp?,
-                                    status: d['status'] as String? ?? 'sent',
+                                    timestamp: chatMsg.timestamp,
+                                    status: chatMsg.status.name,
+                                    onRetry: chatMsg.status == MessageStatus.failed
+                                        ? () => _retryMessage(chatMsg)
+                                        : null,
                                   );
                                 },
                               );
@@ -522,7 +625,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(profile.name, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 15)),
               if (_otherTyping)
-                Text('Typing...', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontStyle: FontStyle.italic)),
+                Text('typing'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontStyle: FontStyle.italic)),
               if (!_otherTyping)
                 Row(children: [
                   Container(width: 6, height: 6, margin: const EdgeInsets.only(right: 5), decoration: BoxDecoration(color: profile.isOnline ? const Color(0xFF22C55E) : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), shape: BoxShape.circle)),
@@ -556,7 +659,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   children: [
                     const Icon(Icons.report_gmailerrorred_rounded, color: Colors.redAccent, size: 20),
                     const SizedBox(width: 12),
-                    Text('Report User', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
+                    Text('report_user'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
                   ],
                 ),
               ),
@@ -572,7 +675,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(width: 70, height: 70, decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.surface, border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2))), child: Icon(Icons.chat_bubble_outline_rounded, color: Theme.of(context).colorScheme.primary, size: 30)),
         const SizedBox(height: 14),
-        Text('Start Chatting With ${widget.swap.name}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
+        Text("${'start_chatting_with'.tr()} ${widget.swap.name}", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
       ]),
     );
   }
@@ -609,7 +712,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                 controller: _msgController,
                 onChanged: _onMessageChanged,
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
-                decoration: InputDecoration(hintText: 'Type A Message...', hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), fontSize: 13), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
+                decoration: InputDecoration(hintText:'type_message'.tr(), hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), fontSize: 13), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
                 onSubmitted: sendMessage,
               ),
             ),
@@ -643,8 +746,15 @@ class _MessageBubble extends StatelessWidget {
   final bool isMine;
   final Timestamp? timestamp;
   final String status;
+  final VoidCallback? onRetry;
 
-  const _MessageBubble({required this.text, required this.isMine, this.timestamp, required this.status});
+  const _MessageBubble({
+    required this.text,
+    required this.isMine,
+    this.timestamp,
+    required this.status,
+    this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -672,10 +782,30 @@ class _MessageBubble extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(timeStr, style: TextStyle(color: Theme.of(context).colorScheme.outlineVariant, fontSize: 10)),
+                if (status != 'failed' && status != 'sending')
+                  Text(timeStr, style: TextStyle(color: Theme.of(context).colorScheme.outlineVariant, fontSize: 10)),
+                if (status == 'sending')
+                  const Text('Sending...', style: TextStyle(color: Colors.grey, fontSize: 10, fontStyle: FontStyle.italic)),
                 if (isMine) ...[
                   const SizedBox(width: 4),
                   _buildStatusTick(),
+                ],
+                if (isMine && status == 'failed' && onRetry != null) ...[
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: onRetry,
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Failed. Tap to retry',
+                          style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(width: 2),
+                        Icon(Icons.refresh_rounded, color: Colors.redAccent, size: 12),
+                      ],
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -686,7 +816,18 @@ class _MessageBubble extends StatelessWidget {
   }
 
   Widget _buildStatusTick() {
-    if (status == 'read') {
+    if (status == 'sending') {
+      return const SizedBox(
+        width: 10,
+        height: 10,
+        child: CircularProgressIndicator(
+          strokeWidth: 1.5,
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
+        ),
+      );
+    } else if (status == 'failed') {
+      return const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 13);
+    } else if (status == 'read') {
       return const Icon(Icons.done_all_rounded, color: Color(0xFF00C2FF), size: 13);
     } else if (status == 'delivered') {
       return const Icon(Icons.done_all_rounded, color: Colors.grey, size: 13);

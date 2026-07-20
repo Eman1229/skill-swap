@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:skill_swap/models/swap_model.dart';
@@ -9,14 +12,14 @@ class CertificateScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final completedDate = swap.completedAt ?? DateTime.now();
     final dateStr = DateFormat('MMMM dd, yyyy').format(completedDate);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(
-          'Certificate',
+        title: Text('certificate'.tr(),
           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
@@ -58,8 +61,7 @@ class CertificateScreen extends StatelessWidget {
                       const SizedBox(height: 16),
 
                       // Certificate Title
-                      const Text(
-                        'Certificate of Completion',
+                      Text('certificate_of_completion'.tr(),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'Nunito',
@@ -72,8 +74,7 @@ class CertificateScreen extends StatelessWidget {
                       const SizedBox(height: 12),
 
                       // Sub-title
-                      Text(
-                        'This is to certify that',
+                      Text('this_is_to_certify'.tr(),
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 12,
@@ -137,8 +138,7 @@ class CertificateScreen extends StatelessWidget {
                               const SizedBox(height: 4),
                               Container(width: 80, height: 1, color: Colors.grey[400]),
                               const SizedBox(height: 4),
-                              Text(
-                                'Date',
+                              Text('date'.tr(),
                                 style: TextStyle(color: Colors.grey[500], fontSize: 9),
                               ),
                             ],
@@ -197,12 +197,11 @@ class CertificateScreen extends StatelessWidget {
                     child: TextButton.icon(
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Downloading certificate...')),
+                          SnackBar(content: Text('downloading_certificate'.tr())),
                         );
                       },
                       icon: const Icon(Icons.download_rounded, color: Colors.white),
-                      label: const Text(
-                        'Download',
+                      label: Text('download'.tr(),
                         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -219,12 +218,11 @@ class CertificateScreen extends StatelessWidget {
                     child: TextButton.icon(
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Sharing certificate...')),
+                          SnackBar(content: Text('sharing_certificate'.tr())),
                         );
                       },
                       icon: Icon(Icons.share_rounded, color: Theme.of(context).colorScheme.primary),
-                      label: Text(
-                        'Share',
+                      label: Text('share'.tr(),
                         style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
                       ),
                     ),

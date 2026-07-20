@@ -1,10 +1,10 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; //  Supabase instead of Firebase Storage
 import 'dart:io';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 
@@ -16,6 +16,25 @@ class OfferSkillScreen extends StatefulWidget {
 }
 
 class _OfferSkillScreenState extends State<OfferSkillScreen> {
+
+  String _translateItem(String item) {
+    final map = {
+      'Creative & Design': 'category_creative_design'.tr(),
+      'Tech & Digital': 'category_tech_digital'.tr(),
+      'Entrepreneurship': 'category_entrepreneurship'.tr(),
+      'Professional Growth': 'category_professional_growth'.tr(),
+      'Language': 'category_language'.tr(),
+      'Music & Art': 'category_music_art'.tr(),
+      'Lifestyle': 'category_lifestyle'.tr(),
+      'Tutoring': 'category_tutoring'.tr(),
+      'Beginner': 'level_beginner'.tr(),
+      'Intermediate': 'level_intermediate'.tr(),
+      'Advanced': 'level_advanced'.tr(),
+      'Expert': 'level_expert'.tr(),
+    };
+    return map[item] ?? item;
+  }
+
   final _formKey = GlobalKey<FormState>();
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -128,7 +147,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('File uploaded successfully ✓'),
+            content: Text('file_uploaded_success'.tr()),
             backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
@@ -138,7 +157,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Upload failed: $e'),
+            content: Text("${'upload_failed'.tr()}: $e"),
             backgroundColor: Color(0xFFFF3B3B),
           ),
         );
@@ -228,7 +247,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text("${'error'.tr()}: $e"),
             backgroundColor: Color(0xFFFF3B3B),
           ),
         );
@@ -260,7 +279,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       SizedBox(height: 8),
                       _buildTextField(
                         controller: _titleController,
-                        hint: 'e.g. Web Engineering',
+                        hint: 'title_hint'.tr(),
                         validator: (v) => v == null || v.trim().isEmpty
                             ? 'Title is required'
                             : null,
@@ -270,26 +289,26 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       _buildLabel('category_label'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildDropdown(
-                        hint: 'Select a category',
+                        hint: 'select_category_hint'.tr(),
                         value: _selectedCategory,
                         items: _categories,
                         onChanged: (v) =>
                             setState(() => _selectedCategory = v),
                         validator: (v) =>
-                        v == null ? 'Please select a category' : null,
+                        v == null ? 'category_required'.tr() : null,
                       ),
                       SizedBox(height: 20),
 
                       _buildLabel('experience_level'.tr(), required: true),
                       SizedBox(height: 8),
                       _buildDropdown(
-                        hint: 'Your experience level',
+                        hint: 'experience_level_hint'.tr(),
                         value: _selectedExperience,
                         items: _experienceLevels,
                         onChanged: (v) =>
                             setState(() => _selectedExperience = v),
                         validator: (v) =>
-                        v == null ? 'Please select a level' : null,
+                        v == null ? 'level_required'.tr() : null,
                       ),
                       SizedBox(height: 20),
 
@@ -297,7 +316,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       SizedBox(height: 8),
                       _buildTextField(
                         controller: _lookingForController,
-                        hint: 'Exchange skill preferences',
+                        hint: 'looking_for_hint'.tr(),
                         validator: (v) => v == null || v.trim().isEmpty
                             ? 'Please enter what you want'
                             : null,
@@ -348,7 +367,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             fontSize: 14,
           ),
           decoration: InputDecoration(
-            hintText: 'Paste a link or tap to upload a doc',
+            hintText:'paste_link_or_tap'.tr(),
             hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 13),
             filled: true,
             fillColor: Theme.of(context).colorScheme.surface,
@@ -369,7 +388,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                 : IconButton(
               icon: Icon(Icons.attach_file_rounded,
                   color: Theme.of(context).colorScheme.primary, size: 20),
-              tooltip: 'Upload portfolio doc',
+              tooltip:'upload_portfolio_doc'.tr(),
               onPressed: _pickedFile == null ? _pickAndUploadFile : null,
             ),
             border: OutlineInputBorder(
@@ -446,7 +465,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                   ),
                 ),
                 if (_isUploading)
-                  Text('Uploading…',
+                  Text('uploading'.tr(),
                       style: TextStyle(
                           color: Theme.of(context).colorScheme.primary, fontSize: 11))
                 else if (_uploadedFileUrl != null)
@@ -457,7 +476,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                       color: Theme.of(context).colorScheme.primary.withAlpha(38),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text('Uploaded ✓',
+                    child: Text('uploaded'.tr(),
                         style: TextStyle(
                             color: Theme.of(context).colorScheme.primary, fontSize: 11)),
                   ),
@@ -520,7 +539,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
                 fontSize: 13,
                 fontWeight: FontWeight.w600)),
         if (required)
-          Text(' *',
+          Text('*'.tr(),
               style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
       ],
     );
@@ -617,7 +636,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
       items: items
           .map((e) => DropdownMenuItem(
         value: e,
-        child: Text(e,
+        child: Text(_translateItem(e),
             style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface, fontSize: 14)),
       ))

@@ -1,10 +1,10 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_swap/models/notification_model.dart';
 import 'package:skill_swap/screens/Chat/conversation_screen.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Swap/course_assets_screen.dart';
 import 'package:skill_swap/services/notification_repository.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:intl/intl.dart';
     import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
@@ -60,8 +60,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(
-          'notifications'.tr(),
+        title: Text('notifications'.tr(),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
@@ -69,12 +68,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           IconButton(
             icon: const Icon(Icons.done_all_rounded, size: 22),
             onPressed: () => _repo.markAllAsRead(),
-            tooltip: 'Mark all as read',
+            tooltip:'mark_all_read'.tr(),
           ),
           IconButton(
             icon: const Icon(Icons.delete_sweep_outlined, size: 22),
             onPressed: () => _showClearAllDialog(),
-            tooltip: 'Clear all',
+            tooltip:'clear_all'.tr(),
           ),
         ],
       ),
@@ -287,7 +286,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00C2FF),
               ),
-              child: const Text("Retry", style: TextStyle(color: Colors.white)),
+              child: Text('retry'.tr(), style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -410,8 +409,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               _repo.clearAll();
               Navigator.pop(context);
             },
-            child: Text(
-              'clear'.tr(),
+            child: Text('clear'.tr(),
               style: const TextStyle(color: Colors.redAccent),
             ),
           ),

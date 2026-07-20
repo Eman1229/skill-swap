@@ -1,5 +1,5 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 
@@ -98,8 +98,7 @@ class SkillSelectionScaffold extends StatelessWidget {
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
-                  child: Text(
-                    'next'.tr(),
+                  child: Text('next'.tr(),
                     textScaler: TextScaler.noScaling,
                     style: const TextStyle(
                       color: Colors.white,
@@ -131,7 +130,7 @@ class _SkillTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     context.watch<LanguageProvider>();
-    final displayName = skill.name == 'Others' ? 'others' : skill.name;
+    final displayName = "category_${skill.name.toLowerCase().replaceAll(' ', '_')}".tr();
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -280,8 +279,7 @@ class OtherSkillScaffold extends StatelessWidget {
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
-                  child: Text(
-                    'next'.tr(),
+                  child: Text('next'.tr(),
                     textScaler: TextScaler.noScaling,
                     style: const TextStyle(
                       color: Colors.white,

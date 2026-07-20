@@ -1,12 +1,15 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Add%20skill/offer%20skill.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class NoSkillDialog extends StatelessWidget {
   NoSkillDialog({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Dialog(
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -70,8 +73,7 @@ class NoSkillDialog extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       padding: EdgeInsets.symmetric(vertical: 13),
                     ),
-                    child: Text(
-                      'cancel'.tr(),
+                    child: Text('cancel'.tr(),
                       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
                     ),
                   ),

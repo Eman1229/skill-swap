@@ -1,3 +1,5 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -118,6 +120,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -558,8 +561,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           ),
                           GestureDetector(
                             onTap: loading ? null : resendOtp,
-                            child: Text(
-                              'resend'.tr(),
+                            child: Text('resend'.tr(),
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontSize: 14,

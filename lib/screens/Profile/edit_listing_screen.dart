@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,7 +8,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class EditListingScreen extends StatefulWidget {
   final SwapListing listing;
@@ -16,6 +18,25 @@ class EditListingScreen extends StatefulWidget {
 }
 
 class _EditListingScreenState extends State<EditListingScreen> {
+
+  String _translateItem(String item) {
+    final map = {
+      'Creative & Design': 'category_creative_design'.tr(),
+      'Tech & Digital': 'category_tech_digital'.tr(),
+      'Entrepreneurship': 'category_entrepreneurship'.tr(),
+      'Professional Growth': 'category_professional_growth'.tr(),
+      'Language': 'category_language'.tr(),
+      'Music & Art': 'category_music_art'.tr(),
+      'Lifestyle': 'category_lifestyle'.tr(),
+      'Tutoring': 'category_tutoring'.tr(),
+      'Beginner': 'level_beginner'.tr(),
+      'Intermediate': 'level_intermediate'.tr(),
+      'Advanced': 'level_advanced'.tr(),
+      'Expert': 'level_expert'.tr(),
+    };
+    return map[item] ?? item;
+  }
+
   final _formKey = GlobalKey<FormState>();
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -145,7 +166,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('File uploaded successfully ✓'),
+            content: Text('file_uploaded_success'.tr()),
             backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
@@ -155,7 +176,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Upload failed: $e'),
+            content: Text("${'upload_failed'.tr()}: $e"),
             backgroundColor: const Color(0xFFFF3B3B),
           ),
         );
@@ -194,7 +215,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text("${'error'.tr()}: $e"),
             backgroundColor: const Color(0xFFFF3B3B),
           ),
         );
@@ -204,6 +225,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -223,30 +245,30 @@ class _EditListingScreenState extends State<EditListingScreen> {
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: _titleController,
-                        hint: 'e.g. Web Engineering',
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Title is required' : null,
+                        hint: 'title_hint'.tr(),
+                        validator: (v) => v == null || v.trim().isEmpty ? 'title_required'.tr() : null,
                       ),
                       const SizedBox(height: 20),
 
                       _buildLabel('category_label'.tr(), required: true),
                       const SizedBox(height: 8),
                       _buildDropdown(
-                        hint: 'Select a category',
+                        hint: 'select_category_hint'.tr(),
                         value: _selectedCategory,
                         items: _categories,
                         onChanged: (v) => setState(() => _selectedCategory = v),
-                        validator: (v) => v == null ? 'Please select a category' : null,
+                        validator: (v) => v == null ? 'category_required'.tr() : null,
                       ),
                       const SizedBox(height: 20),
 
                       _buildLabel('experience_level'.tr(), required: true),
                       const SizedBox(height: 8),
                       _buildDropdown(
-                        hint: 'Your experience level',
+                        hint: 'experience_level_hint'.tr(),
                         value: _selectedExperience,
                         items: _experienceLevels,
                         onChanged: (v) => setState(() => _selectedExperience = v),
-                        validator: (v) => v == null ? 'Please select a level' : null,
+                        validator: (v) => v == null ? 'level_required'.tr() : null,
                       ),
                       const SizedBox(height: 20),
 
@@ -254,8 +276,8 @@ class _EditListingScreenState extends State<EditListingScreen> {
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: _lookingForController,
-                        hint: 'Exchange skill preferences',
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Please enter what you want' : null,
+                        hint: 'looking_for_hint'.tr(),
+                        validator: (v) => v == null || v.trim().isEmpty ? 'looking_for_required'.tr() : null,
                       ),
                       const SizedBox(height: 20),
 
@@ -268,7 +290,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: _descriptionController,
-                        hint: 'Describe your skill, experience level and what you can offer…',
+                        hint: 'description_hint'.tr(),
                         maxLines: 4,
                       ),
                       const SizedBox(height: 36),
@@ -303,7 +325,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
             ),
           ),
           const SizedBox(width: 14),
-          Text('Edit Skill', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('edit_skill'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -313,7 +335,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
     return Row(
       children: [
         Text(text, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13, fontWeight: FontWeight.w600)),
-        if (required) const Text(' *', style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
+        if (required) Text('*'.tr(), style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
       ],
     );
   }
@@ -371,7 +393,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFFF3B3B))),
       ),
-      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)))).toList(),
+      items: items.map((e) => DropdownMenuItem(value: e, child: Text(_translateItem(e), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14)))).toList(),
     );
   }
 
@@ -382,10 +404,10 @@ class _EditListingScreenState extends State<EditListingScreen> {
         TextFormField(
           controller: _portfolioController,
           readOnly: _pickedFile != null,
-          validator: (v) => v == null || v.trim().isEmpty ? 'Portfolio link or document is required' : null,
+          validator: (v) => v == null || v.trim().isEmpty ? 'portfolio_required'.tr() : null,
           style: TextStyle(color: _pickedFile != null ? Theme.of(context).colorScheme.onSurfaceVariant : Theme.of(context).colorScheme.onSurface, fontSize: 14),
           decoration: InputDecoration(
-            hintText: 'Paste a link or tap to upload a doc',
+            hintText:'paste_link_or_tap'.tr(),
             hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), fontSize: 13),
             filled: true,
             fillColor: Theme.of(context).colorScheme.surface,
@@ -394,7 +416,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
                 ? Padding(padding: const EdgeInsets.all(12), child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary, strokeWidth: 2)))
                 : IconButton(
                     icon: Icon(Icons.attach_file_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
-                    tooltip: 'Upload portfolio doc',
+                    tooltip:'upload_portfolio_doc'.tr(),
                     onPressed: _pickedFile == null ? _pickAndUploadFile : null,
                   ),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2))),
@@ -414,7 +436,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
                 Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: Icon(Icons.insert_drive_file_rounded, color: Theme.of(context).colorScheme.primary, size: 18)),
                 const SizedBox(width: 10),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(_pickedFile!.name, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 12, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis), if (_pickedFile!.size > 0) Text('${(_pickedFile!.size / 1024).toStringAsFixed(1)} KB', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65), fontSize: 11))])),
-                if (_isUploading) Text('Uploading…', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 11)) else if (_uploadedFileUrl != null) Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)), child: Text('Uploaded ✓', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 11))),
+                if (_isUploading) Text('uploading'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 11)) else if (_uploadedFileUrl != null) Container(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)), child: Text('uploaded'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 11))),
                 const SizedBox(width: 8),
                 GestureDetector(onTap: _clearFile, child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: const Color(0xFFFF3B3B).withValues(alpha: 0.1), shape: BoxShape.circle), child: const Icon(Icons.close_rounded, color: Color(0xFFFF3B3B), size: 14))),
               ],
@@ -451,7 +473,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), padding: const EdgeInsets.symmetric(vertical: 14)),
               child: _isLoading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Update Skill', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  : Text('update_skill'.tr(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
             ),
           ),
         ),

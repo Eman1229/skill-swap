@@ -1,5 +1,7 @@
 // lib/screens/AI/career_compass_screen.dart
 
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -35,14 +37,14 @@ class _CareerCompassScreenState extends State<CareerCompassScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final provider = Provider.of<AIRecommendationProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Career Compass',
+        title: Text('career_compass'.tr(),
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
@@ -535,7 +537,7 @@ class _CareerCompassScreenState extends State<CareerCompassScreen> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to generate roadmap: $e')),
+          SnackBar(content: Text("${'failed_generate_roadmap'.tr()}: $e")),
         );
       }
     } finally {

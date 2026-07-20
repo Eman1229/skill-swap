@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Learning Skills/Learning Skills.dart';
 
@@ -27,6 +30,7 @@ class _TeachOthersScreenState extends State<TeachOthersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
@@ -38,8 +42,7 @@ class _TeachOthersScreenState extends State<TeachOthersScreen> {
           child: Column(
             children: [
               const SizedBox(height: 45),
-              const Text(
-                "What Can You Teach\nOthers?",
+              Text('what_can_teach_others'.tr(),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Color(0xFF00C2FF),
@@ -66,14 +69,14 @@ class _TeachOthersScreenState extends State<TeachOthersScreen> {
                     color: Colors.white,
                     fontSize: 13,
                   ),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
                     prefixIcon: Icon(
                       Icons.school_outlined,
                       color: Colors.grey,
                       size: 16,
                     ),
-                    hintText: "Skill Name",
+                    hintText:'skill_name'.tr(),
                     hintStyle: TextStyle(
                       color: Colors.white,
                       fontSize: 13,
@@ -104,8 +107,7 @@ class _TeachOthersScreenState extends State<TeachOthersScreen> {
                       ),
                     );
                   },
-                  child: const Text(
-                    "Next",
+                  child: Text('next'.tr(),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,

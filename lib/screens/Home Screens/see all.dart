@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -84,6 +87,7 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -139,7 +143,7 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
                   style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
                   onChanged: (v) => setState(() => _searchQuery = v),
                   decoration: InputDecoration(
-                    hintText: 'Search skills',
+                    hintText:'search_skills_hint'.tr(),
                     hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 14),
                     suffixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), size: 20),
                     border: InputBorder.none,
@@ -179,7 +183,7 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
                         ),
                       ),
                       child: Text(
-                        _categories[index],
+                        "category_${_categories[index].toLowerCase().replaceAll(' ', '_')}".tr(),
                         style: TextStyle(
                           color: selected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 13,
@@ -209,7 +213,7 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
                   }
                   if (snapshot.hasError) {
                     return Center(
-                      child: Text('Error: ${snapshot.error}',
+                      child: Text("${'error'.tr()}: ${snapshot.error}",
                           style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     );
                   }
@@ -226,7 +230,7 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
                           Icon(Icons.search_off_rounded,
                               color: Theme.of(context).colorScheme.primary, size: 48),
                           SizedBox(height: 14),
-                          Text('No swaps found',
+                          Text('no_swaps_found'.tr(),
                               style: TextStyle(
                                   color: Theme.of(context).colorScheme.onSurface,
                                   fontSize: 16,
@@ -440,7 +444,7 @@ class _SwapListTile extends StatelessWidget {
                                     ),
                                   ),
                                   SizedBox(width: 3),
-                                  Text('Live',
+                                  Text('live'.tr(),
                                       style: TextStyle(
                                           color: Theme.of(context).colorScheme.primary,
                                           fontSize: 9,

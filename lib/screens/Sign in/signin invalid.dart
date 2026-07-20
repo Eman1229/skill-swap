@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_swap/ui_helper/ui_helper.dart';
 
@@ -14,6 +17,7 @@ class _SignInScreenState extends State<SignInvalidScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Dark blue background
       body: SingleChildScrollView(
@@ -48,11 +52,10 @@ class _SignInScreenState extends State<SignInvalidScreen> {
                             color: Theme.of(context).colorScheme.onSurface,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text("Hi!", style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: Text('hi'.tr(), style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                         SizedBox(height: 10),
-                        Text(
-                          "Welcome\nBack!",
+                        Text('welcome_back'.tr(),
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 28,
@@ -85,8 +88,7 @@ class _SignInScreenState extends State<SignInvalidScreen> {
               padding: EdgeInsets.all(24.0),
               child: Column(
                 children: [
-                  Text(
-                    "Sign in",
+                  Text('sign_in'.tr(),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                       fontSize: 28,
@@ -140,8 +142,7 @@ class _SignInScreenState extends State<SignInvalidScreen> {
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
-                      child: Text(
-                        "Proceed",
+                      child: Text('proceed'.tr(),
                         style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 18,
@@ -159,18 +160,16 @@ class _SignInScreenState extends State<SignInvalidScreen> {
                     children: [
                       TextButton(
                         onPressed: () {},
-                        child: Text(
-                            "Forgot Password?",
+                        child: Text('forgot_password_title'.tr(),
                             style: TextStyle(color: Theme.of(context).colorScheme.primary)
                         ),
                       ),
                       Row(
                         children: [
-                          Text("New member? ", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                          Text('new_member_question'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                           GestureDetector(
                             onTap: () {},
-                            child: Text(
-                                "Sign up",
+                            child: Text('sign_up'.tr(),
                                 style: TextStyle(
                                     color: Theme.of(context).colorScheme.primary,
                                     fontWeight: FontWeight.bold

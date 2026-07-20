@@ -121,11 +121,7 @@ class CareerCompassService {
         learningStreak: (userData['learningStreak'] as num?)?.toInt() ?? 0,
         totalAchievements: (userData['totalAchievements'] as num?)?.toInt() ??
             (userData['unlockedBadges'] as num?)?.toInt() ?? 0,
-        successRate: (userData['successRate'] as num?)?.toDouble() ??
-            (userData['completedSwaps'] as num? ?? 0) /
-                ((userData['totalSessions'] as num? ?? 1) == 0
-                    ? 1
-                    : (userData['totalSessions'] as num).toInt()),
+        successRate: (userData['successRate'] as num?)?.toDouble() ?? 1.0,
       );
     } catch (e) {
       debugPrint('CareerCompassService._fetchUserProfile error: $e');

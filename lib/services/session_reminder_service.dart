@@ -1,3 +1,4 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -74,7 +75,7 @@ class SessionReminderService {
       await _scheduleOne(
         id: _id10(sessionId),
         fireAt: t10,
-        title: 'Upcoming Skill Swap Session',
+        title:'upcoming_session_title'.tr(),
         body: 'Your class starts in 10 minutes with $otherUserName.',
         sessionId: sessionId,
         swapId: swapId,
@@ -85,7 +86,7 @@ class SessionReminderService {
       await _scheduleOne(
         id: _id5(sessionId),
         fireAt: t5,
-        title: 'Session Starting Soon',
+        title:'session_starting_soon'.tr(),
         body: 'Your class starts in 5 minutes with $otherUserName.',
         sessionId: sessionId,
         swapId: swapId,

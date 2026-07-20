@@ -1,9 +1,11 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
 import 'package:skill_swap/screens/Swap/rate_feedback_screen.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 
 class ConfirmSwapCompletionScreen extends StatefulWidget {
   final String swapId;
@@ -39,8 +41,8 @@ class _ConfirmSwapCompletionScreenState extends State<ConfirmSwapCompletionScree
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Swap completed successfully!'),
+          SnackBar(
+            content: Text('swap_completed_success'.tr()),
             backgroundColor: Colors.green,
           ),
         );
@@ -63,7 +65,7 @@ class _ConfirmSwapCompletionScreenState extends State<ConfirmSwapCompletionScree
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text("${'error'.tr()}: ${e.toString()}"),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -73,6 +75,7 @@ class _ConfirmSwapCompletionScreenState extends State<ConfirmSwapCompletionScree
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -92,10 +95,10 @@ class _ConfirmSwapCompletionScreenState extends State<ConfirmSwapCompletionScree
             return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: Colors.redAccent)));
+            return Center(child: Text("${'error'.tr()}: ${snapshot.error}", style: TextStyle(color: Colors.redAccent)));
           }
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return Center(child: Text('Swap details not found.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)));
+            return Center(child: Text('swap_details_not_found'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)));
           }
 
           final swap = SwapModel.fromDoc(snapshot.data!);
@@ -195,8 +198,7 @@ class _ConfirmSwapCompletionScreenState extends State<ConfirmSwapCompletionScree
                 const SizedBox(height: 24),
 
                 // Checklist Title
-                Text(
-                  'Confirm Completion',
+                Text('confirm_completion'.tr(),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 16,
@@ -207,7 +209,7 @@ class _ConfirmSwapCompletionScreenState extends State<ConfirmSwapCompletionScree
 
                 // Checklist item 1
                 _buildChecklistItem(
-                  title: 'All planned lessons for "${swap.skillName}" are finished.',
+                  title: "${'all_lessons_for'.tr()} \"${swap.skillName}\" ${'completed'.tr()}",
                   value: _checked1,
                   onChanged: (val) => setState(() => _checked1 = val ?? false),
                 ),
@@ -215,7 +217,7 @@ class _ConfirmSwapCompletionScreenState extends State<ConfirmSwapCompletionScree
 
                 // Checklist item 2
                 _buildChecklistItem(
-                  title: 'I have successfully learned what was promised.',
+                  title:'learned_what_promised'.tr(),
                   value: _checked2,
                   onChanged: (val) => setState(() => _checked2 = val ?? false),
                 ),
@@ -223,7 +225,7 @@ class _ConfirmSwapCompletionScreenState extends State<ConfirmSwapCompletionScree
 
                 // Checklist item 3
                 _buildChecklistItem(
-                  title: 'I agree to finalize this exchange.',
+                  title:'agree_to_finalize'.tr(),
                   value: _checked3,
                   onChanged: (val) => setState(() => _checked3 = val ?? false),
                 ),
@@ -319,8 +321,7 @@ class _ConfirmSwapCompletionScreenState extends State<ConfirmSwapCompletionScree
               ),
             ),
             const SizedBox(height: 32),
-            const Text(
-              'Swap Already Completed',
+            Text('swap_already_completed'.tr(),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 22,
@@ -346,7 +347,7 @@ class _ConfirmSwapCompletionScreenState extends State<ConfirmSwapCompletionScree
                 minimumSize: const Size(double.infinity, 56),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
-              child: Text('back_to_home'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+              child: Text('back_to_home'.tr(), style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),

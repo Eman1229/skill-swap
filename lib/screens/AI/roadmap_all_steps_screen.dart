@@ -1,5 +1,7 @@
 // lib/screens/AI/roadmap_all_steps_screen.dart
 
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/ai/ai_recommendation_provider.dart';
@@ -10,6 +12,7 @@ class RoadmapAllStepsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final provider = Provider.of<AIRecommendationProvider>(context);
     final roadmap = provider.learningRoadmap;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -23,7 +26,7 @@ class RoadmapAllStepsScreen extends StatelessWidget {
         ),
       ),
       body: roadmap == null
-          ? const Center(child: Text('No active roadmap found.'))
+          ? Center(child: Text('no_active_roadmap_found'.tr()))
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: roadmap.stages.length,

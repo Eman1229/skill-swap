@@ -422,8 +422,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                 color: Theme.of(context).colorScheme.onSurface,
                                 strokeWidth: 2,
                               )
-                                  : Text(
-                                "proceed".tr(),
+                                  : Text('proceed'.tr(),
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.onSurface,
                                   fontSize: 18,

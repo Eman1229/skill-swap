@@ -1,10 +1,10 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Swap/my_learning_screen.dart';
 import 'package:skill_swap/screens/Swap/my_teaching_screen.dart';
 import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 

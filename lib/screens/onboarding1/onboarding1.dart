@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 
@@ -8,6 +11,7 @@ class OnBoardingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -15,12 +19,12 @@ class OnBoardingScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text("Welcome to SkillSwapX", style: TextStyle(fontFamily:"Nunito",fontSize: 26, fontWeight: FontWeight.w400,
+              Text('welcome_to_skillswap'.tr(), style: TextStyle(fontFamily:"Nunito",fontSize: 26, fontWeight: FontWeight.w400,
                   color: Theme.of(context).colorScheme.primary,
                 ), textAlign: TextAlign.center,
               ),
               SizedBox(height: 12),
-              Text("Trade Skills, Learn cool stuff, No money needed", style: TextStyle(fontSize: 14,
+              Text('onboard_slogan'.tr(), style: TextStyle(fontSize: 14,
                 fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
@@ -43,7 +47,7 @@ class OnBoardingScreen extends StatelessWidget {
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
-                  child: Text("Proceed", style: TextStyle(fontSize: 16,
+                  child: Text('proceed'.tr(), style: TextStyle(fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Color(0XFFF8FAFC),
                     ),

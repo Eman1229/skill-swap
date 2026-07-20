@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -60,7 +63,7 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Report submitted successfully. Our team will review it within 24 hours.'),
+            content: Text('report_submitted_success'.tr()),
             backgroundColor: Theme.of(context).colorScheme.primary,
             behavior: SnackBarBehavior.floating,
           ),
@@ -71,7 +74,7 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit report: $e'),
+            content: Text("${'report_failed'.tr()}: $e"),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
@@ -82,6 +85,7 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
@@ -124,8 +128,7 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
                     child: Icon(Icons.report_problem_rounded, color: colorScheme.primary, size: 20),
                   ),
                   const SizedBox(width: 14),
-                  Text(
-                    'Report User',
+                  Text('report_user'.tr(),
                     style: TextStyle(
                       color: colorScheme.onSurface,
                       fontSize: 18,
@@ -205,7 +208,7 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
                       maxLines: 3,
                       style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
                       decoration: InputDecoration(
-                        hintText: 'Describe what happened...',
+                        hintText:'report_hint'.tr(),
                         hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.4), fontSize: 13),
                         contentPadding: const EdgeInsets.all(16),
                         border: InputBorder.none,
@@ -225,8 +228,7 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           ),
-                          child: Text(
-                            'Cancel',
+                          child: Text('cancel'.tr(),
                             style: TextStyle(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold),
                           ),
                         ),

@@ -1,7 +1,9 @@
+import 'package:provider/provider.dart';
+import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:skill_swap/Ui_helper/translation_helper.dart';
 import 'package:skill_swap/services/notification_service.dart';
 
 class CreateAssignmentScreen extends StatefulWidget {
@@ -39,7 +41,6 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
     setState(() => _loading = true);
 
     try {
-      final uid = _auth.currentUser?.uid;
       final assignmentRef = _db
           .collection('swaps')
           .doc(widget.swapId)
@@ -62,7 +63,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
       await NotificationService().sendNotification(
         receiverId: widget.learnerId,
         type: 'assignment',
-        title: 'New Assignment Assigned',
+        title:'new_assignment_assigned'.tr(),
         body: '${widget.mentorName} published an assignment: "${_titleController.text.trim()}" in ${widget.skillName}.',
         actionRoute: '/skill_detail',
         actionId: widget.swapId,
@@ -76,8 +77,8 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Assignment created and notification sent.'),
+          SnackBar(
+            content: Text('assignment_created_notification'.tr()),
             backgroundColor: Colors.green,
           ),
         );
@@ -86,7 +87,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text("${'error'.tr()}: $e"),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -106,6 +107,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -222,7 +224,7 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
           ),
         ),
         if (required)
-          const Text(' *', style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
+          Text('*'.tr(), style: TextStyle(color: Color(0xFFFF3B3B), fontSize: 13)),
       ],
     );
   }

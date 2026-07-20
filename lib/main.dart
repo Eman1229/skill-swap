@@ -1,3 +1,4 @@
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -66,7 +67,7 @@ Future<void> main() async {
     debugPrint("Initialization Error: $e");
     runApp(
       MaterialApp(
-        home: Scaffold(body: Center(child: Text("Error initializing app: $e"))),
+        home: Scaffold(body: Center(child: Text("${'error_init_app'.tr()}: $e"))),
       ),
     );
   }
@@ -107,6 +108,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LanguageProvider>();
     final settings = AppSettings();
     final languageProvider = Provider.of<LanguageProvider>(context);
 
