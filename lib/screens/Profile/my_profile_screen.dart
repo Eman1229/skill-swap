@@ -7,9 +7,12 @@ import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:skill_swap/models/analytics_data.dart';
+import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/screens/Profile/edit_profile_screen.dart';
+import 'package:skill_swap/screens/Swap/certificate_screen.dart';
 import 'package:skill_swap/services/analytics_service.dart';
 
 class MyProfileScreen extends StatelessWidget {
@@ -75,7 +78,7 @@ class ProgressAchievementsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
@@ -97,6 +100,7 @@ class ProgressAchievementsScreen extends StatelessWidget {
             tabs: const [
               Tab(text: 'Progress'),
               Tab(text: 'Badges'),
+              Tab(text: 'Certificates'),
             ],
           ),
         ),
@@ -104,6 +108,7 @@ class ProgressAchievementsScreen extends StatelessWidget {
           children: [
             _ProgressView(),
             _BadgesView(),
+            _CertificatesView(),
           ],
         ),
       ),
@@ -322,6 +327,10 @@ class _ProfileContent extends StatelessWidget {
             _SectionHeader(title:'skills_learned'.tr()),
             const SizedBox(height: 10),
             _SkillChips(skills: data.skillsLearned),
+            const SizedBox(height: 18),
+            _SectionHeader(title: 'Certificates & Achievements'),
+            const SizedBox(height: 10),
+            const _CertificatesSection(),
           ],
         ),
       ),
@@ -1304,4 +1313,282 @@ SwapListing _swapFromProfile(AnalyticsData data) {
 
 String _shortDate(DateTime date) {
   return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
+}
+
+class _CertificatesView extends StatelessWidget {
+  const _CertificatesView();
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const SizedBox.shrink();
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('swaps')
+          .where('status', isEqualTo: 'completed')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _LoadingProfile();
+        }
+        if (snapshot.hasError) {
+          return _StateMessage(
+            icon: Icons.error,
+            title: 'error'.tr(),
+            message: snapshot.error.toString(),
+          );
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+        final completedSwaps = docs
+            .map((doc) => SwapModel.fromDoc(doc))
+            .where((swap) => swap.learnerId == uid || swap.mentorId == uid)
+            .toList();
+
+        completedSwaps.sort((a, b) {
+          final tA = a.completedAt ?? a.createdAt;
+          final tB = b.completedAt ?? b.createdAt;
+          return tB.compareTo(tA);
+        });
+
+        if (completedSwaps.isEmpty) {
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+            child: Column(
+              children: const [
+                _EmptyCard(message: 'Your earned certificates will appear here once you complete a skill swap.'),
+              ],
+            ),
+          );
+        }
+
+        return ListView.separated(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          itemCount: completedSwaps.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 14),
+          itemBuilder: (context, index) {
+            final swap = completedSwaps[index];
+            return _CertificateCardTile(swap: swap);
+          },
+        );
+      },
+    );
+  }
+}
+
+class _CertificatesSection extends StatelessWidget {
+  const _CertificatesSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const SizedBox.shrink();
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('swaps')
+          .where('status', isEqualTo: 'completed')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+        final completedSwaps = docs
+            .map((doc) => SwapModel.fromDoc(doc))
+            .where((swap) => swap.learnerId == uid || swap.mentorId == uid)
+            .toList();
+
+        completedSwaps.sort((a, b) {
+          final tA = a.completedAt ?? a.createdAt;
+          final tB = b.completedAt ?? b.createdAt;
+          return tB.compareTo(tA);
+        });
+
+        if (completedSwaps.isEmpty) {
+          return const _EmptyCard(
+            message: 'Complete a skill swap to generate and earn your Certificate of Completion!',
+          );
+        }
+
+        return Column(
+          children: completedSwaps
+              .map((swap) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _CertificateCardTile(swap: swap),
+                  ))
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
+class _CertificateCardTile extends StatelessWidget {
+  final SwapModel swap;
+
+  const _CertificateCardTile({required this.swap});
+
+  Future<Map<String, String>> _resolveNames() async {
+    String learner = swap.learnerName.trim();
+    String mentor = swap.mentorName.trim();
+
+    final invalidNames = {'', 'user', 'your teacher', 'teacher', 'learner', 'null'};
+    final db = FirebaseFirestore.instance;
+
+    if (invalidNames.contains(learner.toLowerCase()) && swap.learnerId.isNotEmpty) {
+      try {
+        final doc = await db.collection('users').doc(swap.learnerId).get();
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data()!;
+          final name = (data['name'] ?? data['fullName'] ?? data['username'] ?? '').toString().trim();
+          if (name.isNotEmpty) learner = name;
+        }
+      } catch (_) {}
+    }
+
+    if (invalidNames.contains(mentor.toLowerCase()) && swap.mentorId.isNotEmpty) {
+      try {
+        final doc = await db.collection('users').doc(swap.mentorId).get();
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data()!;
+          final name = (data['name'] ?? data['fullName'] ?? data['username'] ?? '').toString().trim();
+          if (name.isNotEmpty) mentor = name;
+        }
+      } catch (_) {}
+    }
+
+    return {
+      'learner': learner.isEmpty ? 'Learner' : learner,
+      'mentor': mentor.isEmpty ? 'Teacher' : mentor,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final completedDate = swap.completedAt ?? DateTime.now();
+    final dateStr = DateFormat('MMMM dd, yyyy').format(completedDate);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(context),
+      child: FutureBuilder<Map<String, String>>(
+        future: _resolveNames(),
+        builder: (context, snapshot) {
+          final names = snapshot.data ?? {
+            'learner': swap.learnerName.trim().isEmpty ? 'Learner' : swap.learnerName.trim(),
+            'mentor': swap.mentorName.trim().isEmpty ? 'Teacher' : swap.mentorName.trim(),
+          };
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.workspace_premium_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          swap.skillName,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Learner: ${names['learner']}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          'Taught by ${names['mentor']}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Divider(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5), height: 1),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        dateStr,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CertificateScreen(swap: swap),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.workspace_premium_rounded, size: 16),
+                    label: Text('certificate'.tr()),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }
