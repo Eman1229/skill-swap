@@ -303,8 +303,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildExploreButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)]),
-        borderRadius: BorderRadius.circular(30),
+        color: Theme.of(context).colorScheme.primary,
+        borderRadius: BorderRadius.circular(15),
       ),
       child: ElevatedButton(
         onPressed: () => Navigator.pushAndRemoveUntil(
@@ -315,7 +315,7 @@ class _ChatScreenState extends State<ChatScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: const StadiumBorder(),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
         ),
         child: Text('explore_now'.tr(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),

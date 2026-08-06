@@ -287,9 +287,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Theme.of(context).colorScheme.primary,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                  ),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                                 ),
                                 child: Text('proceed'.tr(),
                                   style: TextStyle(

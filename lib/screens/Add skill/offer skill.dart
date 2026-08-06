@@ -653,8 +653,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
             style: OutlinedButton.styleFrom(
               side: BorderSide(
                   color: Theme.of(context).colorScheme.primary.withAlpha(102)),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               padding: EdgeInsets.symmetric(vertical: 14),
             ),
             child: Text('cancel'.tr(),
@@ -665,19 +664,15 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
         Expanded(
           child: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              borderRadius: BorderRadius.circular(30),
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(15),
             ),
             child: ElevatedButton(
               onPressed: _isLoading ? null : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
-                shape: StadiumBorder(),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 padding: EdgeInsets.symmetric(vertical: 14),
               ),
               child: _isLoading

@@ -335,12 +335,8 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
+        color: Theme.of(context).colorScheme.primary,
+        borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
             color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
@@ -355,7 +351,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
           padding: EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
         child: Text(
           'submit_support_ticket'.tr(),
@@ -436,7 +432,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
                   child: Text('return_to_settings'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
                 ),

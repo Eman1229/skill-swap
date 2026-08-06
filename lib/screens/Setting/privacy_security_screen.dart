@@ -391,8 +391,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
                       color: Theme.of(context).colorScheme.outlineVariant),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
@@ -434,8 +433,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 onPressed: _showDeleteAccountDialog,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFF3B3B),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
@@ -489,8 +487,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
               child: Text('clear_now'.tr(),
                   style: TextStyle(
@@ -545,8 +542,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF3B3B),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
               child: Text('delete_permanently'.tr(),
                   style: TextStyle(

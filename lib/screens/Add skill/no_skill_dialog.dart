@@ -70,8 +70,7 @@ class NoSkillDialog extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
                           color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       padding: EdgeInsets.symmetric(vertical: 13),
                     ),
                     child: Text('cancel'.tr(),
@@ -85,12 +84,8 @@ class NoSkillDialog extends StatelessWidget {
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
-                      borderRadius: BorderRadius.circular(30),
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     child: ElevatedButton(
                       onPressed: () {
@@ -104,7 +99,7 @@ class NoSkillDialog extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
-                        shape: StadiumBorder(),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         padding: EdgeInsets.symmetric(vertical: 13),
                       ),
                       child: Text(

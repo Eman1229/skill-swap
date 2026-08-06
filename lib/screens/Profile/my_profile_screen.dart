@@ -869,12 +869,8 @@ class _ActionButton extends StatelessWidget {
     return Container(
       height: compact ? 46 : 50,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Theme.of(context).colorScheme.primary, const Color(0xFF6B8AFF)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(14),
+        color: Theme.of(context).colorScheme.primary,
+        borderRadius: BorderRadius.circular(15),
       ),
       child: ElevatedButton.icon(
         onPressed: onTap,
@@ -889,7 +885,7 @@ class _ActionButton extends StatelessWidget {
           backgroundColor: Colors.transparent,
           foregroundColor: Theme.of(context).colorScheme.onSurface,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
       ),
     );

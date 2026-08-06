@@ -52,7 +52,7 @@ class SessionDetailScreen extends StatelessWidget {
               padding: EdgeInsets.all(32),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(15),
                 border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
               ),
               child: Column(
@@ -77,7 +77,7 @@ class SessionDetailScreen extends StatelessWidget {
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
                       color: _getStatusColor(context, session.status).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(15),
                       border: Border.all(color: _getStatusColor(context, session.status).withValues(alpha: 0.3)),
                     ),
                     child: Text(
@@ -107,7 +107,7 @@ class SessionDetailScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 minimumSize: Size(double.infinity, 56),
               ),
               child: Text('go_back'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold)),
@@ -164,17 +164,15 @@ class _PrimaryBtn extends StatelessWidget {
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
-        ),
-        borderRadius: BorderRadius.circular(28),
+        color: Theme.of(context).colorScheme.primary,
+        borderRadius: BorderRadius.circular(15),
       ),
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
         child: Text(label, style: TextStyle(color:
         Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),

@@ -299,7 +299,7 @@ class _ActionButton extends StatelessWidget {
             color: onPressed == null ? Colors.grey : color,
             width: 1.5,
           ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           padding: EdgeInsets.zero,
         ),
         child: isLoading

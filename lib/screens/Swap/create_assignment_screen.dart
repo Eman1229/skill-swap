@@ -397,20 +397,15 @@ class _CreateAssignmentScreenState extends State<CreateAssignmentScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.primary,
-            const Color(0xFF6B8AFF),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(30),
+        color: Theme.of(context).colorScheme.primary,
+        borderRadius: BorderRadius.circular(15),
       ),
       child: ElevatedButton(
         onPressed: _createAssignment,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: const StadiumBorder(),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
         child: const Text(

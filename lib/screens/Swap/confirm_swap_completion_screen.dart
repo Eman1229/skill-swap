@@ -252,7 +252,7 @@ class _ConfirmSwapCompletionScreenState extends State<ConfirmSwapCompletionScree
                         color: !(_checked1 && _checked2 && _checked3)
                             ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1)
                             : null,
-                        borderRadius: BorderRadius.circular(28),
+                        borderRadius: BorderRadius.circular(15),
                         boxShadow: (_checked1 && _checked2 && _checked3)
                             ? [
                                 BoxShadow(
@@ -345,7 +345,7 @@ class _ConfirmSwapCompletionScreenState extends State<ConfirmSwapCompletionScree
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 56),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
               child: Text('back_to_home'.tr(), style: TextStyle(fontWeight: FontWeight.bold)),
             ),

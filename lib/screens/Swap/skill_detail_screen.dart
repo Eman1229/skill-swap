@@ -246,7 +246,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF131A2E), // Slick dark card color
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: const Color(0xFF1E293B)),
       ),
       child: Column(
@@ -365,7 +365,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF131A2E),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: const Color(0xFF1E293B)),
       ),
       child: Column(
@@ -395,7 +395,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.green.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(15),
                 ),
                 child: Text(
                   relativeDay,
@@ -471,10 +471,8 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                 children: [
                   Container(
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     child: ElevatedButton(
                       onPressed: _launchingMeetings[session.id] == true
@@ -508,7 +506,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
                       child: _launchingMeetings[session.id] == true
                           ? const SizedBox(
@@ -572,7 +570,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF131A2E),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: const Color(0xFF1E293B)),
       ),
       child: Column(
@@ -773,7 +771,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF131A2E),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: const Color(0xFF1E293B)),
       ),
       child: Column(
@@ -1047,7 +1045,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF131A2E),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: const Color(0xFF1E293B)),
       ),
       child: Column(
@@ -1205,7 +1203,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: const Color(0xFF131A2E),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(15),
             border: Border.all(color: const Color(0xFF1E293B)),
           ),
           child: Column(
@@ -1293,7 +1291,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1E293B),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
                       child: Text('leave_review'.tr()),
                     ),
@@ -1314,7 +1312,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF131A2E),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: const Color(0xFF1E293B)),
       ),
       child: Column(
@@ -1367,7 +1365,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                   foregroundColor: isCompleted ? Colors.black : Colors.grey,
                   disabledBackgroundColor: const Color(0xFF1E293B),
                   disabledForegroundColor: Colors.grey,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
               ),
             ],
@@ -1386,7 +1384,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF131A2E),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: const Color(0xFF1E293B)),
       ),
       child: Column(
@@ -1470,7 +1468,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: const Color(0xFF131A2E),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(15),
               border: Border.all(
                 color: allCompleted ? const Color(0xFF00C2FF).withValues(alpha: 0.3) : const Color(0xFF1E293B),
               ),
@@ -1514,7 +1512,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                           ? const LinearGradient(colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)])
                           : null,
                       color: allCompleted ? null : const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     child: Center(
                       child: Text(
@@ -1539,7 +1537,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: const Color(0xFF131A2E),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(15),
               border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
             ),
             child: const Row(
@@ -1576,7 +1574,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: const Color(0xFF131A2E),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(15),
               border: Border.all(color: const Color(0xFF00C2FF).withValues(alpha: 0.3)),
             ),
             child: Column(
@@ -1609,7 +1607,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                           height: 40,
                           decoration: BoxDecoration(
                             border: Border.all(color: const Color(0xFF1E293B)),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(15),
                           ),
                           child: const Center(
                             child: Text(
@@ -1639,8 +1637,8 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                         child: Container(
                           height: 40,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)]),
-                            borderRadius: BorderRadius.circular(20),
+                            color: Theme.of(context).colorScheme.primary,
+                            borderRadius: BorderRadius.circular(15),
                           ),
                           child: const Center(
                             child: Text(
@@ -1668,7 +1666,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF131A2E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         title: Text('mark_teaching_complete_confirm'.tr(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: const Text(
           'Are you sure you want to mark teaching as complete? This will lock editing and request completion confirmation from the learner.',
@@ -1716,7 +1714,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF131A2E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         title: Text('request_more_sessions_confirm'.tr(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: const Text(
           'Do you want to request more learning sessions? This will unlock session management for your mentor.',

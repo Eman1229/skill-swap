@@ -273,7 +273,7 @@ class _AssignmentTile extends StatelessWidget {
                         backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                         foregroundColor: Theme.of(context).colorScheme.primary,
                         shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                       ),
                       child: Text(sub.status == 'graded' ? 'View Details' : 'Grade Submission'),
@@ -295,7 +295,7 @@ class _AssignmentTile extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         ),
                         child: Text('submit_homework'.tr()),
                       ),

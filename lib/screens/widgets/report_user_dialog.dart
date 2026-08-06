@@ -226,7 +226,7 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
                           onPressed: () => Navigator.pop(context),
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           ),
                           child: Text('cancel'.tr(),
                             style: TextStyle(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold),
@@ -241,14 +241,14 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
                                 ? LinearGradient(colors: [colorScheme.primary, const Color(0xFF6B8AFF)])
                                 : null,
                             color: _selectedReason == null ? colorScheme.outlineVariant : null,
-                            borderRadius: BorderRadius.circular(30),
+                            borderRadius: BorderRadius.circular(15),
                           ),
                           child: ElevatedButton(
                             onPressed: (_selectedReason == null || _isSubmitting) ? null : _submitReport,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
-                              shape: const StadiumBorder(),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                             child: _isSubmitting

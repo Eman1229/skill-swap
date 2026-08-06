@@ -373,9 +373,7 @@ class MentorCompassScreen extends StatelessWidget {
                       side: BorderSide(
                         color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: const Text(
@@ -401,9 +399,7 @@ class MentorCompassScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: const Text(

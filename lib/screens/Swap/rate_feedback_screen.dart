@@ -354,12 +354,8 @@ class _RateFeedbackScreenState extends State<RateFeedbackScreen> {
                       width: double.infinity,
                       height: 56,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Theme.of(context).colorScheme.primary, const Color(0xFF008CCB)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(28),
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(15),
                         boxShadow: [
                           BoxShadow(
                             color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),

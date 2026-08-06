@@ -295,9 +295,7 @@ class _LogoutButton extends StatelessWidget {
         },
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: danger, width: 1.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
         child: Text(

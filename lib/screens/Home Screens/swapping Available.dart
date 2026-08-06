@@ -449,7 +449,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
             },
             backgroundColor: Colors.transparent,
             elevation: 0,
-            shape: const CircleBorder(),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
             child: Icon(
               Icons.add,
               color: Theme.of(context).colorScheme.onSurface,
@@ -1113,18 +1113,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
-                gradient: selected
-                    ? LinearGradient(
-                        colors: [
-                          Theme.of(context).colorScheme.primary,
-                          const Color(0xFF6B8AFF),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: selected ? null : Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(20),
+                
+                color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(15),
                 border: Border.all(
                   color: selected
                       ? Colors.transparent
@@ -1574,18 +1565,8 @@ class _GradientButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: onTap == null
-            ? null
-            : LinearGradient(
-                colors: [
-                  Theme.of(context).colorScheme.primary,
-                  const Color(0xFF6B8AFF),
-                ],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-        color: onTap == null ? Colors.grey.withOpacity(0.3) : null,
-        borderRadius: BorderRadius.circular(20),
+        color: onTap == null ? Colors.grey.withOpacity(0.3) : Theme.of(context).colorScheme.primary,
+        borderRadius: BorderRadius.circular(15),
       ),
       child: TextButton(
         onPressed: onTap,
