@@ -290,9 +290,9 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _buildProgressMiniStat('Completed', '$completed')),
-              Expanded(child: _buildProgressMiniStat('Total', '$total')),
-              Expanded(child: _buildProgressMiniStat('Remaining', '$remaining')),
+              Expanded(child: _buildProgressMiniStat('Completed\nSessions', '$completed')),
+              Expanded(child: _buildProgressMiniStat('Total\nSessions', '$total')),
+              Expanded(child: _buildProgressMiniStat('Remaining\nSessions', '$remaining')),
               Expanded(
                 flex: 2, // Give the date details slightly more space
                 child: Column(
@@ -344,12 +344,9 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.grey, fontSize: 10),
-          ),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.grey, fontSize: 10, height: 1.2),
         ),
       ],
     );
