@@ -16,7 +16,7 @@ class OpenAIService {
   OpenAIService._internal();
   static const String _directApiKey = 'YOUR_OPENAI_API_KEY_HERE';
   // ── Client-side Direct Config ───────────────────────────────────────
-  // Paste your OpenAI API Key here if you don't have the Firebase Blaze plan:
+
 
   String get _getApiKey {
     if (_directApiKey.isNotEmpty && _directApiKey != 'YOUR_OPENAI_API_KEY_HERE') {
