@@ -215,47 +215,41 @@ class CertificateCardWidget extends StatelessWidget {
     String mentor = swap.mentorName.trim();
 
     final invalidNames = {'', 'user', 'your teacher', 'teacher', 'learner', 'null'};
-
     final db = FirebaseFirestore.instance;
+    final currentUser = FirebaseAuth.instance.currentUser;
 
-    if (invalidNames.contains(learner.toLowerCase()) && swap.learnerId.isNotEmpty) {
+    Future<String?> fetchName(String uid) async {
+      if (uid.isEmpty) return null;
       try {
-        final doc = await db.collection('users').doc(swap.learnerId).get();
+        final doc = await db.collection('users').doc(uid).get();
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
           final name = (data['name'] ?? data['fullName'] ?? data['username'] ?? '').toString().trim();
-          if (name.isNotEmpty) learner = name;
+          if (name.isNotEmpty && !invalidNames.contains(name.toLowerCase())) {
+            return name;
+          }
+          final email = data['email']?.toString().trim();
+          if (email != null && email.isNotEmpty && email.contains('@')) {
+            return email.split('@').first;
+          }
         }
       } catch (_) {}
-    }
-    if (invalidNames.contains(mentor.toLowerCase()) && swap.mentorId.isNotEmpty) {
-      try {
-        final doc = await db.collection('users').doc(swap.mentorId).get();
-        if (doc.exists && doc.data() != null) {
-          final data = doc.data()!;
-          final n
-          ame = (data['name'] ?? data['fullName'] ?? data['username'] ?? '').toString().trim();
-          if (name.isNotEmpty) mentor = name;
-        }
-      } catch (_) {}
+      return null;
     }
 
-    // Attempt to fallback to FirebaseAuth current user if names are still invalid
-    try {
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        if (invalidNames.contains(learner.toLowerCase()) && swap.learnerId == currentUser.uid) {
-          if (currentUser.displayName != null && currentUser.displayName!.isNotEmpty) {
-            learner = currentUser.displayName!;
-          }
-        }
-        if (invalidNames.contains(mentor.toLowerCase()) && swap.mentorId == currentUser.uid) {
-          if (currentUser.displayName != null && currentUser.displayName!.isNotEmpty) {
-            mentor = currentUser.displayName!;
-          }
-        }
+    if (invalidNames.contains(learner.toLowerCase())) {
+      learner = await fetchName(swap.learnerId) ?? learner;
+      if (invalidNames.contains(learner.toLowerCase()) && currentUser != null && swap.learnerId == currentUser.uid) {
+        learner = currentUser.displayName ?? (currentUser.email?.split('@').first ?? learner);
       }
-    } catch (_) {}
+    }
+
+    if (invalidNames.contains(mentor.toLowerCase())) {
+      mentor = await fetchName(swap.mentorId) ?? mentor;
+      if (invalidNames.contains(mentor.toLowerCase()) && currentUser != null && swap.mentorId == currentUser.uid) {
+        mentor = currentUser.displayName ?? (currentUser.email?.split('@').first ?? mentor);
+      }
+    }
 
     return {
       'learner': invalidNames.contains(learner.toLowerCase()) ? 'Learner' : learner.toUpperCase(),
