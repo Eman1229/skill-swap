@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -227,7 +228,6 @@ class CertificateCardWidget extends StatelessWidget {
         }
       } catch (_) {}
     }
-
     if (invalidNames.contains(mentor.toLowerCase()) && swap.mentorId.isNotEmpty) {
       try {
         final doc = await db.collection('users').doc(swap.mentorId).get();
@@ -239,9 +239,26 @@ class CertificateCardWidget extends StatelessWidget {
       } catch (_) {}
     }
 
+    // Attempt to fallback to FirebaseAuth current user if names are still invalid
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        if (invalidNames.contains(learner.toLowerCase()) && swap.learnerId == currentUser.uid) {
+          if (currentUser.displayName != null && currentUser.displayName!.isNotEmpty) {
+            learner = currentUser.displayName!;
+          }
+        }
+        if (invalidNames.contains(mentor.toLowerCase()) && swap.mentorId == currentUser.uid) {
+          if (currentUser.displayName != null && currentUser.displayName!.isNotEmpty) {
+            mentor = currentUser.displayName!;
+          }
+        }
+      }
+    } catch (_) {}
+
     return {
-      'learner': learner.isEmpty ? 'LEARNER' : learner.toUpperCase(),
-      'mentor': mentor.isEmpty ? 'Teacher' : mentor,
+      'learner': invalidNames.contains(learner.toLowerCase()) ? 'Learner' : learner.toUpperCase(),
+      'mentor': invalidNames.contains(mentor.toLowerCase()) ? 'Teacher' : mentor,
     };
   }
 
@@ -472,29 +489,11 @@ class CertificateCardWidget extends StatelessWidget {
 
                             // Center Seal Badge
                             Container(
-                              width: isCompact ? 38 : 50,
-                              height: isCompact ? 38 : 50,
-                              padding: const EdgeInsets.all(2.5),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFF8B5CF6),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: const Color(0xFF3B82F6).withValues(alpha: 0.4),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Image.asset(
-                                  'assets/Images/logo.png',
-                                  fit: BoxFit.contain,
-                                ),
+                              width: isCompact ? 50 : 60,
+                              height: isCompact ? 50 : 60,
+                              child: Image.asset(
+                                'assets/Images/badge.png',
+                                fit: BoxFit.contain,
                               ),
                             ),
 
