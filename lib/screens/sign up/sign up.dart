@@ -37,7 +37,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
 
       // Update Firebase Auth Display Name
-      await userCredential.user?.updateDisplayName(_nameController.text.trim());
+      if (userCredential.user != null) {
+        await userCredential.user!.updateDisplayName(_nameController.text.trim());
+        await userCredential.user!.reload();
+      }
 
       // Save user details to Firestore
       await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
@@ -68,6 +71,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         physics: ClampingScrollPhysics(),
@@ -78,7 +82,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               children: [
                 // 1. TOP GRADIENT SECTION
                 Container(
-                  height: screenHeight * 0.35,
+                  height: screenHeight * 0.4,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -124,7 +128,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 // 2. DARK FORM SECTION (The "Sliding Up" Layer)
                 Padding(
                   padding: EdgeInsets.only(
-                    top: screenHeight * 0.28,
+                    top: screenHeight * 0.32,
                   ), // This creates the perfect overlap
                   child: Container(
                     width: double.infinity,
@@ -340,7 +344,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   screenHeight *
                       0.08, // Higher up to overlap the blue and dark sections
                   right: -10, // Slightly off-screen for that natural look
-                  bottom: 630,
                   child: SizedBox(
                     height: 280, // Larger size to match the reference image
                     child: UiHelper.CustomImage(imgurl: "skill girl.png"),
@@ -348,6 +351,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ],
             ),
+            // Manually add space for keyboard
+            SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
           ],
         ),
       ),

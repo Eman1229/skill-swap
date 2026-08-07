@@ -191,6 +191,7 @@ class _SignInScreenState extends State<SignInScreen> {
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         physics: ClampingScrollPhysics(),
@@ -502,6 +503,8 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
               ],
             ),
+            // Manually add space for keyboard
+            SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
           ],
         ),
       ),
