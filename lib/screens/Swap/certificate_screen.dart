@@ -233,8 +233,7 @@ class CertificateCardWidget extends StatelessWidget {
         final doc = await db.collection('users').doc(swap.mentorId).get();
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
-          final n
-          ame = (data['name'] ?? data['fullName'] ?? data['username'] ?? '').toString().trim();
+          final name = (data['name'] ?? data['fullName'] ?? data['username'] ?? '').toString().trim();
           if (name.isNotEmpty) mentor = name;
         }
       } catch (_) {}

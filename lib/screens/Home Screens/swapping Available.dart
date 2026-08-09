@@ -486,16 +486,15 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   String liveInitials = _initials;
 
                   if (snapshot.hasData && snapshot.data != null) {
-                    final data = snapshot.data!.data() as Map<String, dynamic>?;
-                    _userName =
-                        (data?['name'] as String?) ??
-                        _auth.currentUser?.email?.split('@').first ??
-                        'User';
-                    liveImageUrl = data?['imageUrl'] as String?;
+                    final dataMap = snapshot.data!.data() as Map<String, dynamic>?;
+                    _userName = UserDisplayName.fromMap(dataMap,
+                        fallback: _auth.currentUser?.displayName ??
+                            _auth.currentUser?.email?.split('@').first ??
+                            'User');
+                    liveImageUrl = dataMap?['imageUrl'] as String?;
                     _handleImageUrlChange(liveImageUrl);
 
-                    final name = (data?['name'] as String?) ?? _userName;
-                    final parts = name.trim().split(' ');
+                    final parts = _userName.trim().split(' ');
                     liveInitials = parts.length >= 2
                         ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
                         : (parts[0].isNotEmpty

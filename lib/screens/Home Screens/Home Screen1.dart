@@ -1,3 +1,6 @@
+import 'package:skill_swap/utils/user_display_name.dart';
+import 'package:skill_swap/models/analytics_data.dart';
+import 'package:skill_swap/services/analytics_service.dart';
 import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -80,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String get _userName {
     final user = _auth.currentUser;
     if (user == null) return 'User';
-    if (user.displayName != null && user.displayName!.isNotEmpty) {
+    if (UserDisplayName.isUsable(user.displayName)) {
       return user.displayName!;
     }
     return user.email?.split('@').first ?? 'User';
@@ -195,109 +198,128 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Avatar
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.25),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                        width: 2,
-                      ),
-                    ),
-                    child: _auth.currentUser?.photoURL != null &&
-                            _auth.currentUser!.photoURL!.isNotEmpty
-                        ? ClipOval(
-                            child: Image.network(
-                              _auth.currentUser!.photoURL!,
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : Center(
-                            child: Text(
-                              _initials,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '${'good_${_greeting.toLowerCase()}'.tr()}, $_userName',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                        Text(
-                          'keep_growing'.tr(),
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Notification Bell
-                  // Notification Bell
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const NotificationsScreen(),
-                        ),
-                      );
-                    },
-                    child: Consumer<NotificationProvider>(
-                      builder: (context, provider, child) {
-                        final unreadCount = provider.unreadCount;
+              child: StreamBuilder<AnalyticsData>(
+                stream: AnalyticsService().watchAnalytics(_auth.currentUser?.uid ?? ''),
+                builder: (context, snapshot) {
+                  final data = snapshot.data;
+                  String displayName = _userName;
+                  if (data != null && UserDisplayName.isUsable(data.name)) {
+                    displayName = data.name;
+                  }
+                  final photoUrl = data?.imageUrl ?? _auth.currentUser?.photoURL;
+                  final initials = data?.initials ?? _initials;
 
-                        return Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Container(
-                              width: 46,
-                              height: 46,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.22),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.15),
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Avatar
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.25),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            width: 2,
+                          ),
+                        ),
+                        child: photoUrl != null && photoUrl.isNotEmpty
+                            ? ClipOval(
+                                child: Image.network(
+                                  photoUrl,
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Center(
+                                    child: Text(
+                                      initials,
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Center(
+                                child: Text(
+                                  initials,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
                                 ),
                               ),
-                              child: const Icon(
-                                Icons.notifications_none_rounded,
-                                size: 24,
-                                color: Color(0xFFEEF4FF),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '${'good_${_greeting.toLowerCase()}'.tr()}, $displayName',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
                               ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
-                            if (unreadCount > 0)
-                              Positioned(
-                                top: -2,
-                                right: -2,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 5,
-                                    vertical: 2,
+                            Text(
+                              'keep_growing'.tr(),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Notification Bell
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const NotificationsScreen(),
+                            ),
+                          );
+                        },
+                        child: Consumer<NotificationProvider>(
+                          builder: (context, provider, child) {
+                            final unreadCount = provider.unreadCount;
+
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  width: 46,
+                                  height: 46,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withOpacity(0.22),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.15),
+                                    ),
                                   ),
-                                  constraints: const BoxConstraints(
+                                  child: const Icon(
+                                    Icons.notifications_none_rounded,
+                                    size: 24,
+                                    color: Color(0xFFEEF4FF),
+                                  ),
+                                ),
+                                if (unreadCount > 0)
+                                  Positioned(
+                                    top: -2,
+                                    right: -2,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 5,
+                                        vertical: 2,
+                                      ),
+                                      constraints: const BoxConstraints(
                                     minWidth: 18,
                                     minHeight: 18,
                                   ),
@@ -346,8 +368,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ],
-              ),
-            ),
+              );
+            },
+          ),
+        ),
 
             // ── SCROLLABLE BODY ──────────────────────────────────────
             Expanded(
