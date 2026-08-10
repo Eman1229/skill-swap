@@ -176,7 +176,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                         SizedBox(height: 22),
                         UiHelper.CustomTextField(context: context,
                           controller: confirmController,
-                          text: 'confirm Password'.tr(),
+                          text: 'Confirm Password'.tr(),
                           tohide: !showConfirm,
                           textinputtype: TextInputType.text,
                           prefixIcon: Icons.lock_outline,
@@ -212,7 +212,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                             ),
                           )
                               : Text(
-                            isLoggedIn ? 'update_password'.tr() : 'send_security_link'.tr(),
+                            isLoggedIn ? 'Update Password'.tr() : 'send security link'.tr(),
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,

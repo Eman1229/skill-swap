@@ -265,7 +265,7 @@ class FcmService {
     String channelId = _getChannelId(type);
 
     _localNotifications.show(
-      id: docId.hashCode,
+      id: docId.hashCode.abs() % 2147483647,
       title: title,
       body: body,
       notificationDetails: NotificationDetails(
@@ -316,6 +316,7 @@ class FcmService {
           AndroidFlutterLocalNotificationsPlugin
         >();
     if (androidPlugin != null) {
+      await androidPlugin.requestNotificationsPermission();
       for (final channel in channels) {
         await androidPlugin.createNotificationChannel(channel);
       }
@@ -332,7 +333,7 @@ class FcmService {
     String channelId = _getChannelId(msg.data['type']);
 
     _localNotifications.show(
-      id: msg.hashCode,
+      id: msg.hashCode.abs() % 2147483647,
       title: title,
       body: body,
       notificationDetails: NotificationDetails(

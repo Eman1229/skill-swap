@@ -384,7 +384,6 @@ class _CareerCompassScreenState extends State<CareerCompassScreen> {
           ),
 
           const SizedBox(height: 14),
-          const Divider(height: 1, color: Colors.grey),
 
           // ── Required vs Missing Skills ──────────────────────────────
           Padding(
@@ -429,8 +428,6 @@ class _CareerCompassScreenState extends State<CareerCompassScreen> {
               ],
             ),
           ),
-
-          const Divider(height: 1, color: Colors.grey),
 
           // ── Footer CTA: Generate Roadmap ─────────────────────────────
           Padding(
