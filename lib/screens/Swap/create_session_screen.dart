@@ -49,6 +49,17 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           .collection('sessions')
           .doc();
 
+      // Only one session may be available at a time.  This flag is also
+      // persisted so the sequence is retained after a restart.
+      final existingSessions = await _db
+          .collection('swaps')
+          .doc(widget.swap.id)
+          .collection('sessions')
+          .get();
+      final hasIncompleteSession = existingSessions.docs.any(
+        (doc) => (doc.data()['status'] ?? '').toString().toLowerCase() != 'completed',
+      );
+
       final realMentorName = await UserDisplayName.resolve(
         _db,
         mentorId,
@@ -86,6 +97,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         'learnerName': realLearnerName, // ✅ saves learner name
         'participantIds': [mentorId, learnerId],
         'status': 'pending',
+        'isLocked': hasIncompleteSession,
         'createdAt': FieldValue.serverTimestamp(),
       });
 

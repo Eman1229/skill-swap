@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/ai/career_recommendation.dart';
 import 'package:skill_swap/models/ai/mentor_recommendation.dart';
 import 'package:skill_swap/models/ai/learning_roadmap_model.dart';
@@ -11,11 +12,13 @@ import 'package:skill_swap/services/ai/ai_recommendation_service.dart';
 import 'package:skill_swap/services/ai/learning_roadmap_service.dart';
 import 'package:skill_swap/repositories/ai/ai_recommendation_repository.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
+import 'package:skill_swap/services/ai/ai_profile_service.dart';
 
 class AIRecommendationProvider extends ChangeNotifier {
   final AIRecommendationService _service = AIRecommendationService();
   final LearningRoadmapService _roadmapService = LearningRoadmapService();
   final AIRecommendationRepository _repository = AIRecommendationRepository();
+  final AIProfileService _profileService = AIProfileService();
 
   List<MentorRecommendation> _mentorRecommendations = [];
   CareerRecommendation? _careerRecommendation;
@@ -23,10 +26,12 @@ class AIRecommendationProvider extends ChangeNotifier {
   AIAnalyticsSnapshot? _analyticsSnapshot;
   bool _isLoading = false;
   String? _error;
+  AIUserProfile? _aiProfile;
 
   StreamSubscription<DocumentSnapshot>? _userSubscription;
   int? _lastCompletedSwaps;
   List<String>? _lastLearningSkills;
+  String? _lastActivitySignature;
 
   List<MentorRecommendation> get mentorRecommendations => _mentorRecommendations;
   CareerRecommendation? get careerRecommendation => _careerRecommendation;
@@ -34,6 +39,9 @@ class AIRecommendationProvider extends ChangeNotifier {
   AIAnalyticsSnapshot? get analyticsSnapshot => _analyticsSnapshot;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  AIUserProfile? get aiProfile => _aiProfile;
+  bool get isEligibleForAI => _aiProfile?.isEligibleForRecommendations ?? false;
+  int get completedSwaps => _aiProfile?.completedSwaps ?? 0;
 
   // ── Load All Data ───────────────────────────────────────────────────
   Future<void> loadRecommendations({String? uid}) async {
@@ -46,12 +54,14 @@ class AIRecommendationProvider extends ChangeNotifier {
       if (uid != null) {
         debugPrint('[AI Provider] Syncing user profile stats for $uid');
         await SkillExchangeService().syncUserProfile(uid);
+        _aiProfile = await _profileService.buildProfile(uid);
       }
 
       debugPrint('[AI Provider] Fetching latest recommendations from Firestore...');
-      final mentors = await _service.getLatestMentors();
-      final career = await _service.getLatestCareer();
-      final roadmap = await _service.getLatestRoadmap();
+      final eligible = _aiProfile?.isEligibleForRecommendations ?? false;
+      final mentors = eligible ? await _service.getLatestMentors() : <MentorRecommendation>[];
+      final career = eligible ? await _service.getLatestCareer() : null;
+      final roadmap = eligible ? await _service.getLatestRoadmap() : null;
       
       _mentorRecommendations = mentors;
       _careerRecommendation = career;
@@ -65,17 +75,18 @@ class AIRecommendationProvider extends ChangeNotifier {
         final userData = userDoc.data() ?? {};
         _lastCompletedSwaps = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
         _lastLearningSkills = List<String>.from(userData['learningSkills'] ?? []);
+        _lastActivitySignature = _activitySignature(userData);
 
         debugPrint('[AI Provider] Initializing listener with lastCompletedSwaps: $_lastCompletedSwaps, skills count: ${_lastLearningSkills?.length}');
         listenToUserChanges(uid);
       }
 
-      if (career == null && uid != null) {
+      if (eligible && career == null && uid != null) {
         final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
         final userData = userDoc.data() ?? {};
         final completedSwaps = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
         debugPrint('[AI Provider] No career recommendation yet. User completedSwaps count: $completedSwaps');
-        if (completedSwaps > 0) {
+        if (completedSwaps >= kMinCompletedSwapsForAI) {
           debugPrint('[AI Provider] User has completed swaps but no career analysis. Force-refreshing recommendations...');
           _isLoading = false;
           await refreshRecommendations(uid: uid, force: true);
@@ -101,6 +112,19 @@ class AIRecommendationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final activeUid = uid ?? FirebaseAuth.instance.currentUser?.uid;
+      if (activeUid != null) {
+        await SkillExchangeService().syncUserProfile(activeUid);
+        _aiProfile = await _profileService.buildProfile(activeUid);
+        if (!_aiProfile!.isEligibleForRecommendations) {
+          _mentorRecommendations = [];
+          _careerRecommendation = null;
+          _learningRoadmap = null;
+          _isLoading = false;
+          notifyListeners();
+          return;
+        }
+      }
       debugPrint('[AI Provider] Calling service refreshIfStale (force: $force)...');
       await _service.refreshIfStale(careerGoal: careerGoal, force: force);
       
@@ -114,13 +138,14 @@ class AIRecommendationProvider extends ChangeNotifier {
       _learningRoadmap = roadmap;
       debugPrint('[AI Provider] Post-refresh Loaded: ${mentors.length} mentors, career: ${career != null ? "Found" : "Null"}, roadmap: ${roadmap != null ? "Found" : "Null"}');
 
-      if (uid != null) {
-        _analyticsSnapshot = await _repository.getLatestAnalyticsSnapshot(uid);
+      if (activeUid != null) {
+        _analyticsSnapshot = await _repository.getLatestAnalyticsSnapshot(activeUid);
 
-        final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(activeUid).get();
         final userData = userDoc.data() ?? {};
         _lastCompletedSwaps = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
         _lastLearningSkills = List<String>.from(userData['learningSkills'] ?? []);
+        _lastActivitySignature = _activitySignature(userData);
         debugPrint('[AI Provider] Reset listener tracking fields to swaps: $_lastCompletedSwaps, skills: ${_lastLearningSkills?.length}');
       }
 
@@ -259,16 +284,21 @@ class AIRecommendationProvider extends ChangeNotifier {
       final data = snapshot.data() ?? {};
       final completedSwaps = (data['completedSwaps'] as num?)?.toInt() ?? 0;
       final learningSkills = List<String>.from(data['learningSkills'] ?? []);
+      final activitySignature = _activitySignature(data);
 
       if (_lastCompletedSwaps != null &&
           (completedSwaps > _lastCompletedSwaps! ||
-           !_listsEqual(learningSkills, _lastLearningSkills ?? []))) {
+           !_listsEqual(learningSkills, _lastLearningSkills ?? []) ||
+           activitySignature != _lastActivitySignature)) {
         debugPrint('[AI Provider] Detected completed swaps or learning skills change in Firestore. Auto-refreshing recommendations.');
         _lastCompletedSwaps = completedSwaps;
         _lastLearningSkills = learningSkills;
+        _lastActivitySignature = activitySignature;
 
         // Perform a background refresh of recommendations dynamically
-        Future.microtask(() => refreshRecommendations(uid: uid, force: false));
+        // A changed profile/activity signal needs a new prompt even when the
+        // cache has not yet aged out.
+        Future.microtask(() => refreshRecommendations(uid: uid, force: true));
       }
     });
   }
@@ -281,6 +311,16 @@ class AIRecommendationProvider extends ChangeNotifier {
       if (sortedA[i] != sortedB[i]) return false;
     }
     return true;
+  }
+
+  String _activitySignature(Map<String, dynamic> data) {
+    const fields = [
+      'learningSkills', 'teachingSkills', 'interests', 'careerInterests',
+      'careerGoal', 'targetCareer', 'goal', 'learningHours', 'teachingHours',
+      'learningStreak', 'averageRating', 'rating', 'totalAchievements',
+      'unlockedBadges', 'successRate', 'bio', 'headline', 'about', 'location',
+    ];
+    return fields.map((field) => '$field:${data[field] ?? ''}').join('|');
   }
 
   @override

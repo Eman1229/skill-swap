@@ -10,6 +10,8 @@ const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
 const secretClient = new SecretManagerServiceClient();
 let _cachedKey = null;
 
+const MIN_COMPLETED_SWAPS = 2;
+
 async function getOpenAiKey() {
   if (_cachedKey) return _cachedKey;
   if (process.env.OPENAI_API_KEY) {
@@ -21,6 +23,19 @@ async function getOpenAiKey() {
   });
   _cachedKey = version.payload.data.toString('utf8').trim();
   return _cachedKey;
+}
+
+async function getCompletedSwapCount(db, userId) {
+  const snap = await db.collection('swaps').where('participants', 'array-contains', userId).get();
+  const exchanges = new Set();
+  snap.docs.forEach((doc) => {
+    const data = doc.data();
+    const status = String(data.status || '').trim().toLowerCase();
+    if (status !== 'completed' && Number(data.progress || 0) < 1) return;
+    if (String(data.learnerId || '') !== userId && String(data.mentorId || '') !== userId) return;
+    exchanges.add(String(data.exchangeId || data.requestId || doc.id));
+  });
+  return exchanges.size;
 }
 
 /**
@@ -36,6 +51,13 @@ async function getOpenAiKey() {
  */
 async function generateLearningRoadmapForUser(userId, input = {}) {
   const db = admin.firestore();
+  const completedSwapCount = await getCompletedSwapCount(db, userId);
+  if (completedSwapCount < MIN_COMPLETED_SWAPS) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      `Complete at least ${MIN_COMPLETED_SWAPS} successful swaps to unlock a learning roadmap.`,
+    );
+  }
 
   const {
     targetCareer = 'Software Developer',
@@ -44,11 +66,12 @@ async function generateLearningRoadmapForUser(userId, input = {}) {
     interests = [],
     recentSwapHistory = [],
     learningHours = 0,
-    completedSwaps = 0,
+    completedSwaps = completedSwapCount,
     averageRating = 0,
     trigger = 'manual',
     triggerId = null,
   } = input;
+  const verifiedCompletedSwaps = completedSwapCount;
 
     const systemPrompt = `You are a personalized learning roadmap AI.
 Create structured, actionable learning roadmaps for skill-based learners.
@@ -62,7 +85,7 @@ Skills to Learn: ${missingSkills.join(', ')}
 Interests: ${interests.join(', ') || 'Not specified'}
 Recent Swap History: ${recentSwapHistory.length ? recentSwapHistory.join(' | ') : 'None yet'}
 Learning Hours So Far: ${learningHours.toFixed(0)}
-Completed Swaps: ${completedSwaps}
+Completed Swaps: ${verifiedCompletedSwaps}
 Average Rating: ${averageRating.toFixed(1)}/5.0
 
 Return ONLY this JSON structure:
@@ -165,7 +188,7 @@ Each stage: 3-5 tasks, 2-3 resources, 1 milestone.`;
       currentSkills,
       missingSkills,
       interests,
-      completedSwaps,
+      completedSwaps: verifiedCompletedSwaps,
       averageRating,
       recentSwapHistory,
     },
