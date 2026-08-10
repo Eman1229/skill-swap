@@ -129,7 +129,10 @@ async function createMissingSwapPair(requestId, request) {
 
 async function syncUserProfileSkills(uid) {
   if (!uid) return;
-  const snap = await db.collection('swaps').where('participants', 'array-contains', uid).get();
+  const [snap, listingsSnap] = await Promise.all([
+    db.collection('swaps').where('participants', 'array-contains', uid).get(),
+    db.collection('swapListings').where('userId', '==', uid).get(),
+  ]);
   const pairs = new Map();
 
   snap.docs.forEach((doc) => {
@@ -147,23 +150,21 @@ async function syncUserProfileSkills(uid) {
   const completedExchangeIds = new Set();
 
   pairs.forEach((pair, exchangeId) => {
-    const learned = pair
-      .filter((swap) => text(swap.learnerId) === uid)
-      .map((swap) => text(swap.skillName))
-      .filter(Boolean);
-    const taught = pair
-      .filter((swap) => text(swap.mentorId) === uid)
-      .map((swap) => text(swap.skillName))
-      .filter(Boolean);
-    if (learned.length) {
-      learned.forEach((skill) => learning.add(skill));
-    }
-    if (taught.length) {
-      taught.forEach((skill) => teaching.add(skill));
-    }
-    if (learned.length || taught.length) {
+    const hasActivity = pair.some((swap) =>
+      (text(swap.learnerId) === uid || text(swap.mentorId) === uid) && text(swap.skillName));
+    if (hasActivity) {
       completedExchangeIds.add(exchangeId);
     }
+  });
+
+  // Profile skills come from active marketplace listings. Completed swaps are
+  // counted independently so a historical exchange never erases current goals.
+  listingsSnap.docs.forEach((doc) => {
+    const listing = doc.data();
+    [listing.wanting, listing.wantedSkill, listing.learningSkill, listing.skillsWanted, listing.wantedSkills]
+      .forEach((value) => list(value).forEach((skill) => learning.add(skill)));
+    [listing.offering, listing.offeredSkill, listing.teachingSkill, listing.skillsOffered, listing.offeredSkills]
+      .forEach((value) => list(value).forEach((skill) => teaching.add(skill)));
   });
 
   const learningList = Array.from(learning).sort();
@@ -261,11 +262,8 @@ async function buildAIProfile(uid, seed = {}) {
     text(userData.location),
   ].filter(Boolean).join(' | ');
 
-  const completedSwaps = Math.max(
-    Number(seed.completedSwaps || 0),
-    number(userData, 'completedSwaps'),
-    completedExchangeIds.size,
-  );
+  // The exchange records are the source of truth for the two-swap unlock.
+  const completedSwaps = completedExchangeIds.size;
   const totalSessions = Math.max(number(userData, 'totalSessions', 1), completedSwaps, 1);
 
   return {
@@ -323,6 +321,14 @@ async function generateAIForCompletedSwap(uid, exchangeId, seed = {}) {
 
   try {
     const profile = await buildAIProfile(uid, seed);
+    if (profile.completedSwaps < 2) {
+      await updateAICompletionGenerationLock(uid, exchangeId, {
+        status: 'skipped',
+        reason: 'Career Compass requires at least two successful swaps.',
+        completedSwaps: profile.completedSwaps,
+      });
+      return;
+    }
     if (!profile.skillsLearned.length && !profile.skillsTeaching.length && !profile.interests.length) {
       await updateAICompletionGenerationLock(uid, exchangeId, {
         status: 'skipped',

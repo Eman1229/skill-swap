@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/services/swap_request_repository.dart';
+import 'package:skill_swap/services/user_skills_service.dart';
 
 class ConfirmSwapScreen extends StatefulWidget {
   final SwapListing swap;
@@ -81,12 +82,41 @@ class _ConfirmSwapScreenState extends State<ConfirmSwapScreen> {
         });
       }
 
-      // 2. Send the request via repository
+      // 2. Resolve sender's listing skills (what they teach / want to learn)
+      final senderListing = await UserSkillsService.fetchLatestListingForUser(uid);
+      final offeredSkill = senderListing?['offering']?.toString().trim() ?? '';
+      final requestedSkill = widget.swap.offering.trim();
+
+      if (offeredSkill.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('create_listing_before_swap'.tr()),
+              backgroundColor: Colors.orangeAccent,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (requestedSkill.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('target_listing_missing_skill'.tr()),
+              backgroundColor: Colors.orangeAccent,
+            ),
+          );
+        }
+        return;
+      }
+
+      // 3. Send the request via repository
       await _requestRepo.sendRequest(
         receiverId: widget.swap.userId ?? '',
         receiverName: widget.swap.name,
-        offeredSkill: widget.swap.offering,
-        requestedSkill: widget.swap.wanting,
+        offeredSkill: offeredSkill,
+        requestedSkill: requestedSkill,
         conversationId: conversationId,
       );
 

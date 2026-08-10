@@ -10,6 +10,8 @@ const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
 const secretClient = new SecretManagerServiceClient();
 let _cachedKey = null;
 
+const MIN_COMPLETED_SWAPS = 2;
+
 async function getOpenAiKey() {
   if (_cachedKey) return _cachedKey;
   if (process.env.OPENAI_API_KEY) {
@@ -21,6 +23,19 @@ async function getOpenAiKey() {
   });
   _cachedKey = version.payload.data.toString('utf8').trim();
   return _cachedKey;
+}
+
+async function getCompletedSwapCount(db, userId) {
+  const snap = await db.collection('swaps').where('participants', 'array-contains', userId).get();
+  const exchanges = new Set();
+  snap.docs.forEach((doc) => {
+    const data = doc.data();
+    const status = String(data.status || '').trim().toLowerCase();
+    if (status !== 'completed' && Number(data.progress || 0) < 1) return;
+    if (String(data.learnerId || '') !== userId && String(data.mentorId || '') !== userId) return;
+    exchanges.add(String(data.exchangeId || data.requestId || doc.id));
+  });
+  return exchanges.size;
 }
 
 /**
@@ -44,6 +59,16 @@ async function generateCareerRecommendationForUser(userId, input = {}, options =
   const db = admin.firestore();
   const today = new Date().toISOString().slice(0, 10);
 
+  // Do not trust callable input for eligibility: users may only receive a
+  // Career Compass after two real completed exchanges.
+  const completedSwapCount = await getCompletedSwapCount(db, userId);
+  if (completedSwapCount < MIN_COMPLETED_SWAPS) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      `Complete at least ${MIN_COMPLETED_SWAPS} successful swaps to unlock Career Compass.`,
+    );
+  }
+
   if (!options.skipRateLimit) {
     const usageRef = db.collection('ai_usage_logs').where('userId', '==', userId)
       .where('type', '==', 'career_generation').where('date', '==', today);
@@ -58,7 +83,7 @@ async function generateCareerRecommendationForUser(userId, input = {}, options =
     skillsTeaching = [],
     interests = [],
     profileSummary = '',
-    completedSwaps = 0,
+    completedSwaps = completedSwapCount,
     averageRating = 0,
     learningHours = 0,
     teachingHours = 0,
@@ -70,6 +95,7 @@ async function generateCareerRecommendationForUser(userId, input = {}, options =
     trigger = 'manual',
     triggerId = null,
   } = input;
+  const verifiedCompletedSwaps = completedSwapCount;
 
     const systemPrompt = `You are a career guidance AI specializing in skill-based career matching.
 Analyze the user's learning profile and generate personalized career path recommendations.
@@ -81,7 +107,7 @@ Skills Learned: ${skillsLearned.join(', ') || 'None yet'}
 Skills Teaching: ${skillsTeaching.join(', ') || 'None yet'}
 Interests: ${interests.join(', ') || 'Not specified'}
 Profile Summary: ${profileSummary || 'Not specified'}
-Completed Swaps: ${completedSwaps}
+Completed Swaps: ${verifiedCompletedSwaps}
 Average Rating: ${averageRating.toFixed(1)}/5.0
 Learning Hours: ${learningHours.toFixed(1)}
 Teaching Hours: ${teachingHours.toFixed(1)}
@@ -163,7 +189,7 @@ Generate 4-5 career paths. fitScore 0-100. demandIndicator: "High", "Medium", or
       skillsLearned,
       skillsTeaching,
       interests,
-      completedSwaps,
+      completedSwaps: verifiedCompletedSwaps,
       averageRating,
       recentSwapHistory,
     },

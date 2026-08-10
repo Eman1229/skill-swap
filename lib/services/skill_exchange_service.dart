@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:skill_swap/models/swap_model.dart';
 import 'package:skill_swap/services/notification_service.dart';
 import 'package:skill_swap/services/session_reminder_service.dart';
+import 'package:skill_swap/services/user_skills_service.dart';
 
 class SkillExchangeService {
   SkillExchangeService({FirebaseFirestore? firestore})
@@ -181,20 +182,42 @@ class SkillExchangeService {
       }
     }
 
+    // cloud_firestore 6.x only supports document reads inside transactions.
+    // Read the schedule's order first, then transactionally re-read each of
+    // those documents before deciding whether this session may complete.
+    final scheduledSessions = await swapRef.collection('sessions').orderBy('date').get();
+    final scheduledSessionRefs = scheduledSessions.docs.map((doc) => doc.reference).toList();
+
     await _db.runTransaction((transaction) async {
       final freshSwap = await transaction.get(swapRef);
-      final freshSession = await transaction.get(sessionRef);
-      if (!freshSwap.exists || !freshSession.exists) return;
+      if (!freshSwap.exists) return;
 
-      final currentSwap = freshSwap.data() ?? {};
-      final currentSession = freshSession.data() ?? {};
-      if (_text(currentSession['status']).toLowerCase() == 'completed') return;
+      final freshSessions = <DocumentSnapshot<Map<String, dynamic>>>[];
+      for (final sessionDocRef in scheduledSessionRefs) {
+        freshSessions.add(await transaction.get(sessionDocRef));
+      }
 
-      final sessionsQuery = await _db.collection('swaps').doc(swapId).collection('sessions').get();
-      final total = sessionsQuery.docs.isNotEmpty ? sessionsQuery.docs.length : defaultTotalSessions;
+      final total = freshSessions.length;
+      if (total == 0) return;
+      final targetIndex = freshSessions.indexWhere((doc) => doc.id == sessionId);
+      if (targetIndex < 0) return;
+      final currentSession = freshSessions[targetIndex].data();
+      if (currentSession == null || _text(currentSession['status']).toLowerCase() == 'completed') {
+        return;
+      }
+
+      // The transaction is the authority for the sequence. This prevents a
+      // stale UI (or a second device) from completing a locked future session.
+      final hasIncompletePredecessor = freshSessions
+          .take(targetIndex)
+          .any((doc) => _text((doc.data() ?? const {})['status']).toLowerCase() != 'completed');
+      if (hasIncompletePredecessor || currentSession['isLocked'] == true) {
+        throw StateError('Complete the previous scheduled session first.');
+      }
+
       var completed = 0;
-      for (final doc in sessionsQuery.docs) {
-        final status = _text(doc.data()['status']).toLowerCase();
+      for (final doc in freshSessions) {
+        final status = _text((doc.data() ?? const {})['status']).toLowerCase();
         if (doc.id == sessionId || status == 'completed') {
           completed++;
         }
@@ -212,22 +235,23 @@ class SkillExchangeService {
       });
       transaction.update(sessionRef, {'status': 'completed'});
 
+      // Unlock exactly the next incomplete session and keep every later one
+      // locked. The status (pending/accepted) is intentionally preserved so
+      // invitation acceptance continues to work as before.
+      for (var index = targetIndex + 1; index < freshSessions.length; index++) {
+        final doc = freshSessions[index];
+        if (_text((doc.data() ?? const {})['status']).toLowerCase() != 'completed') {
+          transaction.update(doc.reference, {'isLocked': false});
+          break;
+        }
+      }
+
       if (isExchangeComplete) {
-        for (final doc in pairSnap.docs) {
-          transaction.update(doc.reference, {
-            'status': 'completed',
-            'progress': 1.0,
-            'lastSessionAt': FieldValue.serverTimestamp(),
-            'exchangeId': exchangeId,
-          });
-        }
-        final requestId = _text(currentSwap['requestId']);
-        if (requestId.isNotEmpty) {
-          transaction.update(_db.collection('swap_requests').doc(requestId), {
-            'status': 'completed',
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-        }
+        transaction.update(swapRef, {
+          'certificateUnlocked': true,
+          'certificateUnlockedAt': FieldValue.serverTimestamp(),
+          'completedAt': FieldValue.serverTimestamp(),
+        });
       }
     });
 
@@ -363,10 +387,13 @@ class SkillExchangeService {
   }
 
   Future<void> syncUserProfile(String uid) async {
-    final swapsSnap = await _db
-        .collection('swaps')
-        .where('participants', arrayContains: uid)
-        .get();
+    final results = await Future.wait([
+      _db.collection('swaps').where('participants', arrayContains: uid).get(),
+      _db.collection('swapListings').where('userId', isEqualTo: uid).get(),
+    ]);
+
+    final swapsSnap = results[0];
+    final listingsSnap = results[1];
 
     final swaps = swapsSnap.docs
         .where((doc) => _isValidSwap(doc.data()))
@@ -383,45 +410,33 @@ class SkillExchangeService {
           .add(swap);
     }
 
-    final learning = <String>{};
-    final teaching = <String>{};
     final completedExchangeIds = <String>{};
-
     for (final entry in completedPairs.entries) {
       final pair = entry.value;
-      final learned = pair
-          .where((swap) => _text(swap['learnerId']) == uid)
-          .map((swap) => _text(swap['skillName']))
-          .where((skill) => skill.isNotEmpty)
-          .toSet();
-      final taught = pair
-          .where((swap) => _text(swap['mentorId']) == uid)
-          .map((swap) => _text(swap['skillName']))
-          .where((skill) => skill.isNotEmpty)
-          .toSet();
-
-      if (learned.isNotEmpty) {
-        learning.addAll(learned);
-      }
-      if (taught.isNotEmpty) {
-        teaching.addAll(taught);
-      }
-      if (learned.isNotEmpty || taught.isNotEmpty) {
+      final hasActivity = pair.any((swap) {
+        final learned = _text(swap['learnerId']) == uid && _text(swap['skillName']).isNotEmpty;
+        final taught = _text(swap['mentorId']) == uid && _text(swap['skillName']).isNotEmpty;
+        return learned || taught;
+      });
+      if (hasActivity) {
         completedExchangeIds.add(entry.key);
       }
     }
 
-    final learningList = learning.toList()..sort();
-    final teachingList = teaching.toList()..sort();
-    final balancedCount = learning.length < teaching.length
-        ? learning.length
-        : teaching.length;
+    // Marketplace listings are the single source of truth for profile skill lists.
+    final learningList =
+        UserSkillsService.learningSkillsFromListingDocs(listingsSnap.docs);
+    final teachingList =
+        UserSkillsService.teachingSkillsFromListingDocs(listingsSnap.docs);
+    final balancedCount = learningList.length < teachingList.length
+        ? learningList.length
+        : teachingList.length;
 
     await _db.collection('users').doc(uid).set({
       'learningSkills': learningList,
       'teachingSkills': teachingList,
-      'skillsLearnedCount': learning.length,
-      'skillsTeachingCount': teaching.length,
+      'skillsLearnedCount': learningList.length,
+      'skillsTeachingCount': teachingList.length,
       'completedSwaps': completedExchangeIds.length,
       'skillExchangeCount': balancedCount,
       'skillStatsSyncedAt': FieldValue.serverTimestamp(),

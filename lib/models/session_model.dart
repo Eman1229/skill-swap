@@ -13,6 +13,8 @@ class SessionModel {
   final String learnerName;
   final List<String> participantIds;
   final String status;
+  /// Persisted in Firestore so a scheduled session cannot be completed early.
+  final bool isLocked;
   final DateTime createdAt;
 
   SessionModel({
@@ -28,6 +30,7 @@ class SessionModel {
     this.learnerName = '',
     this.participantIds = const [],
     required this.status,
+    this.isLocked = false,
     required this.createdAt,
   });
 
@@ -48,6 +51,7 @@ class SessionModel {
       learnerName: d['learnerName'] ?? '',
       participantIds: List<String>.from(d['participantIds'] ?? const []),
       status: d['status'] ?? 'pending',
+      isLocked: d['isLocked'] == true,
       createdAt: createdAtField is Timestamp
           ? createdAtField.toDate()
           : DateTime.now(),
@@ -71,6 +75,7 @@ class SessionModel {
       'learnerName': learnerName,
       'participantIds': participantIds,
       'status': status,
+      'isLocked': isLocked,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -88,6 +93,7 @@ class SessionModel {
     String? learnerName,
     List<String>? participantIds,
     String? status,
+    bool? isLocked,
     DateTime? createdAt,
   }) {
     return SessionModel(
@@ -103,6 +109,7 @@ class SessionModel {
       learnerName: learnerName ?? this.learnerName,
       participantIds: participantIds ?? this.participantIds,
       status: status ?? this.status,
+      isLocked: isLocked ?? this.isLocked,
       createdAt: createdAt ?? this.createdAt,
     );
   }

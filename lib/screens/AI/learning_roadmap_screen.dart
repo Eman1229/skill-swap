@@ -9,6 +9,7 @@ import 'package:skill_swap/providers/ai/ai_recommendation_provider.dart';
 import 'package:skill_swap/models/ai/learning_roadmap_model.dart';
 import 'package:skill_swap/screens/AI/roadmap_all_steps_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:skill_swap/services/ai/ai_profile_service.dart';
 
 class LearningRoadmapScreen extends StatefulWidget {
   const LearningRoadmapScreen({super.key});
@@ -51,15 +52,44 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
 
     if (provider.isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text('learning_roadmap'.tr())),
+        appBar: AppBar(
+          title: Text('learning_roadmap'.tr()),
+          centerTitle: true,
+        ),
         body: Center(child: CircularProgressIndicator(color: primaryColor)),
+      );
+    }
+
+    if (!provider.isEligibleForAI) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('learning_roadmap'.tr()),
+          centerTitle: true,
+        ),
+        body: Center(child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.lock_outline_rounded, size: 72, color: isDark ? Colors.white24 : Colors.black26),
+            const SizedBox(height: 16),
+            const Text('Your personalized roadmap is locked', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text(
+              'Complete at least 2 successful swaps to unlock it.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+          ]),
+        )),
       );
     }
 
     final roadmap = provider.learningRoadmap;
     if (roadmap == null || roadmap.stages.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: Text('learning_roadmap'.tr())),
+        appBar: AppBar(
+          title: Text('learning_roadmap'.tr()),
+          centerTitle: true,
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -95,6 +125,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
           roadmap.targetCareer,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
+        centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
           labelColor: primaryColor,

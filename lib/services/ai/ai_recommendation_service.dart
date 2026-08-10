@@ -12,6 +12,7 @@ import 'package:skill_swap/services/ai/ai_cache_service.dart';
 import 'package:skill_swap/services/ai/career_compass_service.dart';
 import 'package:skill_swap/services/ai/mentor_compass_service.dart';
 import 'package:skill_swap/services/ai/learning_roadmap_service.dart';
+import 'package:skill_swap/services/ai/ai_profile_service.dart';
 import 'package:skill_swap/repositories/ai/ai_recommendation_repository.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
 
@@ -26,6 +27,7 @@ class AIRecommendationService {
   final MentorCompassService _mentorService = MentorCompassService();
   final CareerCompassService _careerService = CareerCompassService();
   final LearningRoadmapService _roadmapService = LearningRoadmapService();
+  final AIProfileService _profileService = AIProfileService();
   final AIRecommendationRepository _repository = AIRecommendationRepository();
 
   // ── Fetch Cached Data ───────────────────────────────────────────────
@@ -75,6 +77,14 @@ class AIRecommendationService {
     try {
       // 0. Auto-sync profile stats from ground-truth swaps in Firestore
       await SkillExchangeService().syncUserProfile(uid);
+
+      // Recommendations are intentionally unavailable until the user has a
+      // meaningful activity signal. Build this from swaps, not a stale field.
+      final aiProfile = await _profileService.buildProfile(uid);
+      if (!aiProfile.isEligibleForRecommendations) {
+        debugPrint('AIRecommendationService: waiting for ${kMinCompletedSwapsForAI - aiProfile.completedSwaps} more completed swap(s).');
+        return;
+      }
 
       // 1. Fetch current profile statistics for cache checks
       final userDoc = await _db.collection('users').doc(uid).get();

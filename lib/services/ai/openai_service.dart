@@ -121,15 +121,27 @@ class OpenAIService {
     required int totalAchievements,
     required double successRate,
     String? careerGoal,
+    List<String> interests = const [],
+    String profileSummary = '',
+    List<String> recentSwapHistory = const [],
   }) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) throw Exception('User not logged in');
 
-    // Fetch user specific data like interests & profileSummary
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-    final userData = userDoc.data() ?? {};
-    final List<String> interests = List<String>.from(userData['interests'] ?? []);
-    final String profileSummary = userData['profileSummary']?.toString() ?? '';
+    if (interests.isEmpty || profileSummary.isEmpty) {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final userData = userDoc.data() ?? {};
+      if (interests.isEmpty) {
+        interests = List<String>.from(userData['interests'] ?? []);
+      }
+      if (profileSummary.isEmpty) {
+        profileSummary = userData['profileSummary']?.toString() ?? '';
+      }
+    }
+
+    final swapHistoryText = recentSwapHistory.isNotEmpty
+        ? recentSwapHistory.join(' | ')
+        : 'None yet';
 
     if (_useDirectOpenAI) {
       final apiKey = _getApiKey;
@@ -151,7 +163,7 @@ class OpenAIService {
           "Total Achievements: $totalAchievements\n"
           "Success Rate: ${(successRate * 100).toStringAsFixed(0)}%\n"
           "Career Goal: ${careerGoal ?? 'Not specified'}\n"
-          "Recent Swap History: None yet\n\n"
+          "Recent Swap History: $swapHistoryText\n\n"
           "Return ONLY this JSON structure (no other text):\n"
           "{\n"
           "  \"careerSummary\": \"2-3 sentence personalized career summary\",\n"
@@ -210,10 +222,20 @@ class OpenAIService {
           completedSwaps: completedSwaps,
           averageRating: averageRating,
           careerGoal: careerGoal,
+          recentSwapHistory: recentSwapHistory,
         );
       }
 
-      return await _saveCareerRecommendation(uid, parsed, skillsLearned, skillsTeaching, interests, completedSwaps, averageRating);
+      return await _saveCareerRecommendation(
+        uid,
+        parsed,
+        skillsLearned,
+        skillsTeaching,
+        interests,
+        completedSwaps,
+        averageRating,
+        recentSwapHistory,
+      );
     }
 
     try {
@@ -230,6 +252,9 @@ class OpenAIService {
           'totalAchievements': totalAchievements,
           'successRate': successRate,
           'careerGoal': careerGoal,
+          'interests': interests,
+          'profileSummary': profileSummary,
+          'recentSwapHistory': recentSwapHistory,
         },
         timeout: const Duration(seconds: 30),
       );
@@ -244,8 +269,18 @@ class OpenAIService {
         completedSwaps: completedSwaps,
         averageRating: averageRating,
         careerGoal: careerGoal,
+        recentSwapHistory: recentSwapHistory,
       );
-      return await _saveCareerRecommendation(uid, parsed, skillsLearned, skillsTeaching, interests, completedSwaps, averageRating);
+      return await _saveCareerRecommendation(
+        uid,
+        parsed,
+        skillsLearned,
+        skillsTeaching,
+        interests,
+        completedSwaps,
+        averageRating,
+        recentSwapHistory,
+      );
     }
   }
 
@@ -257,6 +292,7 @@ class OpenAIService {
     List<String> interests,
     int completedSwaps,
     double averageRating,
+    List<String> recentSwapHistory,
   ) async {
     final docId = DateTime.now().millisecondsSinceEpoch.toString();
     final resultData = {
@@ -272,6 +308,7 @@ class OpenAIService {
         'interests': interests,
         'completedSwaps': completedSwaps,
         'averageRating': averageRating,
+        'recentSwapHistory': recentSwapHistory,
       },
     };
 
@@ -302,13 +339,23 @@ class OpenAIService {
     required double learningHours,
     required int completedSwaps,
     required double averageRating,
+    List<String> interests = const [],
+    List<String> recentSwapHistory = const [],
+    String profileSummary = '',
+    List<String> skillsTeaching = const [],
   }) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) throw Exception('User not logged in');
 
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-    final userData = userDoc.data() ?? {};
-    final List<String> interests = List<String>.from(userData['interests'] ?? []);
+    if (interests.isEmpty) {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final userData = userDoc.data() ?? {};
+      interests = List<String>.from(userData['interests'] ?? []);
+    }
+
+    final swapHistoryText = recentSwapHistory.isNotEmpty
+        ? recentSwapHistory.join(' | ')
+        : 'None yet';
 
     if (_useDirectOpenAI) {
       final apiKey = _getApiKey;
@@ -322,7 +369,9 @@ class OpenAIService {
           "Current Skills: ${currentSkills.join(', ').isNotEmpty ? currentSkills.join(', ') : 'Beginner'}\n"
           "Skills to Learn: ${missingSkills.join(', ')}\n"
           "Interests: ${interests.join(', ').isNotEmpty ? interests.join(', ') : 'Not specified'}\n"
-          "Recent Swap History: None yet\n"
+          "Skills Teaching: ${skillsTeaching.join(', ').isNotEmpty ? skillsTeaching.join(', ') : 'None yet'}\n"
+          "Profile Summary: ${profileSummary.isNotEmpty ? profileSummary : 'Not specified'}\n"
+          "Recent Swap History: $swapHistoryText\n"
           "Learning Hours So Far: ${learningHours.toStringAsFixed(0)}\n"
           "Completed Swaps: $completedSwaps\n"
           "Average Rating: ${averageRating.toStringAsFixed(1)}/5.0\n\n"
@@ -409,10 +458,22 @@ class OpenAIService {
           learningHours: learningHours,
           completedSwaps: completedSwaps,
           averageRating: averageRating,
+          skillsTeaching: skillsTeaching,
+          recentSwapHistory: recentSwapHistory,
         );
       }
 
-      return await _saveLearningRoadmap(uid, parsed, targetCareer, currentSkills, missingSkills, interests, completedSwaps, averageRating);
+      return await _saveLearningRoadmap(
+        uid,
+        parsed,
+        targetCareer,
+        currentSkills,
+        missingSkills,
+        interests,
+        completedSwaps,
+        averageRating,
+        recentSwapHistory,
+      );
     }
 
     try {
@@ -425,6 +486,10 @@ class OpenAIService {
           'learningHours': learningHours,
           'completedSwaps': completedSwaps,
           'averageRating': averageRating,
+          'interests': interests,
+          'recentSwapHistory': recentSwapHistory,
+          'profileSummary': profileSummary,
+          'skillsTeaching': skillsTeaching,
         },
         timeout: const Duration(seconds: 30),
       );
@@ -439,8 +504,20 @@ class OpenAIService {
         learningHours: learningHours,
         completedSwaps: completedSwaps,
         averageRating: averageRating,
+        skillsTeaching: skillsTeaching,
+        recentSwapHistory: recentSwapHistory,
       );
-      return await _saveLearningRoadmap(uid, parsed, targetCareer, currentSkills, missingSkills, interests, completedSwaps, averageRating);
+      return await _saveLearningRoadmap(
+        uid,
+        parsed,
+        targetCareer,
+        currentSkills,
+        missingSkills,
+        interests,
+        completedSwaps,
+        averageRating,
+        recentSwapHistory,
+      );
     }
   }
 
@@ -453,6 +530,7 @@ class OpenAIService {
     List<String> interests,
     int completedSwaps,
     double averageRating,
+    List<String> recentSwapHistory,
   ) async {
     final docId = DateTime.now().millisecondsSinceEpoch.toString();
     final resultData = {
@@ -468,6 +546,7 @@ class OpenAIService {
         'interests': interests,
         'completedSwaps': completedSwaps,
         'averageRating': averageRating,
+        'recentSwapHistory': recentSwapHistory,
       },
     };
 
@@ -510,6 +589,7 @@ class OpenAIService {
     required int completedSwaps,
     required double averageRating,
     String? careerGoal,
+    List<String> recentSwapHistory = const [],
   }) {
     final String learnText = skillsLearned.isNotEmpty ? skillsLearned.first : 'new technologies';
     final String teachText = skillsTeaching.isNotEmpty ? skillsTeaching.first : 'programming';
@@ -579,6 +659,8 @@ class OpenAIService {
     required double learningHours,
     required int completedSwaps,
     required double averageRating,
+    List<String> skillsTeaching = const [],
+    List<String> recentSwapHistory = const [],
   }) {
     final cleanMissing = missingSkills.isNotEmpty ? missingSkills : ['Advanced architecture', 'Testing and CI/CD'];
     

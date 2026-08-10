@@ -10,6 +10,7 @@ import 'package:skill_swap/providers/ai/ai_recommendation_provider.dart';
 import 'package:skill_swap/models/ai/career_recommendation.dart';
 import 'package:skill_swap/screens/AI/learning_roadmap_screen.dart';
 import 'package:skill_swap/repositories/ai/ai_recommendation_repository.dart';
+import 'package:skill_swap/services/ai/ai_profile_service.dart';
 
 class CareerCompassScreen extends StatefulWidget {
   const CareerCompassScreen({super.key});
@@ -66,8 +67,10 @@ class _CareerCompassScreenState extends State<CareerCompassScreen> {
               ? Center(
                   child: CircularProgressIndicator(color: primaryColor),
                 )
-              : provider.careerRecommendation == null || provider.careerRecommendation!.careers.isEmpty
-                  ? _buildEmptyState(context, isDark)
+              : !provider.isEligibleForAI
+                  ? _buildUnlockState(context, isDark, provider.completedSwaps)
+                  : provider.careerRecommendation == null || provider.careerRecommendation!.careers.isEmpty
+                      ? _buildEmptyState(context, isDark)
                   : SingleChildScrollView(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -134,6 +137,22 @@ class _CareerCompassScreenState extends State<CareerCompassScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildUnlockState(BuildContext context, bool isDark, int completedSwaps) {
+    final remaining = (kMinCompletedSwapsForAI - completedSwaps).clamp(0, kMinCompletedSwapsForAI);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.lock_outline_rounded, size: 72, color: isDark ? Colors.white30 : Colors.black38),
+          const SizedBox(height: 16),
+          const Text('Career Compass unlocks after 2 successful swaps', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text('Complete $remaining more successful ${remaining == 1 ? 'swap' : 'swaps'} to receive a roadmap based on your actual skills, progress, and swap activity.', textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+        ]),
       ),
     );
   }

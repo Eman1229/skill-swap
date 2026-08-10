@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:skill_swap/models/ai/learning_roadmap_model.dart';
+import 'package:skill_swap/services/ai/ai_profile_service.dart';
 import 'package:skill_swap/services/ai/openai_service.dart';
 
 class LearningRoadmapService {
@@ -14,6 +15,7 @@ class LearningRoadmapService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final OpenAIService _openai = OpenAIService();
+  final AIProfileService _profileService = AIProfileService();
 
   Future<LearningRoadmapModel> generateRoadmap({
     required String targetCareer,
@@ -27,20 +29,29 @@ class LearningRoadmapService {
     if (uid == null) return LearningRoadmapModel.empty();
 
     try {
+      final profile = await _profileService.buildProfile(uid);
+      if (!profile.isEligibleForRecommendations) {
+        throw StateError(
+          'Complete at least $kMinCompletedSwapsForAI successful swaps to unlock your learning roadmap.',
+        );
+      }
+
+      final mergedSkills = profile.allSkills.isNotEmpty ? profile.allSkills : currentSkills;
+
       final result = await _openai.generateLearningRoadmap(
         targetCareer: targetCareer,
-        currentSkills: currentSkills,
+        currentSkills: mergedSkills,
         missingSkills: missingSkills,
-        learningHours: learningHours,
-        completedSwaps: completedSwaps,
-        averageRating: averageRating,
+        learningHours: learningHours > 0 ? learningHours : profile.learningHours,
+        completedSwaps: completedSwaps > 0 ? completedSwaps : profile.completedSwaps,
+        averageRating: averageRating > 0 ? averageRating : profile.averageRating,
+        interests: profile.interests,
+        recentSwapHistory: profile.recentSwapHistory,
+        profileSummary: profile.profileSummary,
+        skillsTeaching: profile.skillsTeaching,
       );
 
       final id = result['id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString();
-      
-      // Clear local SharedPreferences or database progress on new roadmap if desired
-      // (The Cloud Function already initializes progress in Firestore)
-      
       return LearningRoadmapModel.fromMap(result, id);
     } catch (e, stack) {
       debugPrint('LearningRoadmapService.generateRoadmap error: $e\n$stack');
@@ -54,14 +65,15 @@ class LearningRoadmapService {
     if (uid == null) return null;
 
     try {
-      // 1. Get the latest roadmap metadata pointer
+      final profile = await _profileService.buildProfile(uid);
+      if (!profile.isEligibleForRecommendations) return null;
+
       final metaDoc = await _db.collection('learning_roadmaps').doc(uid).get();
       if (!metaDoc.exists) return null;
 
       final latestId = metaDoc.data()?['latestId'] as String?;
       if (latestId == null) return null;
 
-      // 2. Fetch the roadmap history document
       final roadmapDoc = await _db
           .collection('learning_roadmaps')
           .doc(uid)
@@ -76,11 +88,9 @@ class LearningRoadmapService {
         roadmapData['createdAt'] = (roadmapData['createdAt'] as Timestamp).toDate();
       }
 
-      // 3. Fetch current progress
       final progressDoc = await _db.collection('roadmap_progress').doc(uid).get();
       RoadmapProgress progress;
       if (!progressDoc.exists || (progressDoc.data()?['currentRoadmapId'] as String? ?? '').isEmpty) {
-        // Auto-initialize or repair progress doc with currentRoadmapId
         final initialProgress = {
           'currentRoadmapId': latestId,
           'completedTaskIds': progressDoc.exists ? List<String>.from(progressDoc.data()?['completedTaskIds'] ?? []) : <String>[],
@@ -95,9 +105,8 @@ class LearningRoadmapService {
         progress = RoadmapProgress.fromMap(progressDoc.data()!);
       }
 
-      // 4. Map and apply progress to stages and tasks
       final baseRoadmap = LearningRoadmapModel.fromMap(roadmapData, roadmapDoc.id);
-      
+
       final updatedStages = baseRoadmap.stages.map((stage) {
         final updatedTasks = stage.tasks.map((task) {
           final isCompleted = progress.completedTaskIds.contains(task.id);
@@ -136,11 +145,11 @@ class LearningRoadmapService {
 
     try {
       final progressRef = _db.collection('roadmap_progress').doc(uid);
-      
+
       await _db.runTransaction((transaction) async {
         final snapshot = await transaction.get(progressRef);
         final data = snapshot.exists ? snapshot.data()! : {};
-        
+
         final completedTaskIds = List<String>.from(data['completedTaskIds'] ?? []);
         final completedMilestoneIds = List<String>.from(data['completedMilestoneIds'] ?? []);
         final currentRoadmapId = data['currentRoadmapId'] as String? ?? '';
@@ -153,37 +162,31 @@ class LearningRoadmapService {
           completedTaskIds.remove(taskId);
         }
 
-        // Fetch roadmap details to recalculate percentage and milestones
         if (currentRoadmapId.isNotEmpty) {
           final roadmapRef = _db
               .collection('learning_roadmaps')
               .doc(uid)
               .collection('history')
               .doc(currentRoadmapId);
-          
+
           final roadmapSnap = await transaction.get(roadmapRef);
           if (roadmapSnap.exists) {
             final roadmapData = roadmapSnap.data()!;
             final baseRoadmap = LearningRoadmapModel.fromMap(roadmapData, roadmapSnap.id);
 
-            // 1. Gather all tasks in the roadmap
             final allTasks = baseRoadmap.stages.expand((s) => s.tasks).toList();
             final totalTasks = allTasks.length;
-            
-            // Calculate overall percentage
+
             final double overallPercent = totalTasks == 0
                 ? 0.0
                 : completedTaskIds.length / totalTasks;
 
-            // 2. Automatically complete milestones when all tasks of that stage are completed
             for (final stage in baseRoadmap.stages) {
-              final stageTasks = stage.tasks;
-              final stageTaskIds = stageTasks.map((t) => t.id).toList();
-              
+              final stageTaskIds = stage.tasks.map((t) => t.id).toList();
+
               final allStageTasksCompleted = stageTaskIds.isNotEmpty &&
                   stageTaskIds.every((tid) => completedTaskIds.contains(tid));
 
-              // Find milestone for this stage
               final milestone = baseRoadmap.milestones.firstWhere(
                 (m) => m.stageNumber == stage.stageNumber,
                 orElse: () => RoadmapMilestone(
@@ -207,18 +210,16 @@ class LearningRoadmapService {
               }
             }
 
-            // Determine current active stage (lowest stage number containing incomplete tasks)
             int currentStage = 1;
             for (final stage in baseRoadmap.stages) {
               final stageTaskIds = stage.tasks.map((t) => t.id).toList();
               final isStageCompleted = stageTaskIds.isNotEmpty &&
                   stageTaskIds.every((tid) => completedTaskIds.contains(tid));
-              
+
               if (!isStageCompleted) {
                 currentStage = stage.stageNumber;
                 break;
               }
-              // If all stages completed, currentStage is the last stage
               currentStage = stage.stageNumber;
             }
 
@@ -231,7 +232,6 @@ class LearningRoadmapService {
             }, SetOptions(merge: true));
           }
         } else {
-          // If no roadmap yet, just write raw completion list
           transaction.set(progressRef, {
             'completedTaskIds': completedTaskIds,
             'updatedAt': FieldValue.serverTimestamp(),

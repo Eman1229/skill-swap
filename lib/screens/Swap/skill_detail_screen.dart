@@ -179,7 +179,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // 1. Progress Section
-                              _buildProgressCard(completedSessions, totalSessions, remainingSessions, progressPercentage, nextSession),
+                              _buildProgressCard(completedSessions, totalSessions, remainingSessions, progressPercentage),
                               const SizedBox(height: 24),
 
                               // 2. Upcoming Session Card
@@ -236,12 +236,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     int total,
     int remaining,
     double progress,
-    SessionModel? nextSession,
   ) {
-    final String nextSessionStr = nextSession != null
-        ? DateFormat('MMM dd, yyyy').format(nextSession.date)
-        : 'None Scheduled';
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -293,37 +288,6 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
               Expanded(child: _buildProgressMiniStat('Completed\nSessions', '$completed')),
               Expanded(child: _buildProgressMiniStat('Total\nSessions', '$total')),
               Expanded(child: _buildProgressMiniStat('Remaining\nSessions', '$remaining')),
-              Expanded(
-                flex: 2, // Give the date details slightly more space
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.calendar_month_rounded, color: Colors.grey, size: 14),
-                          const SizedBox(width: 4),
-                          const Text(
-                            'Next session',
-                            style: TextStyle(color: Colors.grey, fontSize: 10),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        nextSessionStr,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ],
@@ -643,7 +607,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                 Expanded(
                   child: _buildMaterialCard(
                     label: 'Videos',
-                    count: pdfsCount, // Wait, this should be videosCount. I will keep it matching what we fixed.
+                    count: videosCount,
                     icon: Icons.play_circle_fill_rounded,
                     color: Colors.green,
                     onTap: () {
@@ -837,10 +801,11 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
               itemBuilder: (context, index) {
                 final session = sessions[index];
                 final isCompleted = session.status == 'completed';
-                // Active session = the first upcoming uncompleted session
+                // Exactly one scheduled session is active at a time.
                 final isActive = (index == sessions.indexWhere((s) => s.status != 'completed'));
+                final isLocked = !isCompleted && !isActive;
                 
-                return _buildTimelineItem(swap, session, index, sessions.length, isCompleted, isActive);
+                return _buildTimelineItem(swap, session, index, sessions.length, isCompleted, isActive, isLocked);
               },
             ),
         ],
@@ -855,6 +820,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     int totalItems,
     bool isCompleted,
     bool isActive,
+    bool isLocked,
   ) {
     final relativeDate = _getRelativeDay(session.date);
 
@@ -902,6 +868,12 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           Expanded(
             child: GestureDetector(
               onTap: () {
+                if (isLocked) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Complete the previous session to unlock this one.')),
+                  );
+                  return;
+                }
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => SessionDetailScreen(session: session)),
@@ -928,13 +900,16 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      relativeDate,
-                      style: TextStyle(
-                        color: isActive ? const Color(0xFF00C2FF) : Colors.grey,
-                        fontSize: 12,
+                    if (isLocked)
+                      const Icon(Icons.lock_outline_rounded, color: Colors.grey, size: 16)
+                    else
+                      Text(
+                        relativeDate,
+                        style: TextStyle(
+                          color: isActive ? const Color(0xFF00C2FF) : Colors.grey,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -1400,47 +1375,33 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final useVertical = constraints.maxWidth < 340;
-              final col1 = Column(
-                children: [
-                  _buildUserDetailRow('Mentor', swap.mentorId, swap.mentorName),
-                  const SizedBox(height: 16),
-                  _buildUserDetailRow('Learner', swap.learnerId, swap.learnerName),
-                  const SizedBox(height: 16),
-                  _buildTextDetailRow('Started On', startedDateStr, Icons.calendar_month_outlined),
-                ],
-              );
-              final col2 = Column(
-                children: [
-                  _buildTextDetailRow('Skill Category', category, Icons.school_outlined),
-                  const SizedBox(height: 16),
-                  _buildTextDetailRow('Duration', '$totalSessions Sessions', Icons.timer_outlined),
-                  const SizedBox(height: 16),
-                  _buildTextDetailRow('XP Earned', '+120 XP (Expected)', Icons.stars_outlined),
-                ],
-              );
-
-              if (useVertical) {
-                return Column(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
                   children: [
-                    col1,
+                    _buildUserDetailRow('Mentor', swap.mentorId, swap.mentorName),
                     const SizedBox(height: 16),
-                    col2,
+                    _buildUserDetailRow('Learner', swap.learnerId, swap.learnerName),
+                    const SizedBox(height: 16),
+                    _buildTextDetailRow('Started On', startedDateStr, Icons.calendar_month_outlined),
                   ],
-                );
-              } else {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
                   children: [
-                    Expanded(child: col1),
-                    const SizedBox(width: 24),
-                    Expanded(child: col2),
+                    _buildTextDetailRow('Skill Category', category, Icons.school_outlined),
+                    const SizedBox(height: 16),
+                    _buildTextDetailRow('Duration', '$totalSessions Sessions', Icons.timer_outlined),
+                    const SizedBox(height: 16),
+                    _buildTextDetailRow('XP Earned', '+120 XP (Expected)', Icons.stars_outlined),
                   ],
-                );
-              }
-            },
+                ),
+              ),
+            ],
           ),
         ],
       ),
