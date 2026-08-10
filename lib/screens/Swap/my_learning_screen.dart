@@ -59,69 +59,73 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
       ),
       body: uid == null
           ? Center(child: Text('please_login'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))
-          : StreamBuilder<AnalyticsData>(
-              stream: _analyticsStream,
-              builder: (context, analyticsSnap) {
-                final analyticsData = analyticsSnap.data ?? AnalyticsData.empty(uid);
+          : Column(
+              children: [
+                _buildFilters(),
+                Expanded(
+                  child: StreamBuilder<List<SwapModel>>(
+                    stream: _swapsStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                        return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+                      }
 
-                return Column(
-                  children: [
-                    _buildFilters(),
-                    Expanded(
-                      child: StreamBuilder<List<SwapModel>>(
-                        stream: _swapsStream,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+                      var swapsList = snapshot.data ?? [];
+                      final totalSkills = swapsList.length;
+
+                      // Filter logic
+                      if (_selectedFilter != 'All') {
+                        swapsList = swapsList.where((swap) {
+                          if (_selectedFilter == 'Ongoing') {
+                            return swap.status.toLowerCase() != 'completed';
                           }
+                          return swap.status.toLowerCase() == _selectedFilter.toLowerCase();
+                        }).toList();
+                      }
 
-                          var swapsList = snapshot.data ?? [];
-                          final totalSkills = swapsList.length; // ← ADDED
+                      if (swapsList.isEmpty) {
+                        return _buildEmptyState();
+                      }
 
-                          // Filter logic
-                          if (_selectedFilter != 'All') {
-                            swapsList = swapsList.where((swap) {
-                              if (_selectedFilter == 'Ongoing') {
-                                return swap.status.toLowerCase() != 'completed';
-                              }
-                              return swap.status.toLowerCase() == _selectedFilter.toLowerCase();
-                            }).toList();
-                          }
-
-                          if (swapsList.isEmpty) {
-                            return _buildEmptyState();
-                          }
-
-                          return SingleChildScrollView(
-                            padding: EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildTotalBadge(totalSkills, context), // ← ADDED
-                                SizedBox(height: 20),                   // ← ADDED
-                                ...swapsList.map((swap) {
-                                  return _LearningCard(key: ValueKey(swap.id), swap: swap);
-                                }).toList(),
-                                SizedBox(height: 32),
-                                Text('performance_insights'.tr(),
-                                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
-                                SizedBox(height: 16),
-                                _buildInsights(analyticsData),
-                                SizedBox(height: 32),
-                                Text('weekly_engagement'.tr(),
-                                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
-                                SizedBox(height: 16),
-                                _buildEngagementChart(analyticsData),
-                                SizedBox(height: 40),
-                              ],
+                      return SingleChildScrollView(
+                        padding: EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildTotalBadge(totalSkills, context),
+                            SizedBox(height: 20),
+                            ...swapsList.map((swap) {
+                              return _LearningCard(key: ValueKey(swap.id), swap: swap);
+                            }).toList(),
+                            SizedBox(height: 32),
+                            StreamBuilder<AnalyticsData>(
+                              stream: _analyticsStream,
+                              builder: (context, analyticsSnap) {
+                                final analyticsData = analyticsSnap.data ?? AnalyticsData.empty(uid);
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('performance_insights'.tr(),
+                                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                                    SizedBox(height: 16),
+                                    _buildInsights(analyticsData),
+                                    SizedBox(height: 32),
+                                    Text('weekly_engagement'.tr(),
+                                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                                    SizedBox(height: 16),
+                                    _buildEngagementChart(analyticsData),
+                                  ],
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                );
-              },
+                            SizedBox(height: 40),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
     );
   }

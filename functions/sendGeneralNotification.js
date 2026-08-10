@@ -29,14 +29,24 @@ exports.sendGeneralNotification = async (snapshot, context) => {
     return null;
   }
 
-  // Retrieve receiver's settings
-  const settings = await getUserSettings(receiverId);
-  if (settings) {
-    const pushEnabled = settings.pushEnabled !== false;
-    if (!pushEnabled) {
-      log(`[generalNotifier] User ${receiverId} disabled push notifications`);
-      return null;
-    }
+  // Retrieve receiver's settings from the user document (Flutter app's format)
+  const userDoc = await admin.firestore().collection('users').doc(receiverId).get();
+  const flutterSettings = userDoc.exists ? (userDoc.data().notificationSettings || {}) : {};
+  
+  // Also check legacy settings for backwards compatibility
+  const legacySettings = await getUserSettings(receiverId);
+  
+  let pushEnabled = true;
+  if (legacySettings && legacySettings.pushEnabled === false) {
+    pushEnabled = false;
+  }
+  if (flutterSettings.general === false) {
+    pushEnabled = false; // Note: Flutter client usually filters prior to creating the notification, but this acts as a final safeguard
+  }
+
+  if (!pushEnabled) {
+    log(`[generalNotifier] User ${receiverId} disabled push notifications`);
+    return null;
   }
 
   const tokenSnap = await admin.firestore()
@@ -48,7 +58,6 @@ exports.sendGeneralNotification = async (snapshot, context) => {
   const title = (notification.title || 'Skill Swap').toString();
   const body = (notification.body || '').toString();
   
-  const userDoc = await admin.firestore().collection('users').doc(receiverId).get();
   let fallbackToken = null;
   if (userDoc.exists) {
       fallbackToken = userDoc.data().fcmToken;

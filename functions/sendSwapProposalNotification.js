@@ -1,7 +1,7 @@
 // sendSwapProposalNotification.js
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const { getUserSettings, buildFcmPayload, log } = require('./utils');
+const { log } = require('./utils');
 if (!admin.apps.length) {
   admin.initializeApp();
 }
@@ -44,18 +44,23 @@ exports.sendSwapProposalNotification = async (change, context) => {
     return null;
   }
 
-  const receiverId = after.receiverId; // the user who should be notified
-  const senderId = after.senderId;
-
-  // Fetch receiver's notification settings
-  const settings = await getUserSettings(receiverId);
-  if (!settings) {
-    log(`No notification settings for user ${receiverId}`);
-    return null;
+  let notifyUserId = after.receiverId;
+  let actionUserId = after.senderId;
+  let actionUserName = after.senderName;
+  if (eventType === 'accepted' || eventType === 'rejected' || eventType === 'completed') {
+    // If accepted/rejected/completed, notify the original sender
+    notifyUserId = after.senderId;
+    actionUserId = after.receiverId;
+    actionUserName = after.receiverName;
   }
 
-  if (!settings.pushEnabled || !settings.swapProposalEnabled) {
-    log(`User ${receiverId} disabled swap proposal notifications`);
+  // Fetch receiver's notification settings from the user document
+  const userDoc = await admin.firestore().collection('users').doc(notifyUserId).get();
+  const flutterSettings = userDoc.exists ? (userDoc.data().notificationSettings || {}) : {};
+
+  // Check if swap proposal notifications are enabled
+  if (flutterSettings.swapRequests === false || flutterSettings.swapUpdates === false || flutterSettings.general === false) {
+    log(`User ${notifyUserId} disabled swap proposal notifications in notificationSettings`);
     return null;
   }
 
@@ -67,49 +72,26 @@ exports.sendSwapProposalNotification = async (change, context) => {
     completed: 'Swap Completed',
   };
   const bodies = {
-    sent: `${after.senderName} sent you a swap proposal`,
-    accepted: `Your swap request was accepted`,
-    rejected: `Your swap request was rejected`,
+    sent: `${actionUserName} sent you a swap proposal`,
+    accepted: `${actionUserName} accepted your swap request`,
+    rejected: `${actionUserName} rejected your swap request`,
     completed: `Swap request completed`,
   };
 
   const payload = {
     title: titles[eventType],
     body: bodies[eventType],
-    actionRoute: '/swap/${requestId}',
+    actionRoute: `/swap/${requestId}`,
     relatedId: requestId,
-    type: 'swap_proposal',
-    channelId: 'high_importance',
+    type: 'swap_request', // use swap_request so generalNotifier uses 'swap_requests' channel
   };
 
-  // Retrieve receiver's device token(s)
-  const tokenSnap = await admin.firestore()
-      .collection('users')
-      .doc(receiverId)
-      .collection('deviceTokens')
-      .where('platform', '==', 'android')
-      .get();
-
-  const promises = [];
-  tokenSnap.forEach(doc => {
-    const token = doc.id; // token stored as document ID
-    const fcmPayload = buildFcmPayload({
-      fcmToken: token,
-      title: payload.title,
-      body: payload.body,
-      actionRoute: payload.actionRoute,
-      relatedId: payload.relatedId,
-      type: payload.type,
-      channelId: payload.channelId,
-    });
-    promises.push(admin.messaging().send(fcmPayload));
-  });
-
   // Store a copy in the global notifications collection for in‑app display
+  // generalNotifier will pick this up and send the FCM payload
   const notificationDoc = {
-    senderId: senderId,
-    receiverId: receiverId,
-    type: 'swap_proposal',
+    senderId: actionUserId,
+    receiverId: notifyUserId,
+    type: payload.type,
     title: payload.title,
     body: payload.body,
     data: {
@@ -120,10 +102,8 @@ exports.sendSwapProposalNotification = async (change, context) => {
     actionRoute: payload.actionRoute,
     relatedId: payload.relatedId,
   };
-  const notificationRef = admin.firestore().collection('notifications').doc();
-  promises.push(notificationRef.set(notificationDoc));
-
-  await Promise.all(promises);
-  log(`Sent ${eventType} notification to user ${receiverId}`);
+  
+  await admin.firestore().collection('notifications').doc().set(notificationDoc);
+  log(`Sent ${eventType} notification to user ${notifyUserId} via notifications collection`);
   return null;
 };

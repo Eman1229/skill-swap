@@ -63,6 +63,7 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
     'Music & Art',
     'Lifestyle',
     'Tutoring',
+    'Others',
   ];
 
   final List<String> _experienceLevels = [

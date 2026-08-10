@@ -40,7 +40,7 @@ class NoSkillDialog extends StatelessWidget {
             SizedBox(height: 20),
 
             Text(
-              'no_skill_available'.tr(),
+              'No skill available'.tr(),
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 18,
@@ -50,7 +50,7 @@ class NoSkillDialog extends StatelessWidget {
             SizedBox(height: 10),
 
             Text(
-              'need_to_create_skill'.tr(),
+              'Need to create skill'.tr(),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
