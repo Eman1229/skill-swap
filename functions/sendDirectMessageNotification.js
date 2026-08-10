@@ -7,6 +7,13 @@ if (!admin.apps.length) {
 
 exports.sendDirectMessageNotification = async (snapshot, context) => {
   const message = snapshot.data() || {};
+  
+  // Skip session invites to avoid duplicate push notifications 
+  // since they are handled by sendGeneralNotification via the notifications collection.
+  if (message.type === 'session_invite') {
+    return null;
+  }
+
   const chatId = context.params.chatId;
   const senderId = (message.senderId || '').toString();
 
