@@ -427,7 +427,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                 ),
               );
 
-              final buttons = Column(
+              final buttons = Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
@@ -484,7 +484,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(width: 12),
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
