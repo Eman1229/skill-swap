@@ -263,27 +263,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return Stream.empty();
     return _db
-        .collection('swapListings')
-        .where('userId', isEqualTo: uid)
-        .snapshots()
-        .map((snap) {
-          if (snap.docs.isEmpty) return null;
-          final docs = [...snap.docs];
-          docs.sort((a, b) {
-            final aData = a.data();
-            final bData = b.data();
-            final aCreatedAt = aData['createdAt'];
-            final bCreatedAt = bData['createdAt'];
-            final aDate = aCreatedAt is Timestamp
-                ? aCreatedAt.toDate()
-                : DateTime.fromMillisecondsSinceEpoch(0);
-            final bDate = bCreatedAt is Timestamp
-                ? bCreatedAt.toDate()
-                : DateTime.fromMillisecondsSinceEpoch(0);
-            return bDate.compareTo(aDate);
-          });
-          return docs.first;
-        });
+        .collection('users')
+        .doc(uid)
+        .snapshots();
   }
 
   Stream<List<SessionModel>> get _acceptedSessionsStream {

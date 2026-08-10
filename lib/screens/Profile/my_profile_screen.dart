@@ -1436,31 +1436,53 @@ class _CertificateCardTile extends StatelessWidget {
     final invalidNames = {'', 'user', 'your teacher', 'teacher', 'learner', 'null'};
     final db = FirebaseFirestore.instance;
 
-    if (invalidNames.contains(learner.toLowerCase()) && swap.learnerId.isNotEmpty) {
+    Future<String?> fetchName(String uid) async {
+      if (uid.isEmpty) return null;
+      String? foundName;
       try {
-        final doc = await db.collection('users').doc(swap.learnerId).get();
+        final doc = await db.collection('users').doc(uid).get();
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
-          final name = (data['name'] ?? data['fullName'] ?? data['username'] ?? '').toString().trim();
-          if (name.isNotEmpty) learner = name;
+          final name = (data['username'] ?? data['name'] ?? data['fullName'] ?? '').toString().trim();
+          if (name.isNotEmpty && !invalidNames.contains(name.toLowerCase())) {
+            foundName = name;
+          } else {
+            final email = data['email']?.toString().trim();
+            if (email != null && email.isNotEmpty && email.contains('@')) {
+              foundName = email.split('@').first;
+            }
+          }
         }
       } catch (_) {}
+
+      if (foundName == null) {
+        try {
+          final snap = await db.collection('swapListings').where('userId', isEqualTo: uid).limit(1).get();
+          if (snap.docs.isNotEmpty) {
+            final d = snap.docs.first.data();
+            final name = (d['name'] ?? '').toString().trim();
+            if (name.isNotEmpty && !invalidNames.contains(name.toLowerCase())) {
+              foundName = name;
+            }
+          }
+        } catch (_) {}
+      }
+      return foundName;
     }
 
-    if (invalidNames.contains(mentor.toLowerCase()) && swap.mentorId.isNotEmpty) {
-      try {
-        final doc = await db.collection('users').doc(swap.mentorId).get();
-        if (doc.exists && doc.data() != null) {
-          final data = doc.data()!;
-          final name = (data['name'] ?? data['fullName'] ?? data['username'] ?? '').toString().trim();
-          if (name.isNotEmpty) mentor = name;
-        }
-      } catch (_) {}
+    if (swap.learnerId.isNotEmpty) {
+      final name = await fetchName(swap.learnerId);
+      if (name != null) learner = name;
+    }
+
+    if (swap.mentorId.isNotEmpty) {
+      final name = await fetchName(swap.mentorId);
+      if (name != null) mentor = name;
     }
 
     return {
-      'learner': learner.isEmpty ? 'Learner' : learner,
-      'mentor': mentor.isEmpty ? 'Teacher' : mentor,
+      'learner': learner.isEmpty || invalidNames.contains(learner.toLowerCase()) ? 'Learner' : learner,
+      'mentor': mentor.isEmpty || invalidNames.contains(mentor.toLowerCase()) ? 'Teacher' : mentor,
     };
   }
 

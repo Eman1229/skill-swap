@@ -220,35 +220,46 @@ class CertificateCardWidget extends StatelessWidget {
 
     Future<String?> fetchName(String uid) async {
       if (uid.isEmpty) return null;
+      String? foundName;
       try {
         final doc = await db.collection('users').doc(uid).get();
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
-          final name = (data['name'] ?? data['fullName'] ?? data['username'] ?? '').toString().trim();
+          final name = (data['username'] ?? data['name'] ?? data['fullName'] ?? '').toString().trim();
           if (name.isNotEmpty && !invalidNames.contains(name.toLowerCase())) {
-            return name;
-          }
-          final email = data['email']?.toString().trim();
-          if (email != null && email.isNotEmpty && email.contains('@')) {
-            return email.split('@').first;
+            foundName = name;
+          } else {
+            final email = data['email']?.toString().trim();
+            if (email != null && email.isNotEmpty && email.contains('@')) {
+              foundName = email.split('@').first;
+            }
           }
         }
       } catch (_) {}
-      return null;
+
+      if (foundName == null) {
+        try {
+          final snap = await db.collection('swapListings').where('userId', isEqualTo: uid).limit(1).get();
+          if (snap.docs.isNotEmpty) {
+            final d = snap.docs.first.data();
+            final name = (d['name'] ?? '').toString().trim();
+            if (name.isNotEmpty && !invalidNames.contains(name.toLowerCase())) {
+              foundName = name;
+            }
+          }
+        } catch (_) {}
+      }
+      return foundName;
     }
 
-    if (invalidNames.contains(learner.toLowerCase())) {
-      learner = await fetchName(swap.learnerId) ?? learner;
-      if (invalidNames.contains(learner.toLowerCase()) && currentUser != null && swap.learnerId == currentUser.uid) {
-        learner = currentUser.displayName ?? (currentUser.email?.split('@').first ?? learner);
-      }
+    learner = await fetchName(swap.learnerId) ?? learner;
+    if (invalidNames.contains(learner.toLowerCase()) && currentUser != null && swap.learnerId == currentUser.uid) {
+      learner = currentUser.displayName ?? (currentUser.email?.split('@').first ?? learner);
     }
 
-    if (invalidNames.contains(mentor.toLowerCase())) {
-      mentor = await fetchName(swap.mentorId) ?? mentor;
-      if (invalidNames.contains(mentor.toLowerCase()) && currentUser != null && swap.mentorId == currentUser.uid) {
-        mentor = currentUser.displayName ?? (currentUser.email?.split('@').first ?? mentor);
-      }
+    mentor = await fetchName(swap.mentorId) ?? mentor;
+    if (invalidNames.contains(mentor.toLowerCase()) && currentUser != null && swap.mentorId == currentUser.uid) {
+      mentor = currentUser.displayName ?? (currentUser.email?.split('@').first ?? mentor);
     }
 
     return {

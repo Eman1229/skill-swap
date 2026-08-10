@@ -109,6 +109,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             .get();
 
         final batch = _db.batch();
+        final userDocRef = _db.collection('users').doc(uid);
+        batch.set(userDocRef, updateData, SetOptions(merge: true));
+        
         for (final doc in listingsQuery.docs) {
           batch.update(doc.reference, updateData);
         }
