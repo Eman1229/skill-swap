@@ -21,21 +21,28 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final SkillExchangeService _exchangeService = SkillExchangeService();
   String _selectedFilter = 'All';
+  String? _uid;
+  Stream<AnalyticsData>? _analyticsStream;
+  Stream<List<SwapModel>>? _swapsStream;
 
   @override
   void initState() {
     super.initState();
-    final uid = _auth.currentUser?.uid;
-    if (uid != null) {
+    _uid = _auth.currentUser?.uid;
+    if (_uid != null) {
       // Enforce strict 1:1 balance and synchronize any data mismatches immediately in real-time
-      _exchangeService.rebalanceUser(uid);
+      // The stream references must remain stable; recreating either one from
+      // build causes StreamBuilder to detach and show a loading frame.
+      _analyticsStream = AnalyticsService().watchAnalytics(_uid!);
+      _swapsStream = _exchangeService.watchTeachingSwaps(_uid!);
+      _exchangeService.rebalanceUser(_uid!);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     context.watch<LanguageProvider>();
-    final uid = _auth.currentUser?.uid;
+    final uid = _uid;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -53,11 +60,8 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
       body: uid == null
           ? Center(child: Text('please_login'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))
           : StreamBuilder<AnalyticsData>(
-              stream: AnalyticsService().watchAnalytics(uid),
+              stream: _analyticsStream,
               builder: (context, analyticsSnap) {
-                if (analyticsSnap.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
-                }
                 final analyticsData = analyticsSnap.data ?? AnalyticsData.empty(uid);
 
                 return Column(
@@ -65,7 +69,7 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                     _buildFilters(),
                     Expanded(
                       child: StreamBuilder<List<SwapModel>>(
-                        stream: _exchangeService.watchTeachingSwaps(uid),
+                        stream: _swapsStream,
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
                             return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
@@ -96,7 +100,7 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                                 _buildTotalBadge(totalSkills, context), // ← ADDED
                                 SizedBox(height: 20),                   // ← ADDED
                                 ...swapsList.map((swap) {
-                                  return _TeachingCard(swap: swap);
+                                  return _TeachingCard(key: ValueKey(swap.id), swap: swap);
                                 }).toList(),
                                 SizedBox(height: 32),
                                 Text('performance_insights'.tr(),

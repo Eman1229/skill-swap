@@ -21,20 +21,28 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final SkillExchangeService _exchangeService = SkillExchangeService();
   String _selectedFilter = 'All';
+  String? _uid;
+  Stream<AnalyticsData>? _analyticsStream;
+  Stream<List<SwapModel>>? _swapsStream;
 
   @override
   void initState() {
     super.initState();
-    final uid = _auth.currentUser?.uid;
-    if (uid != null) {
-      _exchangeService.rebalanceUser(uid);
+    _uid = _auth.currentUser?.uid;
+    if (_uid != null) {
+      // Keep these stream instances for the lifetime of this screen. Creating
+      // them in build re-subscribed on every analytics update and briefly
+      // reset the cards to their loading state.
+      _analyticsStream = AnalyticsService().watchAnalytics(_uid!);
+      _swapsStream = _exchangeService.watchLearningSwaps(_uid!);
+      _exchangeService.rebalanceUser(_uid!);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     context.watch<LanguageProvider>();
-    final uid = _auth.currentUser?.uid;
+    final uid = _uid;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -52,11 +60,8 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
       body: uid == null
           ? Center(child: Text('please_login'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))
           : StreamBuilder<AnalyticsData>(
-              stream: AnalyticsService().watchAnalytics(uid),
+              stream: _analyticsStream,
               builder: (context, analyticsSnap) {
-                if (analyticsSnap.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
-                }
                 final analyticsData = analyticsSnap.data ?? AnalyticsData.empty(uid);
 
                 return Column(
@@ -64,7 +69,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                     _buildFilters(),
                     Expanded(
                       child: StreamBuilder<List<SwapModel>>(
-                        stream: _exchangeService.watchLearningSwaps(uid),
+                        stream: _swapsStream,
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
                             return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
@@ -95,7 +100,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                                 _buildTotalBadge(totalSkills, context), // ← ADDED
                                 SizedBox(height: 20),                   // ← ADDED
                                 ...swapsList.map((swap) {
-                                  return _LearningCard(swap: swap);
+                                  return _LearningCard(key: ValueKey(swap.id), swap: swap);
                                 }).toList(),
                                 SizedBox(height: 32),
                                 Text('performance_insights'.tr(),
