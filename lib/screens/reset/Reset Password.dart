@@ -136,7 +136,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                       ),
                       SizedBox(height: 28),
                       Text(
-                        isLoggedIn ? 'create_new_password'.tr() : 'identity_verified'.tr(),
+                        isLoggedIn ? 'Create new Password'.tr() : 'Identity Verified'.tr(),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.primary,
                           fontSize: 28,
@@ -146,8 +146,8 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                       SizedBox(height: 10),
                       Text(
                         isLoggedIn
-                            ? 'set_new_password'.tr()
-                            : 'otp_verified'.tr(),
+                            ? 'Set new password'.tr()
+                            : 'Otp Verified'.tr(),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -160,7 +160,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                       if (isLoggedIn) ...[
                         UiHelper.CustomTextField(context: context,
                           controller: passwordController,
-                          text: 'new_password'.tr(),
+                          text: 'New Password'.tr(),
                           tohide: !showPassword,
                           textinputtype: TextInputType.text,
                           prefixIcon: Icons.lock_outline,
@@ -176,7 +176,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                         SizedBox(height: 22),
                         UiHelper.CustomTextField(context: context,
                           controller: confirmController,
-                          text: 'confirm_password'.tr(),
+                          text: 'confirm Password'.tr(),
                           tohide: !showConfirm,
                           textinputtype: TextInputType.text,
                           prefixIcon: Icons.lock_outline,
