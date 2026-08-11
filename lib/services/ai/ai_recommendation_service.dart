@@ -68,7 +68,7 @@ class AIRecommendationService {
   Future<void> refreshIfStale({String? careerGoal, bool force = false}) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) {
-      print('AIRecommendationService: refreshIfStale aborted - uid is null');
+      debugPrint('AIRecommendationService: refreshIfStale aborted - uid is null');
       return;
     }
 
@@ -85,15 +85,15 @@ class AIRecommendationService {
       final currentSwapCount = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
       final currentRating = (userData['averageRating'] as num?)?.toDouble() ?? 0.0;
 
-      print('AIRecommendationService: currentSwapCount=$currentSwapCount, skills=${currentSkills.length}, rating=$currentRating');
+      debugPrint('AIRecommendationService: currentSwapCount=$currentSwapCount, skills=${currentSkills.length}, rating=$currentRating');
 
       // ── STEP 1a: Mentor Compass ─────────────────────────────────────
       // Always computed regardless of swap count.
       // MentorCompassService internally uses rating-boosted weights for new users.
       final mentorStale = await _cache.isMentorStale(uid, currentSkills: currentSkills, currentSwapCount: currentSwapCount);
-      print('AIRecommendationService: mentorStale=$mentorStale');
+      debugPrint('AIRecommendationService: mentorStale=$mentorStale');
       if (mentorStale || force) {
-        print('AIRecommendationService: Computing mentor recommendations (always on)...');
+        debugPrint('AIRecommendationService: Computing mentor recommendations (always on)...');
         await _mentorService.computeRecommendations();
         await _cache.markMentorFresh(uid, currentSkills: currentSkills, currentSwapCount: currentSwapCount);
         await _repository.logGeneration(userId: uid, type: 'mentor_generation', success: true);
@@ -131,24 +131,24 @@ class AIRecommendationService {
               if (triggerData != null) {
                 final dbSwapCount = (triggerData['completedSwaps'] as num?)?.toInt() ?? 0;
                 final dbSkills = List<String>.from(triggerData['skillsLearned'] ?? []);
-                print('AIRecommendationService: dbSwapCount=$dbSwapCount, dbSkills=${dbSkills.length}');
+                debugPrint('AIRecommendationService: dbSwapCount=$dbSwapCount, dbSkills=${dbSkills.length}');
                 if (dbSwapCount >= currentSwapCount && _listsEqual(dbSkills, currentSkills)) {
                   isCareerDbFresh = true;
                   await _cache.markCareerFresh(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
-                  print('AIRecommendationService: Firestore career recommendation is already fresh (swaps: $dbSwapCount). Skipping generation.');
+                  debugPrint('AIRecommendationService: Firestore career recommendation is already fresh (swaps: $dbSwapCount). Skipping generation.');
                 }
               }
             }
           }
         }
       } catch (e) {
-        print('AIRecommendationService: Error checking career db freshness: $e');
+        debugPrint('AIRecommendationService: Error checking career db freshness: $e');
       }
 
       final careerStale = await _cache.isCareerStale(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
-      print('AIRecommendationService: careerStale=$careerStale, isCareerDbFresh=$isCareerDbFresh');
+      debugPrint('AIRecommendationService: careerStale=$careerStale, isCareerDbFresh=$isCareerDbFresh');
       if ((careerStale && !isCareerDbFresh) || force) {
-        print('AIRecommendationService: Triggering career recommendation generation...');
+        debugPrint('AIRecommendationService: Triggering career recommendation generation...');
         await _careerService.generateRecommendation(careerGoal: careerGoal);
         await _cache.markCareerFresh(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
         await _repository.logGeneration(userId: uid, type: 'career_generation', success: true);

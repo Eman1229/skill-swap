@@ -61,6 +61,11 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
       );
     }
 
+    // ── Lock state: user hasn't completed 2 swaps yet ──────────────────
+    if (!provider.isEligibleForAI) {
+      return _buildLockedScreen(context, isDark, primaryColor, provider.completedSwaps);
+    }
+
     final roadmap = provider.learningRoadmap;
     if (roadmap == null || roadmap.stages.isEmpty) {
       return Scaffold(
@@ -76,29 +81,29 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
               children: [
                 Icon(Icons.map_rounded, size: 72, color: isDark ? Colors.white24 : Colors.black26),
                 const SizedBox(height: 16),
-            const Text(
-              'No Roadmap Found',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CareerCompassScreen()),
-                );
-              },
-              child: const Text(
-                'Go to the Career Compass screen and click "Generate Roadmap" for a career path.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey,
-                  decoration: TextDecoration.underline,
+                const Text(
+                  'No Roadmap Found',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              ),
-            ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CareerCompassScreen()),
+                    );
+                  },
+                  child: const Text(
+                    'Go to the Career Compass screen and click "Generate Roadmap" for a career path.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -139,6 +144,106 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
           _buildResourcesTab(roadmap, isDark, primaryColor),
           _buildMilestonesTab(provider, roadmap, isDark, primaryColor),
         ],
+      ),
+    );
+  }
+
+  // ── Lock State Screen ────────────────────────────────────────────────
+  Widget _buildLockedScreen(
+    BuildContext context,
+    bool isDark,
+    Color primaryColor,
+    int completedSwaps,
+  ) {
+    final remaining = (kMinCompletedSwapsForAI - completedSwaps).clamp(0, kMinCompletedSwapsForAI);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('learning_roadmap'.tr(), textAlign: TextAlign.center),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Lock icon with gradient background
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                        : [const Color(0xFFEFF6FF), const Color(0xFFDEEBFF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFBFD7FF),
+                    width: 2,
+                  ),
+                ),
+                child: Icon(
+                  Icons.lock_rounded,
+                  size: 44,
+                  color: isDark ? Colors.white38 : Colors.blueGrey.shade300,
+                ),
+              ),
+              const SizedBox(height: 28),
+              const Text(
+                'Learning Roadmap Locked',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Complete $remaining more swap${remaining == 1 ? '' : 's'} to unlock your personalised Learning Roadmap — built from your actual skills, completed swaps, and career goal.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: isDark ? Colors.white60 : Colors.black54,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+              // Progress bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: completedSwaps / kMinCompletedSwapsForAI,
+                  minHeight: 10,
+                  backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$completedSwaps / $kMinCompletedSwapsForAI swaps completed',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white54 : Colors.black45,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 32),
+              // CTA button
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.explore_rounded, size: 18),
+                label: const Text('Browse Mentors'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -450,9 +555,11 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
                   try {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Could not open link: ${res.url}')),
-                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Could not open link: ${res.url}')),
+                      );
+                    }
                   }
                 }
               }
@@ -522,9 +629,8 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
     bool isDark,
     Color primaryColor,
   ) {
-    // Fetch weekly activity stats
-    // Use real weeklyLearningHours from saved AIAnalyticsSnapshot.
-    // Default to all zeros (not fake data) when no snapshot exists yet.
+    // Use real weeklyLearningHours from the saved AIAnalyticsSnapshot.
+    // Default to all-zeros (not fake data) when no snapshot exists yet.
     final weeklyActivity = provider.analyticsSnapshot?.weeklyLearningHours ?? const {
       'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0
     };
