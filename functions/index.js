@@ -7,6 +7,7 @@ if (!admin.apps.length) {
 const { sendSwapProposalNotification } = require('./sendSwapProposalNotification');
 const { sendDirectMessageNotification } = require('./sendDirectMessageNotification');
 const { sendWeeklyTips } = require('./sendWeeklyTips');
+const { sendGeneralNotification } = require('./sendGeneralNotification');
 
 // ── AI Recommendation Ecosystem ────────────────────────────────────────
 const { getEmbedding } = require('./ai_proxy');
@@ -391,6 +392,11 @@ exports.swapProposalNotifier = functions.firestore
 exports.directMessageNotifier = functions.firestore
   .document('conversations/{chatId}/messages/{msgId}')
   .onCreate(sendDirectMessageNotification);
+
+// Trigger on generic notifications collection
+exports.generalNotifier = functions.firestore
+  .document('notifications/{notificationId}')
+  .onCreate(sendGeneralNotification);
 
 // Weekly tip scheduled function (triggered by Cloud Scheduler)
 exports.weeklyTipNotifier = functions.pubsub.schedule('every Monday 09:00').timeZone('UTC').onRun(sendWeeklyTips);

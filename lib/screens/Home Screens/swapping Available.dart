@@ -473,7 +473,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                         fallback: _auth.currentUser?.displayName ??
                             _auth.currentUser?.email?.split('@').first ??
                             'User');
-                    liveImageUrl = dataMap?['imageUrl'] as String?;
+                    liveImageUrl = dataMap?['imageUrl'] as String? ?? _auth.currentUser?.photoURL;
                     _handleImageUrlChange(liveImageUrl);
 
                     final parts = _userName.trim().split(' ');
