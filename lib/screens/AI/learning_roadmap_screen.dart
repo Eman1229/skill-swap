@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/providers/ai/ai_recommendation_provider.dart';
 import 'package:skill_swap/models/ai/learning_roadmap_model.dart';
+import 'package:skill_swap/screens/AI/career_compass_screen.dart';
 import 'package:skill_swap/screens/AI/roadmap_all_steps_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:skill_swap/services/ai/ai_profile_service.dart';
@@ -53,33 +54,10 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
     if (provider.isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: Text('learning_roadmap'.tr()),
+          title: Text('learning_roadmap'.tr(), textAlign: TextAlign.center),
           centerTitle: true,
         ),
         body: Center(child: CircularProgressIndicator(color: primaryColor)),
-      );
-    }
-
-    if (!provider.isEligibleForAI) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text('learning_roadmap'.tr()),
-          centerTitle: true,
-        ),
-        body: Center(child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.lock_outline_rounded, size: 72, color: isDark ? Colors.white24 : Colors.black26),
-            const SizedBox(height: 16),
-            const Text('Your personalized roadmap is locked', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text(
-              'Complete at least 2 successful swaps to unlock it.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey),
-            ),
-          ]),
-        )),
       );
     }
 
@@ -87,7 +65,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
     if (roadmap == null || roadmap.stages.isEmpty) {
       return Scaffold(
         appBar: AppBar(
-          title: Text('learning_roadmap'.tr()),
+          title: Text('learning_roadmap'.tr(), textAlign: TextAlign.center),
           centerTitle: true,
         ),
         body: Center(
@@ -98,16 +76,29 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
               children: [
                 Icon(Icons.map_rounded, size: 72, color: isDark ? Colors.white24 : Colors.black26),
                 const SizedBox(height: 16),
-                const Text(
-                  'No Active Roadmap Found',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            const Text(
+              'No Roadmap Found',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CareerCompassScreen()),
+                );
+              },
+              child: const Text(
+                'Go to the Career Compass screen and click "Generate Roadmap" for a career path.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey,
+                  decoration: TextDecoration.underline,
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Go to the Career Compass screen and click "Generate Roadmap" for a career path.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
-                ),
+              ),
+            ),
               ],
             ),
           ),

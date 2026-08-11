@@ -137,12 +137,19 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 40),
+                  SizedBox(height: 32),
                   _DetailRow(icon: Icons.event_rounded, label: 'date'.tr(), value: dateStr),
                   SizedBox(height: 20),
                   _DetailRow(icon: Icons.access_time_rounded, label: 'time'.tr(), value: timeStr),
                   SizedBox(height: 20),
                   _DetailRow(icon: Icons.timer_outlined, label: 'duration'.tr(), value: session.duration),
+                  if (session.status.toLowerCase() != 'completed' && !isLocked) ...[
+                    const SizedBox(height: 28),
+                    _CompletionAction(
+                      isLoading: _isCompleting,
+                      onTap: _isCompleting ? null : () => _markAsDone(context, session),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -152,13 +159,6 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                 label: 'enter_meeting_room'.tr(),
                 onTap: () => _openMeetingLink(context, session.meetingLink),
               ),
-            if (session.status.toLowerCase() != 'completed' && !isLocked) ...[
-              const SizedBox(height: 16),
-              _PrimaryBtn(
-                label: _isCompleting ? 'Marking as Done...' : 'Mark as Done',
-                onTap: _isCompleting ? () {} : () => _markAsDone(context, session),
-              ),
-            ],
             if (isLocked) ...[
               const SizedBox(height: 16),
               Text(
@@ -269,6 +269,57 @@ class _DetailRow extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _CompletionAction extends StatelessWidget {
+  final bool isLoading;
+  final VoidCallback? onTap;
+
+  const _CompletionAction({required this.isLoading, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: colorScheme.onSurface.withValues(alpha: 0.75), width: 2),
+                ),
+                child: isLoading
+                    ? Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.primary),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Mark as Completed', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    SizedBox(height: 3),
+                    Text('Tap when the session is finished', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

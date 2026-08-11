@@ -28,8 +28,10 @@ class AnalyticsService {
         QuerySnapshot? listingsSnap;
         QuerySnapshot? activitiesSnap;
         QuerySnapshot? reviewsSnap;
+        var isComputing = false;
+        var computeQueued = false;
 
-        void checkAndEmit() async {
+        void checkAndEmit() {
           if (userSnap == null ||
               swaps == null ||
               requestsSnap == null ||
@@ -40,6 +42,16 @@ class AnalyticsService {
             return;
           }
 
+          // The six Firestore listeners commonly deliver their initial values
+          // together. Coalesce them so they do not each start the expensive
+          // per-swap session reads and emit competing UI states.
+          if (isComputing) {
+            computeQueued = true;
+            return;
+          }
+          isComputing = true;
+
+          () async {
           try {
             final swapIds = swaps!.map((s) => s.id).toList();
             final sessions = await _fetchAllSessions(uid, swapIds);
@@ -70,7 +82,8 @@ class AnalyticsService {
             }
 
             // Sync overall stats to the users document to ensure global consistency
-            _db.collection('users').doc(uid).set({
+            final userData = userSnap!.data() as Map<String, dynamic>? ?? {};
+            final userUpdates = <String, dynamic>{
               'xp': data.totalXp,
               'level': data.currentLevel,
               'levelProgress': data.levelProgressPercentage,
@@ -84,9 +97,15 @@ class AnalyticsService {
               'teachingRating': data.teachingRating,
               'completedLearningSessions': data.completedLearningSessions,
               'completedTeachingSessions': data.completedTeachingSessions,
-            }, SetOptions(merge: true)).catchError((e) {
-              debugPrint("Error syncing user stats to Firestore: $e");
-            });
+            };
+            if (_hasChangedFields(userData, userUpdates)) {
+              _db.collection('users').doc(uid).set(
+                userUpdates,
+                SetOptions(merge: true),
+              ).catchError((e) {
+                debugPrint("Error syncing user stats to Firestore: $e");
+              });
+            }
 
             // Save AIAnalyticsSnapshot so Career Compass / Roadmap always has fresh data
             _saveAiSnapshot(uid, data, sessions).catchError((e) {
@@ -102,7 +121,14 @@ class AnalyticsService {
             });
           } catch (e, stack) {
             debugPrint("Error in watchAnalytics checkAndEmit: $e\n$stack");
+          } finally {
+            isComputing = false;
+            if (computeQueued && !controller.isClosed) {
+              computeQueued = false;
+              checkAndEmit();
+            }
           }
+          }();
         }
 
         subscriptions.add(
@@ -606,13 +632,20 @@ class AnalyticsService {
           : data.completedSwaps;
       // Rating: only write a non-zero rating when reviews actually exist
       final ratingValue = data.reviewsCount > 0 ? data.averageRating : 0.0;
+      var hasUpdates = false;
       for (final doc in listingDocs) {
+        final listing = doc.data() as Map<String, dynamic>? ?? {};
+        if (_sameValue(listing['Rating'], ratingValue) &&
+            _sameValue(listing['Reviews'], reviewsValue)) {
+          continue;
+        }
         batch.update(doc.reference, {
           'Rating': ratingValue,
           'Reviews': reviewsValue,
         });
+        hasUpdates = true;
       }
-      await batch.commit();
+      if (hasUpdates) await batch.commit();
     } catch (e) {
       debugPrint("Error syncing listing stats: $e");
     }
@@ -622,6 +655,25 @@ class AnalyticsService {
     final stored = userData['username']?.toString().trim() ?? '';
     if (stored.isNotEmpty) return stored.startsWith('@') ? stored : '@$stored';
     return '@skillswapper';
+  }
+
+  bool _hasChangedFields(
+    Map<String, dynamic> existing,
+    Map<String, dynamic> updates,
+  ) {
+    return updates.entries.any(
+      (entry) => !_sameValue(existing[entry.key], entry.value),
+    );
+  }
+
+  bool _sameValue(dynamic current, dynamic next) {
+    if (current is num && next is num) return current.toDouble() == next.toDouble();
+    if (current is List && next is List) {
+      return current.length == next.length &&
+          Iterable.generate(current.length)
+              .every((index) => _sameValue(current[index], next[index]));
+    }
+    return current == next;
   }
 
   String _getInitials(String name) {
