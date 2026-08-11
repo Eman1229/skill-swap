@@ -19,12 +19,16 @@ async function getUserSettings(userId) {
 function buildFcmPayload(notification) {
   return {
     token: notification.fcmToken,
+    notification: {
+      title: notification.title ? String(notification.title) : '',
+      body: notification.body ? String(notification.body) : '',
+    },
     data: {
-      title: notification.title,
-      body: notification.body,
-      actionRoute: notification.actionRoute,
-      relatedId: notification.relatedId,
-      type: notification.type,
+      title: notification.title ? String(notification.title) : '',
+      body: notification.body ? String(notification.body) : '',
+      actionRoute: notification.actionRoute ? String(notification.actionRoute) : '',
+      relatedId: notification.relatedId ? String(notification.relatedId) : '',
+      type: notification.type ? String(notification.type) : '',
     },
     android: {
       priority: 'high',

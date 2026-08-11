@@ -18,11 +18,14 @@ function getChannelId(type) {
 }
 
 exports.sendGeneralNotification = async (snapshot, context) => {
+  const notificationId = context.params.notificationId;
   const notification = snapshot.data() || {};
   const receiverId = (notification.receiverId || '').toString();
 
+  log(`[generalNotifier] Triggered for notification ${notificationId}, receiver: ${receiverId}, type: ${notification.type}`);
+
   if (!receiverId) {
-    log(`Could not resolve a valid receiverId for notification ${context.params.notificationId}`);
+    log(`[generalNotifier] Error: Could not resolve a valid receiverId for notification ${notificationId}`);
     return null;
   }
 
@@ -31,7 +34,7 @@ exports.sendGeneralNotification = async (snapshot, context) => {
   if (settings) {
     const pushEnabled = settings.pushEnabled !== false;
     if (!pushEnabled) {
-      log(`User ${receiverId} disabled push notifications`);
+      log(`[generalNotifier] User ${receiverId} disabled push notifications`);
       return null;
     }
   }
@@ -49,6 +52,9 @@ exports.sendGeneralNotification = async (snapshot, context) => {
   let fallbackToken = null;
   if (userDoc.exists) {
       fallbackToken = userDoc.data().fcmToken;
+      if (fallbackToken) log(`[generalNotifier] Found fallback FCM token for user ${receiverId}`);
+  } else {
+      log(`[generalNotifier] Error: User document not found for receiver ${receiverId}`);
   }
 
   const sends = [];
@@ -58,6 +64,7 @@ exports.sendGeneralNotification = async (snapshot, context) => {
     const token = doc.id;
     if (!tokensSent.has(token)) {
       tokensSent.add(token);
+      log(`[generalNotifier] Queuing push notification for deviceTokens token: ${token.substring(0, 15)}...`);
       sends.push(admin.messaging().send(buildFcmPayload({
         fcmToken: token,
         title,
@@ -71,6 +78,8 @@ exports.sendGeneralNotification = async (snapshot, context) => {
   });
 
   if (fallbackToken && !tokensSent.has(fallbackToken)) {
+      tokensSent.add(fallbackToken);
+      log(`[generalNotifier] Queuing push notification for fallback FCM token: ${fallbackToken.substring(0, 15)}...`);
       sends.push(admin.messaging().send(buildFcmPayload({
         fcmToken: fallbackToken,
         title,
@@ -82,6 +91,25 @@ exports.sendGeneralNotification = async (snapshot, context) => {
       })));
   }
 
-  await Promise.all(sends);
+  if (sends.length === 0) {
+    log(`[generalNotifier] No FCM tokens found for user ${receiverId}`);
+    return null;
+  }
+
+  try {
+    const responses = await Promise.allSettled(sends);
+    let successCount = 0;
+    responses.forEach((res, idx) => {
+      if (res.status === 'fulfilled') {
+        successCount++;
+      } else {
+        log(`[generalNotifier] Failed to send push notification: ${res.reason}`);
+      }
+    });
+    log(`[generalNotifier] Successfully sent ${successCount} out of ${sends.length} push notifications for ${notificationId}`);
+  } catch (error) {
+    log(`[generalNotifier] Critical error during Promise.allSettled: ${error}`);
+  }
+  
   return null;
 };
