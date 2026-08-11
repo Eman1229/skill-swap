@@ -2,7 +2,10 @@
 // Recommends mentors using:
 //   1. OpenAI text-embedding-3-small (via Cloud Function proxy)
 //   2. Cosine similarity (pure Dart)
-//   3. Weighted scoring: skillMatch 40% + rating 25% + successRate 20% + availability 15%
+//   3. Weighted scoring:
+//      New users (0 swaps): rating 45% + skillMatch 30% + successRate 20% + availability 5%
+//      Experienced users:   skillMatch 40% + rating 25% + successRate 20% + availability 15%
+// NOTE: Mentor Compass is ALWAYS available regardless of completed-swap count.
 
 import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -21,16 +24,36 @@ class MentorCompassService {
   final OpenAIService _openai = OpenAIService();
 
   // ── Public API ──────────────────────────────────────────────────────
+  /// Computes mentor recommendations for any user, regardless of swap count.
+  /// For new users (0 completed swaps), mentor ratings are weighted more heavily
+  /// so the best-rated mentors surface at the top.
   Future<List<MentorRecommendation>> computeRecommendations() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return [];
 
     try {
-      // 1. Fetch current user's data
+      // 1. Fetch current user's data and swap count for weight selection
       final userData = await _fetchUserData(uid);
       final mySkillsLearned = List<String>.from(userData['skillsLearned'] ?? []);
       final mySkillsTeaching = List<String>.from(userData['skillsTeaching'] ?? []);
       final myWantedSkills = List<String>.from(userData['learningGoals'] ?? mySkillsLearned);
+
+      // Determine user maturity to choose scoring weights
+      final userDoc = await _db.collection('users').doc(uid).get();
+      final completedSwapsField = (userDoc.data()?['completedSwaps'] as num?)?.toInt() ?? 0;
+      final swapsSnap = await _db
+          .collection('swaps')
+          .where('participants', arrayContains: uid)
+          .get();
+      final completedExchangeCount = swapsSnap.docs.where((doc) {
+        final data = doc.data();
+        final status = (data['status'] as String? ?? '').toLowerCase();
+        final progress = (data['progress'] as num?)?.toDouble() ?? 0.0;
+        return status == 'completed' || progress >= 1.0;
+      }).length;
+      // Use the higher of the two counts to avoid penalising users with stale fields
+      final completedSwaps = math.max(completedSwapsField, completedExchangeCount);
+      final isNewUser = completedSwaps == 0;
 
       // 2. Fetch all swap listings (exclude own)
       final listingsSnap = await _db.collection('swapListings').get();
@@ -68,7 +91,7 @@ class MentorCompassService {
         double skillSimilarity;
         if (allEmbeddings != null && allEmbeddings.length > i + 1) {
           skillSimilarity = _cosineSimilarity(
-            allEmbeddings[0],    // my embedding
+            allEmbeddings[0],     // my embedding
             allEmbeddings[i + 1], // mentor's embedding
           );
         } else {
@@ -85,11 +108,24 @@ class MentorCompassService {
         final reviews = (d['Reviews'] as num?)?.toInt() ?? 0;
         final successRate = (d['successRate'] as num?)?.toDouble() ?? (rating / 5.0);
 
-        // Weighted final score (0-100)
-        final weightedScore = (skillSimilarity * 40) +
-            ((rating / 5.0) * 25) +
-            (successRate * 20) +
-            (reviews > 0 ? 15 : 5); // availability proxy
+        // ── Weighted final score (0-100) ────────────────────────────────
+        // New users: prioritise rating heavily so the best-rated mentors
+        //   surface at the top before any personal swap history exists.
+        // Experienced users: rebalance towards skill match and availability.
+        final double weightedScore;
+        if (isNewUser) {
+          // New user weights: rating 45% + skillMatch 30% + successRate 20% + availability 5%
+          weightedScore = ((rating / 5.0) * 45) +
+              (skillSimilarity * 30) +
+              (successRate * 20) +
+              (reviews > 0 ? 5 : 0);
+        } else {
+          // Experienced user weights: skillMatch 40% + rating 25% + successRate 20% + availability 15%
+          weightedScore = (skillSimilarity * 40) +
+              ((rating / 5.0) * 25) +
+              (successRate * 20) +
+              (reviews > 0 ? 15 : 5);
+        }
 
         scores.add(_MentorScore(
           doc: doc,
@@ -98,6 +134,7 @@ class MentorCompassService {
           reviews: reviews,
           successRate: successRate,
           weightedScore: weightedScore.clamp(0, 100),
+          isNewUserScore: isNewUser,
         ));
       }
 
@@ -154,6 +191,10 @@ class MentorCompassService {
           createdAt: DateTime.now(),
         );
       }).toList();
+
+      debugPrint('MentorCompassService: scored ${scores.length} mentors '
+          '(isNewUser=$isNewUser, completedSwaps=$completedSwaps). '
+          'Top match score: ${top.isNotEmpty ? top.first.weightedScore.round() : 0}%');
 
       // 8. Save to Firestore (append-only)
       await _saveRecommendations(uid, recommendations);
@@ -238,16 +279,29 @@ class MentorCompassService {
     final reasons = <String>[];
     final offering = (d['offering'] as String?) ?? '';
 
+    // For new users, lead with rating since that is the primary signal
+    if (s.isNewUserScore) {
+      if (s.rating >= 4.5) {
+        reasons.add('Top-rated mentor — ${s.rating.toStringAsFixed(1)}★ rating');
+      } else if (s.rating >= 4.0) {
+        reasons.add('Highly rated mentor — ${s.rating.toStringAsFixed(1)}★ avg rating');
+      } else if (s.rating > 0) {
+        reasons.add('Rated ${s.rating.toStringAsFixed(1)}★ by the community');
+      }
+    }
+
     if (s.skillSimilarity > 0.7) {
       reasons.add('Strong skill alignment with your learning goals');
     } else if (s.skillSimilarity > 0.4) {
       reasons.add('Good skill match for your current learning path');
     }
 
-    if (s.rating >= 4.5) {
-      reasons.add('Top-rated mentor with ${s.rating.toStringAsFixed(1)} stars');
-    } else if (s.rating >= 4.0) {
-      reasons.add('Highly rated with ${s.rating.toStringAsFixed(1)} avg rating');
+    if (!s.isNewUserScore) {
+      if (s.rating >= 4.5) {
+        reasons.add('Top-rated mentor with ${s.rating.toStringAsFixed(1)} stars');
+      } else if (s.rating >= 4.0) {
+        reasons.add('Highly rated with ${s.rating.toStringAsFixed(1)} avg rating');
+      }
     }
 
     if (offering.isNotEmpty && myWanted.any(
@@ -311,6 +365,8 @@ class _MentorScore {
   final int reviews;
   final double successRate;
   final double weightedScore;
+  /// True when the score was computed with the new-user (rating-boosted) weights.
+  final bool isNewUserScore;
 
   _MentorScore({
     required this.doc,
@@ -319,5 +375,6 @@ class _MentorScore {
     required this.reviews,
     required this.successRate,
     required this.weightedScore,
+    this.isNewUserScore = false,
   });
 }

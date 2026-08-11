@@ -59,10 +59,13 @@ class AIRecommendationProvider extends ChangeNotifier {
 
       debugPrint('[AI Provider] Fetching latest recommendations from Firestore...');
       final eligible = _aiProfile?.isEligibleForRecommendations ?? false;
-      final mentors = eligible ? await _service.getLatestMentors() : <MentorRecommendation>[];
+
+      // Mentor Compass: always available regardless of swap count.
+      final mentors = await _service.getLatestMentors();
+      // Career Compass & Learning Roadmap: locked until 2 completed swaps.
       final career = eligible ? await _service.getLatestCareer() : null;
       final roadmap = eligible ? await _service.getLatestRoadmap() : null;
-      
+
       _mentorRecommendations = mentors;
       _careerRecommendation = career;
       _learningRoadmap = roadmap;
@@ -81,6 +84,7 @@ class AIRecommendationProvider extends ChangeNotifier {
         listenToUserChanges(uid);
       }
 
+      // If user is newly eligible but has no career data yet, trigger generation
       if (eligible && career == null && uid != null) {
         final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
         final userData = userDoc.data() ?? {};
@@ -116,22 +120,18 @@ class AIRecommendationProvider extends ChangeNotifier {
       if (activeUid != null) {
         await SkillExchangeService().syncUserProfile(activeUid);
         _aiProfile = await _profileService.buildProfile(activeUid);
-        if (!_aiProfile!.isEligibleForRecommendations) {
-          _mentorRecommendations = [];
-          _careerRecommendation = null;
-          _learningRoadmap = null;
-          _isLoading = false;
-          notifyListeners();
-          return;
-        }
       }
+
       debugPrint('[AI Provider] Calling service refreshIfStale (force: $force)...');
       await _service.refreshIfStale(careerGoal: careerGoal, force: force);
-      
+
       debugPrint('[AI Provider] Fetching latest recommendations after refresh...');
+      // Mentor Compass: always fetched for all users
       final mentors = await _service.getLatestMentors();
-      final career = await _service.getLatestCareer();
-      final roadmap = await _service.getLatestRoadmap();
+      // Career Compass & Learning Roadmap: only when eligible
+      final eligible = _aiProfile?.isEligibleForRecommendations ?? false;
+      final career = eligible ? await _service.getLatestCareer() : null;
+      final roadmap = eligible ? await _service.getLatestRoadmap() : null;
 
       _mentorRecommendations = mentors;
       _careerRecommendation = career;
@@ -197,9 +197,9 @@ class AIRecommendationProvider extends ChangeNotifier {
   // ── Toggle Roadmap Task ─────────────────────────────────────────────
   Future<void> toggleRoadmapTask(String taskId, bool isCompleted) async {
     debugPrint('[AI Provider] toggleRoadmapTask called (taskId: $taskId, isCompleted: $isCompleted)');
-    
+
     final originalRoadmap = _learningRoadmap;
-    
+
     // 1. Perform Optimistic Update locally in memory
     if (_learningRoadmap != null) {
       try {
@@ -246,7 +246,7 @@ class AIRecommendationProvider extends ChangeNotifier {
     try {
       // 2. Perform actual database write in the background
       await _roadmapService.toggleTaskCompletion(taskId, isCompleted);
-      
+
       // 3. Silently fetch database ground truth to ensure absolute alignment
       final roadmap = await _roadmapService.getLatestRoadmap();
       if (roadmap != null) {
@@ -256,7 +256,7 @@ class AIRecommendationProvider extends ChangeNotifier {
     } catch (e, stack) {
       debugPrint('[AI Provider] toggleRoadmapTask error: $e\n$stack');
       _error = e.toString();
-      
+
       // Rollback to original state on failure
       _learningRoadmap = originalRoadmap;
       notifyListeners();
@@ -295,7 +295,7 @@ class AIRecommendationProvider extends ChangeNotifier {
         _lastLearningSkills = learningSkills;
         _lastActivitySignature = activitySignature;
 
-        // Perform a background refresh of recommendations dynamically
+        // Perform a background refresh of recommendations dynamically.
         // A changed profile/activity signal needs a new prompt even when the
         // cache has not yet aged out.
         Future.microtask(() => refreshRecommendations(uid: uid, force: true));

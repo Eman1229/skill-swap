@@ -78,14 +78,6 @@ class AIRecommendationService {
       // 0. Auto-sync profile stats from ground-truth swaps in Firestore
       await SkillExchangeService().syncUserProfile(uid);
 
-      // Recommendations are intentionally unavailable until the user has a
-      // meaningful activity signal. Build this from swaps, not a stale field.
-      final aiProfile = await _profileService.buildProfile(uid);
-      if (!aiProfile.isEligibleForRecommendations) {
-        debugPrint('AIRecommendationService: waiting for ${kMinCompletedSwapsForAI - aiProfile.completedSwaps} more completed swap(s).');
-        return;
-      }
-
       // 1. Fetch current profile statistics for cache checks
       final userDoc = await _db.collection('users').doc(uid).get();
       final userData = userDoc.data() ?? {};
@@ -95,7 +87,31 @@ class AIRecommendationService {
 
       print('AIRecommendationService: currentSwapCount=$currentSwapCount, skills=${currentSkills.length}, rating=$currentRating');
 
-      // Check if Firestore already has fresh career recommendation
+      // ── STEP 1a: Mentor Compass ─────────────────────────────────────
+      // Always computed regardless of swap count.
+      // MentorCompassService internally uses rating-boosted weights for new users.
+      final mentorStale = await _cache.isMentorStale(uid, currentSkills: currentSkills, currentSwapCount: currentSwapCount);
+      print('AIRecommendationService: mentorStale=$mentorStale');
+      if (mentorStale || force) {
+        print('AIRecommendationService: Computing mentor recommendations (always on)...');
+        await _mentorService.computeRecommendations();
+        await _cache.markMentorFresh(uid, currentSkills: currentSkills, currentSwapCount: currentSwapCount);
+        await _repository.logGeneration(userId: uid, type: 'mentor_generation', success: true);
+      }
+
+      // ── STEP 1b: Eligibility gate for Career Compass & Learning Roadmap
+      // These features unlock only after the user completes 2 swaps.
+      final aiProfile = await _profileService.buildProfile(uid);
+      if (!aiProfile.isEligibleForRecommendations) {
+        debugPrint('AIRecommendationService: Career/Roadmap locked — '
+            '${kMinCompletedSwapsForAI - aiProfile.completedSwaps} more swap(s) needed.');
+        // Still generate analytics snapshot based on available data
+        await generateAndSaveSnapshot(uid, userData);
+        return;
+      }
+
+      // ── STEP 2: Career Recommendations ─────────────────────────────
+      // Check if Firestore already has a fresh career recommendation
       bool isCareerDbFresh = false;
       try {
         final metaDoc = await _db.collection('career_recommendations').doc(uid).get();
@@ -129,17 +145,6 @@ class AIRecommendationService {
         print('AIRecommendationService: Error checking career db freshness: $e');
       }
 
-      // 2. Refresh Mentors
-      final mentorStale = await _cache.isMentorStale(uid, currentSkills: currentSkills, currentSwapCount: currentSwapCount);
-      print('AIRecommendationService: mentorStale=$mentorStale');
-      if (mentorStale || force) {
-        print('AIRecommendationService: Computing mentor recommendations...');
-        await _mentorService.computeRecommendations();
-        await _cache.markMentorFresh(uid, currentSkills: currentSkills, currentSwapCount: currentSwapCount);
-        await _repository.logGeneration(userId: uid, type: 'mentor_generation', success: true);
-      }
-
-      // 3. Refresh Career Recommendations
       final careerStale = await _cache.isCareerStale(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
       print('AIRecommendationService: careerStale=$careerStale, isCareerDbFresh=$isCareerDbFresh');
       if ((careerStale && !isCareerDbFresh) || force) {
@@ -149,7 +154,8 @@ class AIRecommendationService {
         await _repository.logGeneration(userId: uid, type: 'career_generation', success: true);
       }
 
-      // Check if Firestore already has fresh learning roadmap
+      // ── STEP 3: Learning Roadmap ────────────────────────────────────
+      // Check if Firestore already has a fresh learning roadmap
       bool isRoadmapDbFresh = false;
       String? roadmapTargetCareer;
       try {
@@ -186,7 +192,7 @@ class AIRecommendationService {
         debugPrint('AIRecommendationService: Error checking roadmap db freshness: $e');
       }
 
-      // 3.5 Refresh/Regenerate Learning Roadmap
+      // Determine target career for roadmap generation
       String? targetCareer = roadmapTargetCareer;
       if (targetCareer == null || targetCareer.isEmpty) {
         final latestCareer = await getLatestCareer();
@@ -242,16 +248,48 @@ class AIRecommendationService {
       final completedSwaps = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
       final averageRating = (userData['averageRating'] as num?)?.toDouble() ?? 5.0;
 
-      // Fetch progress overall
+      // Fetch roadmap progress
       final progressDoc = await _db.collection('roadmap_progress').doc(uid).get();
       final roadmapProgress = progressDoc.exists
           ? (progressDoc.data()?['overallPercent'] as num?)?.toDouble() ?? 0.0
           : 0.0;
 
-      // Compute readiness score
-      // base: level/20 + swaps/10 + progress/2
+      // Compute career readiness score
       final currentLevel = (userData['level'] as num?)?.toDouble() ?? 1.0;
       final careerReadiness = ((currentLevel / 10.0) * 30 + (completedSwaps / 5.0) * 30 + roadmapProgress * 40).clamp(10.0, 100.0);
+
+      // Build real weekly activity from swap timestamps.
+      // Count completed swaps per day-of-week for the current week.
+      // Defaults to all-zeros when no data exists — never dummy data.
+      final weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      final weeklyActivity = <String, int>{for (final d in weekDays) d: 0};
+      try {
+        final now = DateTime.now();
+        final weekStart = now.subtract(Duration(days: now.weekday - 1));
+        final swapDocsSnap = await _db
+            .collection('swaps')
+            .where('participants', arrayContains: uid)
+            .get();
+        for (final doc in swapDocsSnap.docs) {
+          final data = doc.data();
+          final status = (data['status'] as String? ?? '').toLowerCase();
+          final progress = (data['progress'] as num?)?.toDouble() ?? 0.0;
+          if (status != 'completed' && progress < 1.0) continue;
+          final Timestamp? ts = data['completedAt'] as Timestamp? ??
+              data['updatedAt'] as Timestamp? ??
+              data['createdAt'] as Timestamp?;
+          if (ts == null) continue;
+          final dt = ts.toDate();
+          if (dt.isBefore(weekStart)) continue;
+          // weekday: 1=Mon … 7=Sun
+          final dayIdx = dt.weekday - 1;
+          if (dayIdx >= 0 && dayIdx < weekDays.length) {
+            weeklyActivity[weekDays[dayIdx]] = (weeklyActivity[weekDays[dayIdx]] ?? 0) + 1;
+          }
+        }
+      } catch (e) {
+        debugPrint('AIRecommendationService: error building weekly activity: $e');
+      }
 
       final snapshot = AIAnalyticsSnapshot(
         userId: uid,
@@ -264,9 +302,7 @@ class AIRecommendationService {
         careerReadinessScore: careerReadiness,
         projectsCompleted: completedSwaps,
         isLearningConsistent: ((userData['learningStreak'] as num?)?.toInt() ?? 0) > 0,
-        weeklyLearningHours: const {
-          'Mon': 1, 'Tue': 0, 'Wed': 2, 'Thu': 1, 'Fri': 0, 'Sat': 3, 'Sun': 1
-        },
+        weeklyLearningHours: weeklyActivity,
         createdAt: DateTime.now(),
         period: 'weekly',
       );
