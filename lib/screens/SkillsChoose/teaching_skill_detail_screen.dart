@@ -261,16 +261,28 @@ class _TeachingSkillDetailScreenState extends State<TeachingSkillDetailScreen> {
         break;
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: isDark
+            ? Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3)
+            : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).colorScheme.onSurface.withAlpha(10),
+          color: isDark
+              ? Theme.of(context).colorScheme.onSurface.withAlpha(10)
+              : const Color(0xFFE2E8F0),
         ),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

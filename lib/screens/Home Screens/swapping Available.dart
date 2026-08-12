@@ -931,8 +931,8 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   children: [
                     Text(
                       '${'good_${_greeting.toLowerCase()}'.tr()}, $_userName',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1179,6 +1179,11 @@ class HorizontalSwapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF0D0D1A);
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -1190,8 +1195,18 @@ class HorizontalSwapCard extends StatelessWidget {
         width: 180,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: cardColor,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1238,9 +1253,9 @@ class HorizontalSwapCard extends StatelessWidget {
               swap.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: textColor,
                 fontSize: 16,
               ),
             ),
@@ -1279,8 +1294,8 @@ class HorizontalSwapCard extends StatelessWidget {
               swap.wanting,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: textColor,
                 fontSize: 13,
               ),
             ),
@@ -1296,8 +1311,8 @@ class HorizontalSwapCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(
                   swap.rating.toStringAsFixed(1),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: textColor,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),

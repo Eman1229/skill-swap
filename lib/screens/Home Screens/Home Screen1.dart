@@ -262,8 +262,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Text(
                               '${'good_${_greeting.toLowerCase()}'.tr()}, $displayName',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
+                              style: const TextStyle(
+                                color: Colors.white,
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -272,7 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             Text(
                               'keep_growing'.tr(),
-                              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                              style: const TextStyle(color: Colors.white70, fontSize: 12),
                             ),
                           ],
                         ),

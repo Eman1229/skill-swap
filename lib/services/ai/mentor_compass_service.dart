@@ -176,6 +176,7 @@ class MentorCompassService {
           mentorInitials: initials,
           mentorSkill: offering,
           mentorWantingSkill: (d['wanting'] as String?) ?? '',
+          portfolioFile: (d['portfolio'] as String?) ?? '',
           matchScore: matchPct.toDouble(),
           compatibilityScore: compatPct.toDouble(),
           whyRecommended: whyRecs,

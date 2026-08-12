@@ -3,6 +3,7 @@
 import 'package:skill_swap/providers/language_provider.dart';
 import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/ai/ai_recommendation_provider.dart';
 import 'package:skill_swap/models/ai/mentor_recommendation.dart';
@@ -90,6 +91,7 @@ class MentorCompassScreen extends StatelessWidget {
       category: 'All',
       imageUrl: mentor.mentorImageUrl,
       userId: mentor.mentorId,
+      portfolioFile: mentor.portfolioFile,
     );
 
 
@@ -267,10 +269,10 @@ class MentorCompassScreen extends StatelessWidget {
                       color: Color(0xFF00C2FF),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'WHY AI RECOMMENDS',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: isDark ? Colors.white : Colors.black87,
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.5,
@@ -283,8 +285,8 @@ class MentorCompassScreen extends StatelessWidget {
                   mentor.whyRecommended.isNotEmpty
                       ? mentor.whyRecommended.first
                       : 'Curated match based on your skill profile',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black87,
                     fontSize: 13,
                     height: 1.4,
                   ),
@@ -362,12 +364,13 @@ class MentorCompassScreen extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ProfileScreen(swap: mappedListing),
-                        ),
-                      );
+                      if (mentor.portfolioFile.isNotEmpty) {
+                        _openPortfolio(context, mentor.portfolioFile);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('No portfolio uploaded by this mentor.')),
+                        );
+                      }
                     },
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
@@ -417,6 +420,146 @@ class MentorCompassScreen extends StatelessWidget {
 
         ],
       ),
+    );
+  }
+
+  Future<void> _openPortfolio(BuildContext context, String url) async {
+    if (url.isEmpty) return;
+
+    final fileName = _getPortfolioName(url);
+    final isImage = url.toLowerCase().contains(RegExp(r'\.(jpg|jpeg|png|webp|gif|bmp)'));
+
+    if (isImage) {
+      _viewImage(context, url, fileName);
+      return;
+    }
+
+    final Uri uri = Uri.parse(url);
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("${'opening'.tr()} $fileName..."),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        throw 'Could not launch $url';
+      }
+    } catch (e) {
+      debugPrint('Error opening portfolio: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening portfolio: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _getPortfolioName(String url) {
+    if (url.isEmpty) return '';
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.pathSegments.isEmpty) {
+      return url;
+    }
+
+    String lastSegment = uri.pathSegments.last;
+    try {
+      lastSegment = Uri.decodeComponent(lastSegment);
+    } catch (_) {}
+
+    if (lastSegment.isEmpty && uri.pathSegments.length > 1) {
+      lastSegment = uri.pathSegments[uri.pathSegments.length - 2];
+      try {
+        lastSegment = Uri.decodeComponent(lastSegment);
+      } catch (_) {}
+    }
+
+    final parts = lastSegment.split('_');
+    if (parts.length > 1 && RegExp(r'^\d+$').hasMatch(parts[0])) {
+      return parts.sublist(1).join('_');
+    }
+
+    return lastSegment;
+  }
+
+  void _viewImage(BuildContext context, String imageUrl, String fileName) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.9),
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                              : null,
+                          color: Colors.white,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.white, size: 48),
+                          SizedBox(height: 16),
+                          Text(
+                            'Could not load image',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 40,
+                right: 20,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              Positioned(
+                bottom: 40,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    fileName,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

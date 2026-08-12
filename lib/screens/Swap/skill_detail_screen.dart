@@ -73,6 +73,14 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     return 'Creative Skills';
   }
 
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+  Color get _cardBg => _isDark ? const Color(0xFF131A2E) : Colors.white;
+  Color get _cardBorder => _isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+  Color get _textColor => _isDark ? Colors.white : const Color(0xFF0D0D1A);
+  Color get _subtextColor => _isDark ? Colors.grey : const Color(0xFF64748B);
+  Color get _innerContainerBg => _isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+  Color get _chipBg => _isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+
   @override
   Widget build(BuildContext context) {
     context.watch<LanguageProvider>();
@@ -81,9 +89,9 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       stream: _db.collection('swaps').doc(widget.swap.id).snapshots(),
       builder: (context, swapSnapshot) {
         if (swapSnapshot.connectionState == ConnectionState.waiting && !swapSnapshot.hasData) {
-          return const Scaffold(
-            backgroundColor: Color(0xFF0F172A),
-            body: Center(child: CircularProgressIndicator(color: Color(0xFF00C2FF))),
+          return Scaffold(
+            backgroundColor: _isDark ? const Color(0xFF0F172A) : Theme.of(context).scaffoldBackgroundColor,
+            body: const Center(child: CircularProgressIndicator(color: Color(0xFF00C2FF))),
           );
         }
 
@@ -153,18 +161,18 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                     }
 
                     return Scaffold(
-                      backgroundColor: const Color(0xFF0A0F1D), // Dark premium color matching mockup
+                      backgroundColor: _isDark ? const Color(0xFF0A0F1D) : Theme.of(context).scaffoldBackgroundColor,
                       appBar: AppBar(
                         backgroundColor: Colors.transparent,
                         elevation: 0,
                         leading: IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                          icon: Icon(Icons.arrow_back_ios_new_rounded, color: _textColor, size: 18),
                           onPressed: () => Navigator.pop(context),
                         ),
                         title: Text(
                           swap.skillName,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: _textColor,
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
                           ),
@@ -240,9 +248,16 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF131A2E), // Slick dark card color
+        color: _cardBg,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFF1E293B)),
+        border: Border.all(color: _cardBorder),
+        boxShadow: _isDark ? [] : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,7 +274,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                       child: Text('progress_label'.tr(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        style: TextStyle(color: _textColor, fontWeight: FontWeight.bold, fontSize: 15),
                       ),
                     ),
                   ],
@@ -277,7 +292,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: const Color(0xFF1E293B),
+              backgroundColor: _chipBg,
               color: const Color(0xFF00C2FF),
               minHeight: 8,
             ),
@@ -304,13 +319,13 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           fit: BoxFit.scaleDown,
           child: Text(
             value,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(color: _textColor, fontWeight: FontWeight.bold, fontSize: 16),
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(color: Colors.grey, fontSize: 10, height: 1.2),
+          style: TextStyle(color: _subtextColor, fontSize: 10, height: 1.2),
         ),
       ],
     );
@@ -325,9 +340,16 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF131A2E),
+        color: _cardBg,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFF1E293B)),
+        border: Border.all(color: _cardBorder),
+        boxShadow: _isDark ? [] : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,12 +362,12 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                   children: [
                     const Icon(Icons.calendar_today_rounded, color: Color(0xFF00C2FF), size: 18),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Upcoming Session',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        style: TextStyle(color: _textColor, fontWeight: FontWeight.bold, fontSize: 15),
                       ),
                     ),
                   ],
@@ -380,7 +402,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
+                        color: _chipBg,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.video_camera_back_rounded, color: Color(0xFF00C2FF), size: 22),
@@ -392,7 +414,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                         children: [
                           Text(
                             session.title.replaceAll(RegExp('Lesson', caseSensitive: false), 'Session'),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            style: TextStyle(color: _textColor, fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                           const SizedBox(height: 4),
                           Row(
@@ -530,9 +552,16 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF131A2E),
+        color: _cardBg,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFF1E293B)),
+        border: Border.all(color: _cardBorder),
+        boxShadow: _isDark ? [] : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,12 +574,12 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                   children: [
                     const Icon(Icons.folder_open_rounded, color: Color(0xFF00C2FF), size: 20),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Course Materials',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        style: TextStyle(color: _textColor, fontWeight: FontWeight.bold, fontSize: 15),
                       ),
                     ),
                   ],
@@ -674,9 +703,9 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF0F172A),
+          color: _innerContainerBg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF1E293B)),
+          border: Border.all(color: _cardBorder),
         ),
         child: Stack(
           alignment: Alignment.center,
@@ -699,7 +728,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                     fit: BoxFit.scaleDown,
                     child: Text(
                       label,
-                      style: const TextStyle(color: Colors.grey, fontSize: 10),
+                      style: TextStyle(color: _subtextColor, fontSize: 10),
                     ),
                   ),
                 ),
@@ -711,12 +740,12 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
+                  color: _chipBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   '$count',
-                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: _textColor, fontSize: 8, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -731,9 +760,16 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF131A2E),
+        color: _cardBg,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFF1E293B)),
+        border: Border.all(color: _cardBorder),
+        boxShadow: _isDark ? [] : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -842,7 +878,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                   border: Border.all(
                     color: isCompleted
                         ? Colors.green
-                        : (isActive ? const Color(0xFF00C2FF) : const Color(0xFF1E293B)),
+                        : (isActive ? const Color(0xFF00C2FF) : _cardBorder),
                     width: 2,
                   ),
                 ),
@@ -858,7 +894,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                 Expanded(
                   child: Container(
                     width: 2,
-                    color: const Color(0xFF1E293B),
+                    color: _cardBorder,
                   ),
                 ),
             ],
@@ -893,7 +929,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                       child: Text(
                         'Session ${index + 1}: ${session.title.replaceAll(RegExp('Lesson', caseSensitive: false), 'Session')}',
                         style: TextStyle(
-                          color: isActive ? const Color(0xFF00C2FF) : (isCompleted ? Colors.white : Colors.grey),
+                          color: isActive ? const Color(0xFF00C2FF) : (isCompleted ? _textColor : _subtextColor),
                           fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                           fontSize: 13,
                         ),
@@ -906,7 +942,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                       Text(
                         relativeDate,
                         style: TextStyle(
-                          color: isActive ? const Color(0xFF00C2FF) : Colors.grey,
+                          color: isActive ? const Color(0xFF00C2FF) : _subtextColor,
                           fontSize: 12,
                         ),
                       ),
@@ -923,7 +959,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
   void _showSessionManagementMenu(BuildContext context, SessionModel session) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF131A2E),
+      backgroundColor: _cardBg,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return SafeArea(
@@ -932,7 +968,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.check_circle_outline, color: Colors.green),
-                title: Text('mark_completed'.tr(), style: TextStyle(color: Colors.white)),
+                title: Text('mark_completed'.tr(), style: TextStyle(color: _textColor)),
                 onTap: () async {
                   Navigator.pop(context);
                   await SkillExchangeService().completeSessionAndSync(
@@ -948,7 +984,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.edit_calendar_rounded, color: Color(0xFF00C2FF)),
-                title: const Text('Reschedule / Edit', style: TextStyle(color: Colors.white)),
+                title: Text('Reschedule / Edit', style: TextStyle(color: _textColor)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -961,21 +997,21 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.delete_rounded, color: Colors.redAccent),
-                title: Text('delete_session'.tr(), style: TextStyle(color: Colors.redAccent)),
+                title: Text('delete_session'.tr(), style: const TextStyle(color: Colors.redAccent)),
                 onTap: () async {
                   Navigator.pop(context);
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
-                      backgroundColor: const Color(0xFF131A2E),
-                      title: Text('delete_session_confirm_title'.tr()),
-                      content: Text('delete_session_plan_confirm'.tr()),
+                      backgroundColor: _cardBg,
+                      title: Text('delete_session_confirm_title'.tr(), style: TextStyle(color: _textColor)),
+                      content: Text('delete_session_plan_confirm'.tr(), style: TextStyle(color: _subtextColor)),
                       actions: [
                         TextButton(onPressed: () => Navigator.pop(context, false), child: Text('cancel'.tr())),
                         ElevatedButton(
                           onPressed: () => Navigator.pop(context, true),
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                          child: Text('delete'.tr(), style: TextStyle(color: Colors.white)),
+                          child: Text('delete'.tr(), style: const TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),
@@ -1016,9 +1052,16 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF131A2E),
+        color: _cardBg,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFF1E293B)),
+        border: Border.all(color: _cardBorder),
+        boxShadow: _isDark ? [] : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1174,9 +1217,9 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF131A2E),
+            color: _cardBg,
             borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: const Color(0xFF1E293B)),
+            border: Border.all(color: _cardBorder),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1189,12 +1232,12 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                       children: [
                         const Icon(Icons.star_rounded, color: Color(0xFF00C2FF), size: 20),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Reviews & Ratings',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                            style: TextStyle(color: _textColor, fontWeight: FontWeight.bold, fontSize: 15),
                           ),
                         ),
                       ],
@@ -1203,7 +1246,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                   const SizedBox(width: 12),
                   Text(
                     docs.isEmpty ? 'Not yet rated' : 'Rated',
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                    style: TextStyle(color: _subtextColor, fontSize: 13),
                   ),
                 ],
               ),
@@ -1219,7 +1262,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                     children: [
                       Text(
                         avgStr,
-                        style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: _textColor, fontSize: 32, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(width: 14),
                       Column(
@@ -1238,7 +1281,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                           const SizedBox(height: 4),
                           Text(
                             descStr,
-                            style: const TextStyle(color: Colors.grey, fontSize: 12),
+                            style: TextStyle(color: _subtextColor, fontSize: 12),
                           ),
                         ],
                       ),
@@ -1261,8 +1304,8 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E293B),
-                        foregroundColor: Colors.white,
+                        backgroundColor: _chipBg,
+                        foregroundColor: _textColor,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
                       child: Text('leave_review'.tr()),
@@ -1283,9 +1326,9 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF131A2E),
+        color: _cardBg,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFF1E293B)),
+        border: Border.all(color: _cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1298,7 +1341,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                 child: Text('certificate'.tr(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(color: _textColor, fontWeight: FontWeight.bold, fontSize: 15),
                 ),
               ),
             ],
@@ -1314,9 +1357,9 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width > 400 ? MediaQuery.of(context).size.width - 250 : MediaQuery.of(context).size.width - 80,
                 ),
-                child: const Text(
+                child: Text(
                   'Complete all sessions and swap to unlock your certificate.',
-                  style: TextStyle(color: Colors.grey, fontSize: 12, height: 1.4),
+                  style: TextStyle(color: _subtextColor, fontSize: 12, height: 1.4),
                 ),
               ),
               ElevatedButton.icon(
@@ -1333,10 +1376,10 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                 icon: Icon(isCompleted ? Icons.workspace_premium_rounded : Icons.lock_outline_rounded, size: 16),
                 label: Text(isCompleted ? 'View Certificate' : 'Locked'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isCompleted ? const Color(0xFF00C2FF) : const Color(0xFF1E293B),
-                  foregroundColor: isCompleted ? Colors.black : Colors.grey,
-                  disabledBackgroundColor: const Color(0xFF1E293B),
-                  disabledForegroundColor: Colors.grey,
+                  backgroundColor: isCompleted ? const Color(0xFF00C2FF) : _chipBg,
+                  foregroundColor: isCompleted ? Colors.black : _subtextColor,
+                  disabledBackgroundColor: _chipBg,
+                  disabledForegroundColor: _subtextColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
               ),
@@ -1355,9 +1398,9 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF131A2E),
+        color: _cardBg,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFF1E293B)),
+        border: Border.all(color: _cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1366,10 +1409,10 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
             children: [
               const Icon(Icons.info_outline_rounded, color: Color(0xFF00C2FF), size: 20),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Course Details',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(color: _textColor, fontWeight: FontWeight.bold, fontSize: 15),
                 ),
               ),
             ],
@@ -1425,10 +1468,10 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF131A2E),
+              color: _cardBg,
               borderRadius: BorderRadius.circular(15),
               border: Border.all(
-                color: allCompleted ? const Color(0xFF00C2FF).withValues(alpha: 0.3) : const Color(0xFF1E293B),
+                color: allCompleted ? const Color(0xFF00C2FF).withValues(alpha: 0.3) : _cardBorder,
               ),
             ),
             child: Column(
@@ -1438,14 +1481,14 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                   children: [
                     Icon(
                       Icons.assignment_turned_in_rounded,
-                      color: allCompleted ? const Color(0xFF00C2FF) : Colors.grey,
+                      color: allCompleted ? const Color(0xFF00C2FF) : _subtextColor,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Mark Teaching Complete',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        style: TextStyle(color: _textColor, fontWeight: FontWeight.bold, fontSize: 15),
                       ),
                     ),
                   ],
@@ -1455,7 +1498,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                   allCompleted
                       ? 'All sessions are finished! You can now request completion confirmation from the learner.'
                       : 'You can mark teaching as complete once all created sessions are completed.',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12, height: 1.4),
+                  style: TextStyle(color: _subtextColor, fontSize: 12, height: 1.4),
                 ),
                 const SizedBox(height: 16),
                 GestureDetector(
@@ -1469,14 +1512,14 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                       gradient: allCompleted
                           ? const LinearGradient(colors: [Color(0xFF00C2FF), Color(0xFF6B8AFF)])
                           : null,
-                      color: allCompleted ? null : const Color(0xFF1E293B),
+                      color: allCompleted ? null : _chipBg,
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Center(
                       child: Text(
                         'Request Completion',
                         style: TextStyle(
-                          color: allCompleted ? Colors.white : Colors.grey,
+                          color: allCompleted ? Colors.white : _subtextColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
@@ -1494,13 +1537,13 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF131A2E),
+              color: _cardBg,
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.hourglass_empty_rounded, color: Colors.orange, size: 20),
+                const Icon(Icons.hourglass_empty_rounded, color: Colors.orange, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -1508,12 +1551,12 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                     children: [
                       Text(
                         'Awaiting Learner Confirmation',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(color: _textColor, fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'You marked teaching as complete. Waiting for the learner to confirm completion and leave feedback.',
-                        style: TextStyle(color: Colors.grey, fontSize: 11, height: 1.4),
+                        style: TextStyle(color: _subtextColor, fontSize: 11, height: 1.4),
                       ),
                     ],
                   ),
@@ -1531,21 +1574,21 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF131A2E),
+              color: _cardBg,
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: const Color(0xFF00C2FF).withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.celebration_rounded, color: Color(0xFF00C2FF), size: 20),
+                    const Icon(Icons.celebration_rounded, color: Color(0xFF00C2FF), size: 20),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Teaching Completed',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        style: TextStyle(color: _textColor, fontWeight: FontWeight.bold, fontSize: 15),
                       ),
                     ),
                   ],
@@ -1553,7 +1596,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                 const SizedBox(height: 12),
                 Text(
                   '${swap.mentorName} has marked teaching as complete. Please confirm if you are satisfied, or request more sessions if you need further help.',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12, height: 1.4),
+                  style: TextStyle(color: _subtextColor, fontSize: 12, height: 1.4),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -1564,13 +1607,14 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                         child: Container(
                           height: 40,
                           decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFF1E293B)),
+                            color: _chipBg,
+                            border: Border.all(color: _cardBorder),
                             borderRadius: BorderRadius.circular(15),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
                               'Need Sessions',
-                              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12),
+                              style: TextStyle(color: _subtextColor, fontWeight: FontWeight.bold, fontSize: 12),
                             ),
                           ),
                         ),
@@ -1623,17 +1667,17 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF131A2E),
+        backgroundColor: _cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: Text('mark_teaching_complete_confirm'.tr(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text(
+        title: Text('mark_teaching_complete_confirm'.tr(), style: TextStyle(color: _textColor, fontWeight: FontWeight.bold)),
+        content: Text(
           'Are you sure you want to mark teaching as complete? This will lock editing and request completion confirmation from the learner.',
-          style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
+          style: TextStyle(color: _subtextColor, fontSize: 14, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('cancel'.tr(), style: TextStyle(color: Colors.grey)),
+            child: Text('cancel'.tr(), style: TextStyle(color: _subtextColor)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1660,7 +1704,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C2FF)),
-            child: Text('confirm'.tr(), style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            child: Text('confirm'.tr(), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1671,22 +1715,22 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF131A2E),
+        backgroundColor: _cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: Text('request_more_sessions_confirm'.tr(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text(
+        title: Text('request_more_sessions_confirm'.tr(), style: TextStyle(color: _textColor, fontWeight: FontWeight.bold)),
+        content: Text(
           'Do you want to request more learning sessions? This will unlock session management for your mentor.',
-          style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
+          style: TextStyle(color: _subtextColor, fontSize: 14, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('cancel'.tr(), style: TextStyle(color: Colors.grey)),
+            child: Text('cancel'.tr(), style: TextStyle(color: _subtextColor)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C2FF)),
-            child: Text('request'.tr(), style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            child: Text('request'.tr(), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1742,14 +1786,14 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundColor: const Color(0xFF1E293B),
+              backgroundColor: _chipBg,
               backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
                   ? NetworkImage(avatarUrl)
                   : null,
               child: (avatarUrl == null || avatarUrl.isEmpty)
                   ? Text(
                       name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: _textColor, fontSize: 12, fontWeight: FontWeight.bold),
                     )
                   : null,
             ),
@@ -1760,12 +1804,12 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(color: Colors.grey, fontSize: 10),
+                    style: TextStyle(color: _subtextColor, fontSize: 10),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     name,
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: _textColor, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -1782,10 +1826,10 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: _chipBg,
             borderRadius: BorderRadius.circular(6),
           ),
-          child: Icon(icon, color: Colors.grey, size: 14),
+          child: Icon(icon, color: _subtextColor, size: 14),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -1794,12 +1838,12 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
             children: [
               Text(
                 label,
-                style: const TextStyle(color: Colors.grey, fontSize: 10),
+                style: TextStyle(color: _subtextColor, fontSize: 10),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
-                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(color: _textColor, fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ],
           ),

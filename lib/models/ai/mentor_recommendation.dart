@@ -8,6 +8,7 @@ class MentorRecommendation {
   final String mentorInitials;
   final String mentorSkill;
   final String mentorWantingSkill;
+  final String portfolioFile;
   final double matchScore;
   final double compatibilityScore;
   final List<String> whyRecommended;
@@ -24,6 +25,7 @@ class MentorRecommendation {
     required this.mentorInitials,
     required this.mentorSkill,
     required this.mentorWantingSkill,
+    this.portfolioFile = '',
     required this.matchScore,
     required this.compatibilityScore,
     required this.whyRecommended,
@@ -42,6 +44,7 @@ class MentorRecommendation {
       mentorInitials: map['mentorInitials'] as String? ?? 'M',
       mentorSkill: map['mentorSkill'] as String? ?? '',
       mentorWantingSkill: map['mentorWantingSkill'] as String? ?? '',
+      portfolioFile: map['portfolioFile'] as String? ?? '',
       matchScore: (map['matchScore'] as num?)?.toDouble() ?? 0,
       compatibilityScore: (map['compatibilityScore'] as num?)?.toDouble() ?? 0,
       whyRecommended:
@@ -67,6 +70,7 @@ class MentorRecommendation {
       'mentorInitials': mentorInitials,
       'mentorSkill': mentorSkill,
       'mentorWantingSkill': mentorWantingSkill,
+      'portfolioFile': portfolioFile,
       'matchScore': matchScore,
       'compatibilityScore': compatibilityScore,
       'whyRecommended': whyRecommended,
