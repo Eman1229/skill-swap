@@ -499,7 +499,7 @@ class _AssetCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                TranslatedText(
                   asset.documentName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

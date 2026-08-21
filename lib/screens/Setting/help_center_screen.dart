@@ -76,9 +76,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: TranslatedText(
           'help_center_title'.tr(),
-          style:  TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
         bottom: TabBar(
@@ -90,8 +90,8 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
           labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           dividerColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
           tabs: [
-            Tab(text: 'faqs'.tr()),
-            Tab(text: 'contact_support'.tr()),
+            Tab(child: TranslatedText('faqs'.tr())),
+            Tab(child: TranslatedText('contact_support'.tr())),
           ],
         ),
       ),
@@ -111,7 +111,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
       children: [
         _buildSearchBoxMock(),
         SizedBox(height: 24),
-        Text(
+        TranslatedText(
           'frequently_asked'.tr(),
           style: TextStyle(
             color: Theme.of(context).colorScheme.primary,
@@ -141,7 +141,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
           Icon(Icons.search, color: Theme.of(context).colorScheme.primary, size: 20),
           SizedBox(width: 12),
           Expanded(
-            child: Text(
+            child: TranslatedText(
               'search_questions'.tr(),
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 14),
             ),
@@ -172,7 +172,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
         iconColor: Theme.of(context).colorScheme.primary,
         tilePadding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         childrenPadding: EdgeInsets.only(left: 20, right: 20, bottom: 20),
-        title: Text(
+        title: TranslatedText(
           question,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
@@ -181,7 +181,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerPr
           ),
         ),
         children: [
-          Text(
+          TranslatedText(
             answer,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,

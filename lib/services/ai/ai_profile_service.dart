@@ -70,8 +70,6 @@ class AIProfileService {
 
   Future<AIUserProfile> buildProfile(String uid) async {
     try {
-      // These snapshots have different concrete Firestore types. Await them
-      // independently so Dart retains those types instead of inferring Object.
       final userDoc = await _db.collection('users').doc(uid).get();
       final listingsSnap =
           await _db.collection('swapListings').where('userId', isEqualTo: uid).get();
@@ -82,9 +80,21 @@ class AIProfileService {
 
       final userData = userDoc.data() ?? {};
       final learned = <String>{
+        ..._list(userData['learningSkills']),
+        ..._list(userData['skillsLearned']),
+        ..._list(userData['wantedSkills']),
+        ..._list(userData['skillsWanted']),
+        ..._list(userData['wanting']),
+        ..._list(userData['learningSkill']),
         ...UserSkillsService.learningSkillsFromListingDocs(listingsSnap.docs),
       };
       final teaching = <String>{
+        ..._list(userData['teachingSkills']),
+        ..._list(userData['skillsTeaching']),
+        ..._list(userData['offeredSkills']),
+        ..._list(userData['skillsOffered']),
+        ..._list(userData['offering']),
+        ..._list(userData['teachingSkill']),
         ...UserSkillsService.teachingSkillsFromListingDocs(listingsSnap.docs),
       };
       final interests = <String>{
@@ -92,6 +102,9 @@ class AIProfileService {
         ..._list(userData['interest']),
         ..._list(userData['skillsInterested']),
         ..._list(userData['careerInterests']),
+        ..._list(userData['category']),
+        ..._list(userData['categories']),
+        ..._list(userData['tags']),
       };
       final recentSwapHistory = <String>[];
       final completedExchangeIds = <String>{};
@@ -108,25 +121,44 @@ class AIProfileService {
         ]) {
           interests.addAll(_list(field));
         }
+        for (final field in [
+          data['wanting'], data['wantedSkill'], data['learningSkill'], data['skillsWanted'], data['wantedSkills']
+        ]) {
+          learned.addAll(_list(field));
+        }
+        for (final field in [
+          data['offering'], data['offeredSkill'], data['teachingSkill'], data['skillsOffered'], data['offeredSkills']
+        ]) {
+          teaching.addAll(_list(field));
+        }
       }
 
       for (final doc in swapsSnap.docs) {
         final data = doc.data();
-        if (!_isCompleted(data)) continue;
-
         final skill = _text(data['skillName']);
+        final isUserLearner = _text(data['learnerId']) == uid;
+        final isUserMentor = _text(data['mentorId']) == uid;
+
+        if (skill.isNotEmpty) {
+          if (isUserLearner) learned.add(skill);
+          if (isUserMentor) teaching.add(skill);
+
+          final statusStr = _text(data['status']);
+          final roleStr = isUserLearner ? 'learning' : (isUserMentor ? 'teaching' : 'swapping');
+          recentSwapHistory.add('$roleStr $skill ($statusStr)');
+        }
+
+        if (!_isCompleted(data)) continue;
         if (skill.isEmpty) continue;
 
         final exchangeId = _exchangeId(doc.id, data);
         completedExchangeIds.add(exchangeId);
 
-        if (_text(data['learnerId']) == uid) {
-          learned.add(skill);
-          recentSwapHistory.add('learned $skill');
+        if (isUserLearner) {
+          recentSwapHistory.add('completed learning $skill');
         }
-        if (_text(data['mentorId']) == uid) {
-          teaching.add(skill);
-          recentSwapHistory.add('taught $skill');
+        if (isUserMentor) {
+          recentSwapHistory.add('completed teaching $skill');
         }
       }
 
@@ -138,8 +170,6 @@ class AIProfileService {
         _text(userData['location']),
       ].where((s) => s.isNotEmpty).join(' | ');
 
-      // Eligibility must be based on completed exchanges, not a cached user
-      // counter that can lag behind or be manually edited.
       final completedSwaps = completedExchangeIds.length;
 
       final totalSessions = [

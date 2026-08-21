@@ -19,7 +19,7 @@ class OnBoardingScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('welcome_to_skillswap'.tr(), style: TextStyle(fontFamily:"Nunito",fontSize: 26, fontWeight: FontWeight.w400,
+              Text('welcome_to_skillswap'.tr(), style: TextStyle(fontFamily:"Nunito",fontSize: 26, fontWeight: FontWeight.w700,
                   color: Theme.of(context).colorScheme.primary,
                 ), textAlign: TextAlign.center,
               ),

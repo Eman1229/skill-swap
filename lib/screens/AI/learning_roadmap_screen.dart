@@ -11,6 +11,7 @@ import 'package:skill_swap/screens/AI/career_compass_screen.dart';
 import 'package:skill_swap/screens/AI/roadmap_all_steps_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:skill_swap/services/ai/ai_profile_service.dart';
+import 'package:skill_swap/theme/app_theme.dart';
 
 class LearningRoadmapScreen extends StatefulWidget {
   const LearningRoadmapScreen({super.key});
@@ -210,14 +211,10 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
               ),
               const SizedBox(height: 28),
               // Progress bar
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: completedSwaps / kMinCompletedSwapsForAI,
-                  minHeight: 10,
-                  backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                  valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-                ),
+              AppGradientProgressBar(
+                value: completedSwaps / kMinCompletedSwapsForAI,
+                isCompleted: completedSwaps >= kMinCompletedSwapsForAI,
+                height: 10,
               ),
               const SizedBox(height: 8),
               Text(
@@ -310,7 +307,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
                   ],
                 ),
                 const SizedBox(height: 10),
-                Text(
+                TranslatedText(
                   roadmap.targetCareer,
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
@@ -334,14 +331,10 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
                   ],
                 ),
                 const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: overallProgress,
-                    minHeight: 8,
-                    backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                    valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-                  ),
+                AppGradientProgressBar(
+                  value: overallProgress,
+                  isCompleted: overallProgress >= 1.0,
+                  height: 8,
                 ),
               ],
             ),
@@ -425,7 +418,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                TranslatedText(
                   stage.stageName,
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
@@ -486,7 +479,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
             childrenPadding: const EdgeInsets.all(12),
             children: stage.tasks.map((task) {
               return CheckboxListTile(
-                title: Text(
+                title: TranslatedText(
                   task.title,
                   style: TextStyle(
                     fontSize: 13.5,
@@ -494,7 +487,7 @@ class _LearningRoadmapScreenState extends State<LearningRoadmapScreen>
                     color: task.isCompleted ? Colors.grey : (isDark ? Colors.white : Colors.black87),
                   ),
                 ),
-                subtitle: Text(
+                subtitle: TranslatedText(
                   task.description,
                   style: const TextStyle(fontSize: 11.5, color: Colors.grey),
                 ),

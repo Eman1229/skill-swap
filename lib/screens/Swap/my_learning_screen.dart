@@ -9,6 +9,7 @@ import 'package:skill_swap/services/chat_user_service.dart';
 import 'package:skill_swap/services/analytics_service.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/theme/app_theme.dart';
 
 class MyLearningScreen extends StatefulWidget {
   MyLearningScreen({Key? key}) : super(key: key);
@@ -105,32 +106,29 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('performance_insights'.tr(),
-                                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
-                                    SizedBox(height: 16),
-                                    _buildInsights(analyticsData),
-                                    SizedBox(height: 32),
-                                    Text('weekly_engagement'.tr(),
-                                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
-                                    SizedBox(height: 16),
-                                    _buildEngagementChart(analyticsData),
-                                  ],
-                                );
-                              },
-                            ),
-                            SizedBox(height: 40),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
+                                     AppSectionHeader(title: 'performance_insights'.tr()),
+                                     SizedBox(height: 16),
+                                     _buildInsights(analyticsData),
+                                     SizedBox(height: 32),
+                                     AppSectionHeader(title: 'weekly_engagement'.tr()),
+                                     SizedBox(height: 16),
+                                     _buildEngagementChart(analyticsData),
+                                   ],
+                                 );
+                               },
+                             ),
+                             SizedBox(height: 40),
+                           ],
+                         ),
+                       );
+                     },
+                   ),
+                 ),
+               ],
+             ),
     );
   }
 
-  // ← ADDED
   Widget _buildTotalBadge(int total, BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -162,6 +160,7 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
 
   Widget _buildFilters() {
     final filters = ['All', 'Ongoing', 'Completed', 'Upcoming'];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 40,
       margin: EdgeInsets.symmetric(vertical: 16),
@@ -174,17 +173,25 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
           final isSelected = _selectedFilter == filters[index];
           return GestureDetector(
             onTap: () => setState(() => _selectedFilter = filters[index]),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                gradient: isSelected ? AppGradients.primaryButton : null,
+                color: isSelected ? null : (isDark ? Theme.of(context).colorScheme.surface : Colors.white),
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? Colors.transparent
+                      : (isDark ? Theme.of(context).colorScheme.primary.withOpacity(0.25) : AppColors.lightChipBorder),
+                ),
+                boxShadow: isSelected ? [const BoxShadow(color: Color(0x330284C7), blurRadius: 8, offset: Offset(0, 2))] : [],
               ),
               child: Center(
                 child: Text(
                   filters[index],
                   style: TextStyle(
-                    color: isSelected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     fontSize: 13,
                   ),
@@ -377,14 +384,10 @@ class _LearningCardState extends State<_LearningCard> {
             ? (widget.swap.completedSessions / widget.swap.totalSessions).clamp(0.0, 1.0)
             : 0.0;
 
-        return Container(
-          margin: EdgeInsets.only(bottom: 16),
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
-          ),
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
+        return AppCardContainer(
+          margin: const EdgeInsets.only(bottom: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -420,15 +423,7 @@ class _LearningCardState extends State<_LearningCard> {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(widget.swap.status.toUpperCase(),
-                        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10, fontWeight: FontWeight.bold)),
-                  ),
+                  AppStatusBadge(status: widget.swap.status),
                 ],
               ),
               SizedBox(height: 20),
@@ -440,14 +435,10 @@ class _LearningCardState extends State<_LearningCard> {
                 ],
               ),
               SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: LinearProgressIndicator(
-                  value: calculatedProgress,
-                  backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
-                  color: Theme.of(context).colorScheme.primary,
-                  minHeight: 6,
-                ),
+              AppGradientProgressBar(
+                value: calculatedProgress,
+                isCompleted: widget.swap.status.toLowerCase() == 'completed',
+                height: 6,
               ),
               SizedBox(height: 16),
               Row(

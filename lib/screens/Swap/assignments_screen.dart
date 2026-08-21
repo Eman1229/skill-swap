@@ -172,7 +172,7 @@ class _AssignmentTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    TranslatedText(
                       assignment.title,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
@@ -209,7 +209,7 @@ class _AssignmentTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
+          TranslatedText(
             assignment.description,
             maxLines: 4,
             overflow: TextOverflow.ellipsis,

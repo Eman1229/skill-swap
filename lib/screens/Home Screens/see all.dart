@@ -182,7 +182,7 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
                               : Theme.of(context).colorScheme.primary.withOpacity(0.25),
                         ),
                       ),
-                      child: Text(
+                      child: TranslatedText(
                         "category_${_categories[index].toLowerCase().replaceAll(' ', '_')}".tr(),
                         style: TextStyle(
                           color: selected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -414,7 +414,7 @@ class _SwapListTile extends StatelessWidget {
                         children: [
                           _categoryIcon(context, swap.category),
                           SizedBox(width: 4),
-                          Text(
+                          TranslatedText(
                             swap.category,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -479,7 +479,7 @@ class _SwapListTile extends StatelessWidget {
 
             SizedBox(height: 10),
 
-            Text(
+            TranslatedText(
               swap.offering,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface,
@@ -490,23 +490,23 @@ class _SwapListTile extends StatelessWidget {
 
             SizedBox(height: 4),
 
-            RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Looking for: ',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12),
-                  ),
-                  TextSpan(
-                    text: swap.wanting,
+            Row(
+              children: [
+                Text(
+                  '${'looking_for_label'.tr()} ',
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.65), fontSize: 12),
+                ),
+                Expanded(
+                  child: TranslatedText(
+                    swap.wanting,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),

@@ -107,12 +107,12 @@ class AboutScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          TranslatedText(
             'democratizing_education'.tr(),
             style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 15),
           ),
           SizedBox(height: 10),
-          Text(
+          TranslatedText(
             'mission_statement'.tr(),
             style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.5),
           ),
@@ -126,7 +126,7 @@ class AboutScreen extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: EdgeInsets.only(left: 4, bottom: 12),
-        child: Text(
+        child: TranslatedText(
           title,
           style: TextStyle(
             color: Theme.of(context).colorScheme.primary,
@@ -155,7 +155,7 @@ class AboutScreen extends StatelessWidget {
       child: ListTile(
         onTap: () => _showLegalBottomSheet(context, title, content),
         leading: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
-        title: Text(
+        title: TranslatedText(
           title,
           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
         ),

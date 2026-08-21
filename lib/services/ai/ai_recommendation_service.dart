@@ -72,7 +72,7 @@ class AIRecommendationService {
       return;
     }
 
-    print('AIRecommendationService: refreshIfStale called with force=$force, careerGoal=$careerGoal');
+    debugPrint('AIRecommendationService: refreshIfStale called with force=$force, careerGoal=$careerGoal');
 
     try {
       // 0. Auto-sync profile stats from ground-truth swaps in Firestore
@@ -102,16 +102,21 @@ class AIRecommendationService {
       // ── STEP 1b: Eligibility gate for Career Compass & Learning Roadmap
       // These features unlock only after the user completes 2 swaps.
       final aiProfile = await _profileService.buildProfile(uid);
+      final currentAllSkills = aiProfile.allSkills;
+      final currentLearnedSkills = aiProfile.skillsLearned;
+      final currentTeachingSkills = aiProfile.skillsTeaching;
+      final currentInterests = aiProfile.interests;
+      final effectiveCareerGoal = careerGoal ?? aiProfile.careerGoal ?? '';
+
       if (!aiProfile.isEligibleForRecommendations) {
         debugPrint('AIRecommendationService: Career/Roadmap locked — '
             '${kMinCompletedSwapsForAI - aiProfile.completedSwaps} more swap(s) needed.');
-        // Still generate analytics snapshot based on available data
         await generateAndSaveSnapshot(uid, userData);
         return;
       }
 
       // ── STEP 2: Career Recommendations ─────────────────────────────
-      // Check if Firestore already has a fresh career recommendation
+      // Check if Firestore already has a fresh career recommendation matching the current profile payload
       bool isCareerDbFresh = false;
       try {
         final metaDoc = await _db.collection('career_recommendations').doc(uid).get();
@@ -130,12 +135,19 @@ class AIRecommendationService {
               final triggerData = historyDocData['triggerData'] as Map?;
               if (triggerData != null) {
                 final dbSwapCount = (triggerData['completedSwaps'] as num?)?.toInt() ?? 0;
-                final dbSkills = List<String>.from(triggerData['skillsLearned'] ?? []);
-                debugPrint('AIRecommendationService: dbSwapCount=$dbSwapCount, dbSkills=${dbSkills.length}');
-                if (dbSwapCount >= currentSwapCount && _listsEqual(dbSkills, currentSkills)) {
+                final dbSkillsLearned = List<String>.from(triggerData['skillsLearned'] ?? []);
+                final dbSkillsTeaching = List<String>.from(triggerData['skillsTeaching'] ?? []);
+                final dbInterests = List<String>.from(triggerData['interests'] ?? []);
+                final dbGoal = (triggerData['careerGoal'] ?? '').toString();
+
+                if (dbSwapCount == currentSwapCount &&
+                    _listsEqual(dbSkillsLearned, currentLearnedSkills) &&
+                    _listsEqual(dbSkillsTeaching, currentTeachingSkills) &&
+                    _listsEqual(dbInterests, currentInterests) &&
+                    dbGoal == effectiveCareerGoal) {
                   isCareerDbFresh = true;
-                  await _cache.markCareerFresh(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
-                  debugPrint('AIRecommendationService: Firestore career recommendation is already fresh (swaps: $dbSwapCount). Skipping generation.');
+                  await _cache.markCareerFresh(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentAllSkills);
+                  debugPrint('AIRecommendationService: Firestore career recommendation is already fresh for exact profile state. Skipping generation.');
                 }
               }
             }
@@ -145,17 +157,16 @@ class AIRecommendationService {
         debugPrint('AIRecommendationService: Error checking career db freshness: $e');
       }
 
-      final careerStale = await _cache.isCareerStale(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
+      final careerStale = await _cache.isCareerStale(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentAllSkills);
       debugPrint('AIRecommendationService: careerStale=$careerStale, isCareerDbFresh=$isCareerDbFresh');
       if ((careerStale && !isCareerDbFresh) || force) {
         debugPrint('AIRecommendationService: Triggering career recommendation generation...');
         await _careerService.generateRecommendation(careerGoal: careerGoal);
-        await _cache.markCareerFresh(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentSkills);
+        await _cache.markCareerFresh(uid, currentRating: currentRating, currentSwapCount: currentSwapCount, currentSkills: currentAllSkills);
         await _repository.logGeneration(userId: uid, type: 'career_generation', success: true);
       }
 
       // ── STEP 3: Learning Roadmap ────────────────────────────────────
-      // Check if Firestore already has a fresh learning roadmap
       bool isRoadmapDbFresh = false;
       String? roadmapTargetCareer;
       try {
@@ -178,10 +189,10 @@ class AIRecommendationService {
                 if (triggerData != null) {
                   final dbSwapCount = (triggerData['completedSwaps'] as num?)?.toInt() ?? 0;
                   final dbSkills = List<String>.from(triggerData['currentSkills'] ?? []);
-                  if (dbSwapCount >= currentSwapCount && _listsEqual(dbSkills, currentSkills)) {
+                  if (dbSwapCount == currentSwapCount && _listsEqual(dbSkills, currentAllSkills)) {
                     isRoadmapDbFresh = true;
-                    await _cache.markRoadmapFresh(uid, targetCareer: roadmapTargetCareer);
-                    debugPrint('AIRecommendationService: Firestore learning roadmap is already fresh (swaps: $dbSwapCount). Skipping generation.');
+                    await _cache.markRoadmapFresh(uid, targetCareer: roadmapTargetCareer, currentSkills: currentAllSkills);
+                    debugPrint('AIRecommendationService: Firestore learning roadmap is fresh for current profile. Skipping generation.');
                   }
                 }
               }
@@ -201,11 +212,11 @@ class AIRecommendationService {
         }
       }
       if (targetCareer == null || targetCareer.isEmpty) {
-        targetCareer = userData['careerGoal']?.toString() ?? userData['targetCareer']?.toString();
+        targetCareer = effectiveCareerGoal.isNotEmpty ? effectiveCareerGoal : null;
       }
 
       if (targetCareer != null && targetCareer.isNotEmpty) {
-        final roadmapStale = await _cache.isRoadmapStale(uid, targetCareer: targetCareer);
+        final roadmapStale = await _cache.isRoadmapStale(uid, targetCareer: targetCareer, currentSkills: currentAllSkills);
         if ((roadmapStale && !isRoadmapDbFresh) || force) {
           debugPrint('AIRecommendationService: Generating learning roadmap for $targetCareer');
           List<String> missingSkills = [];
@@ -220,13 +231,13 @@ class AIRecommendationService {
 
           await _roadmapService.generateRoadmap(
             targetCareer: targetCareer,
-            currentSkills: currentSkills,
+            currentSkills: currentAllSkills,
             missingSkills: missingSkills,
             learningHours: (userData['learningHours'] as num?)?.toDouble() ?? 0.0,
             completedSwaps: currentSwapCount,
             averageRating: currentRating,
           );
-          await _cache.markRoadmapFresh(uid, targetCareer: targetCareer);
+          await _cache.markRoadmapFresh(uid, targetCareer: targetCareer, currentSkills: currentAllSkills);
           await _repository.logGeneration(userId: uid, type: 'roadmap_generation', success: true);
         }
       }

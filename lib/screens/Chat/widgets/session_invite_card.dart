@@ -161,7 +161,7 @@ class _SessionInviteCardState extends State<SessionInviteCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    TranslatedText(
                       title,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,

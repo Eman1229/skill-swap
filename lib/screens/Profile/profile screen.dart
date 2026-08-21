@@ -1119,21 +1119,30 @@ class _DetailRow extends StatelessWidget {
                 Flexible(
                   child: GestureDetector(
                     onTap: isLink ? onTap : null,
-                    child: Text(
-                      value,
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        color: isHighlight
-                            ? Theme.of(context).colorScheme.primary
-                            : isLink
-                            ? Color(0xFF6B8AFF)
-                            : Theme.of(context).colorScheme.onSurface,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        decoration: isLink ? TextDecoration.underline : null,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    child: isLink
+                        ? Text(
+                            value,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              color: Color(0xFF6B8AFF),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        : TranslatedText(
+                            value,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              color: isHighlight
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurface,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                   ),
                 ),
               ],

@@ -20,6 +20,7 @@ import 'package:skill_swap/screens/Swap/rate_feedback_screen.dart';
 import 'package:skill_swap/screens/Swap/certificate_screen.dart';
 import 'package:skill_swap/services/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:skill_swap/theme/app_theme.dart';
 
 class SkillDetailScreen extends StatefulWidget {
   final SwapModel swap;
@@ -74,12 +75,12 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
   }
 
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
-  Color get _cardBg => _isDark ? const Color(0xFF131A2E) : Colors.white;
-  Color get _cardBorder => _isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
-  Color get _textColor => _isDark ? Colors.white : const Color(0xFF0D0D1A);
+  Color get _cardBg => _isDark ? const Color(0xFF131A2E) : AppColors.lightCardSurface;
+  Color get _cardBorder => _isDark ? const Color(0xFF1E293B) : AppColors.lightCardBorder;
+  Color get _textColor => _isDark ? Colors.white : const Color(0xFF0F172A);
   Color get _subtextColor => _isDark ? Colors.grey : const Color(0xFF64748B);
-  Color get _innerContainerBg => _isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-  Color get _chipBg => _isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+  Color get _innerContainerBg => _isDark ? const Color(0xFF0F172A) : AppColors.lightBackground;
+  Color get _chipBg => _isDark ? const Color(0xFF1E293B) : AppColors.lightBackground;
 
   @override
   Widget build(BuildContext context) {

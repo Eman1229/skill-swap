@@ -187,7 +187,7 @@ class MentorCompassScreen extends StatelessWidget {
                           const Icon(Icons.school_outlined, size: 13, color: Colors.grey),
                           const SizedBox(width: 4),
                           Expanded(
-                            child: Text(
+                            child: TranslatedText(
                               'Teaches: ${mentor.mentorSkill}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -202,7 +202,7 @@ class MentorCompassScreen extends StatelessWidget {
                           const Icon(Icons.favorite_border_rounded, size: 13, color: Colors.grey),
                           const SizedBox(width: 4),
                           Expanded(
-                            child: Text(
+                            child: TranslatedText(
                               'Learns: ${mentor.mentorWantingSkill}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -281,7 +281,7 @@ class MentorCompassScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
+                TranslatedText(
                   mentor.whyRecommended.isNotEmpty
                       ? mentor.whyRecommended.first
                       : 'Curated match based on your skill profile',

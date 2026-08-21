@@ -491,7 +491,7 @@ class _NotificationTile extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Text(
+                          child: TranslatedText(
                             notification.title,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurface,
@@ -517,7 +517,7 @@ class _NotificationTile extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    TranslatedText(
                       notification.body,
                       style: TextStyle(
                         color: Theme.of(

@@ -196,7 +196,7 @@ class _CareerCompassScreenState extends State<CareerCompassScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
+          TranslatedText(
             recommendation.careerSummary,
             style: TextStyle(
               fontSize: 13,
@@ -255,7 +255,7 @@ class _CareerCompassScreenState extends State<CareerCompassScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
-      child: Text(
+      child: TranslatedText(
         label,
         style: TextStyle(
           color: color,
@@ -309,7 +309,7 @@ class _CareerCompassScreenState extends State<CareerCompassScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      TranslatedText(
                         career.title,
                         style: const TextStyle(
                           fontSize: 16,
@@ -373,7 +373,7 @@ class _CareerCompassScreenState extends State<CareerCompassScreen> {
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
+            child: TranslatedText(
               career.description,
               style: TextStyle(
                 fontSize: 12.5,
@@ -490,7 +490,7 @@ class _CareerCompassScreenState extends State<CareerCompassScreen> {
           width: 0.8,
         ),
       ),
-      child: Text(
+      child: TranslatedText(
         label,
         style: TextStyle(
           color: isMissing ? const Color(0xFFEF4444) : (isDark ? Colors.white70 : Colors.black87),

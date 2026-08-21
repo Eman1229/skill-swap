@@ -19,6 +19,7 @@ import 'package:skill_swap/utils/user_display_name.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/theme/app_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────
 // ANIMATED GRADIENT BORDER WIDGET
@@ -61,16 +62,16 @@ class _AnimatedGradientBorderState extends State<AnimatedGradientBorder>
             gradient: SweepGradient(
               transform: GradientRotation(_controller.value * 6.2832),
               colors: const [
-                Color(0xFF3B82F6), // blue
-                Color(0xFF6A5CFF), // medium purple
-                Color(0xFF4B0082), // deep purple
-                Color(0xFF6A5CFF), // medium purple
-                Color(0xFF3B82F6), // blue
+                Color(0xFF0284C7), // blue
+                Color(0xFF8B5CF6), // violet
+                Color(0xFF0284C7), // blue
+                Color(0xFF8B5CF6), // violet
+                Color(0xFF0284C7), // blue
               ],
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(1.7),
+            padding: const EdgeInsets.all(2.0),
             child: widget.child,
           ),
         );
@@ -1094,20 +1095,44 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
-                
-                color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                gradient: selected ? AppGradients.primaryButton : null,
+                color: selected
+                    ? null
+                    : (Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).colorScheme.surface
+                        : Colors.white),
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(
                   color: selected
                       ? Colors.transparent
-                      : Theme.of(context).colorScheme.primary.withOpacity(0.25),
+                      : (Theme.of(context).brightness == Brightness.dark
+                          ? Theme.of(context).colorScheme.primary.withOpacity(0.25)
+                          : AppColors.lightChipBorder),
+                  width: 1,
                 ),
+                boxShadow: selected
+                    ? [
+                        const BoxShadow(
+                          color: Color(0x330284C7),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ]
+                    : (Theme.of(context).brightness == Brightness.dark
+                        ? []
+                        : [
+                            const BoxShadow(
+                              color: Color.fromRGBO(15, 23, 60, 0.04),
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ]),
               ),
-              child: Text(
+              child: TranslatedText(
                 "category_${_categories[index].toLowerCase().replaceAll(' ', '_')}".tr(),
                 style: TextStyle(
                   color: selected
-                      ? Theme.of(context).colorScheme.onSurface
+                      ? Colors.white
                       : Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 13,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
@@ -1180,9 +1205,9 @@ class HorizontalSwapCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF0D0D1A);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final cardColor = isDark ? const Color(0xFF1E293B) : AppColors.lightCardSurface;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final borderColor = isDark ? const Color(0xFF334155) : AppColors.lightCardBorder;
 
     return GestureDetector(
       onTap: () {
@@ -1200,13 +1225,7 @@ class HorizontalSwapCard extends StatelessWidget {
           border: Border.all(color: borderColor),
           boxShadow: isDark
               ? []
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+              : [AppColors.cardShadowLight],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1269,7 +1288,7 @@ class HorizontalSwapCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(
+                  child: TranslatedText(
                     swap.offering,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1282,15 +1301,15 @@ class HorizontalSwapCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Looking For:',
-              style: TextStyle(
+            Text(
+              'looking_for_label'.tr(),
+              style: const TextStyle(
                 color: Colors.grey,
                 fontSize: 12,
               ),
             ),
             const SizedBox(height: 6),
-            Text(
+            TranslatedText(
               swap.wanting,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -1481,7 +1500,7 @@ class _LiveSessionCardState extends State<LiveSessionCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    TranslatedText(
                       widget.session.title,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
@@ -1561,8 +1580,10 @@ class _GradientButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: onTap == null ? Colors.grey.withOpacity(0.3) : Theme.of(context).colorScheme.primary,
+        gradient: onTap == null ? null : AppGradients.primaryButton,
+        color: onTap == null ? Colors.grey.withOpacity(0.3) : null,
         borderRadius: BorderRadius.circular(15),
+        boxShadow: onTap == null ? [] : [AppColors.buttonShadowLight],
       ),
       child: TextButton(
         onPressed: onTap,
@@ -1585,7 +1606,7 @@ class _GradientButton extends StatelessWidget {
                 style: TextStyle(
                   color: onTap == null
                       ? Colors.grey
-                      : Theme.of(context).colorScheme.onSurface,
+                      : Colors.white,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1610,14 +1631,7 @@ class _SectionTitle extends StatelessWidget {
           width: 4,
           height: 18,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                const Color(0xFF6B8AFF),
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+            gradient: AppGradients.sectionHeaderBar,
             borderRadius: BorderRadius.circular(2),
           ),
         ),

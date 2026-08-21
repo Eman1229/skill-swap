@@ -1,5 +1,6 @@
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/models/swap_request.dart';
@@ -254,7 +255,7 @@ class _SkillColumn extends StatelessWidget {
       children: [
         Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6), fontSize: 10)),
         const SizedBox(height: 4),
-        Text(
+        TranslatedText(
           skill,
           style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold),
           overflow: TextOverflow.ellipsis,

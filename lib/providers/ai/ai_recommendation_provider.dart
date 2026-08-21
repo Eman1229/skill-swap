@@ -29,9 +29,11 @@ class AIRecommendationProvider extends ChangeNotifier {
   AIUserProfile? _aiProfile;
 
   StreamSubscription<DocumentSnapshot>? _userSubscription;
+  StreamSubscription<QuerySnapshot>? _swapsSubscription;
   int? _lastCompletedSwaps;
   List<String>? _lastLearningSkills;
   String? _lastActivitySignature;
+  String? _lastSwapsSignature;
 
   List<MentorRecommendation> get mentorRecommendations => _mentorRecommendations;
   CareerRecommendation? get careerRecommendation => _careerRecommendation;
@@ -275,6 +277,8 @@ class AIRecommendationProvider extends ChangeNotifier {
   // ── Firestore Stats Realtime Listener ───────────────────────────────
   void listenToUserChanges(String uid) {
     _userSubscription?.cancel();
+    _swapsSubscription?.cancel();
+
     _userSubscription = FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
@@ -290,15 +294,31 @@ class AIRecommendationProvider extends ChangeNotifier {
           (completedSwaps > _lastCompletedSwaps! ||
            !_listsEqual(learningSkills, _lastLearningSkills ?? []) ||
            activitySignature != _lastActivitySignature)) {
-        debugPrint('[AI Provider] Detected completed swaps or learning skills change in Firestore. Auto-refreshing recommendations.');
+        debugPrint('[AI Provider] Detected user profile change in Firestore. Auto-refreshing recommendations.');
         _lastCompletedSwaps = completedSwaps;
         _lastLearningSkills = learningSkills;
         _lastActivitySignature = activitySignature;
 
-        // Perform a background refresh of recommendations dynamically.
-        // A changed profile/activity signal needs a new prompt even when the
-        // cache has not yet aged out.
         Future.microtask(() => refreshRecommendations(uid: uid, force: true));
+      }
+    });
+
+    _swapsSubscription = FirebaseFirestore.instance
+        .collection('swaps')
+        .where('participants', arrayContains: uid)
+        .snapshots()
+        .listen((snapshot) async {
+      final sig = snapshot.docs.map((doc) {
+        final d = doc.data();
+        return '${doc.id}:${d['status']}:${d['progress']}';
+      }).join('|');
+
+      if (_lastSwapsSignature != null && _lastSwapsSignature != sig) {
+        debugPrint('[AI Provider] Detected swap state change in Firestore. Auto-refreshing recommendations.');
+        _lastSwapsSignature = sig;
+        Future.microtask(() => refreshRecommendations(uid: uid, force: true));
+      } else {
+        _lastSwapsSignature = sig;
       }
     });
   }
@@ -326,6 +346,7 @@ class AIRecommendationProvider extends ChangeNotifier {
   @override
   void dispose() {
     _userSubscription?.cancel();
+    _swapsSubscription?.cancel();
     super.dispose();
   }
 }

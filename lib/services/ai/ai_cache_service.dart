@@ -91,7 +91,7 @@ class AICacheService {
       if (storedSkillHash != _hashList(currentSkills)) return true;
 
       final storedCount = prefs.getInt('${_swapCountPrefix}career_$uid') ?? 0;
-      if (currentSwapCount > storedCount) return true;
+      if (currentSwapCount != storedCount) return true;
 
       return false;
     } catch (e) {
@@ -116,7 +116,7 @@ class AICacheService {
   }
 
   // ── Roadmap Cache ───────────────────────────────────────────────────
-  Future<bool> isRoadmapStale(String uid, {required String targetCareer}) async {
+  Future<bool> isRoadmapStale(String uid, {required String targetCareer, List<String> currentSkills = const []}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final ts = prefs.getInt('$_roadmapKeyPrefix$uid');
@@ -130,17 +130,25 @@ class AICacheService {
       final storedCareer = prefs.getString('${_roadmapKeyPrefix}career_$uid') ?? '';
       if (storedCareer != targetCareer) return true;
 
+      if (currentSkills.isNotEmpty) {
+        final storedSkills = prefs.getString('${_roadmapKeyPrefix}skills_$uid') ?? '';
+        if (storedSkills != _hashList(currentSkills)) return true;
+      }
+
       return false;
     } catch (e) {
       return true;
     }
   }
 
-  Future<void> markRoadmapFresh(String uid, {required String targetCareer}) async {
+  Future<void> markRoadmapFresh(String uid, {required String targetCareer, List<String> currentSkills = const []}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('$_roadmapKeyPrefix$uid', DateTime.now().millisecondsSinceEpoch);
       await prefs.setString('${_roadmapKeyPrefix}career_$uid', targetCareer);
+      if (currentSkills.isNotEmpty) {
+        await prefs.setString('${_roadmapKeyPrefix}skills_$uid', _hashList(currentSkills));
+      }
     } catch (e) {
       debugPrint('AICacheService.markRoadmapFresh error: $e');
     }

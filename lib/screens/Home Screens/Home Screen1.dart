@@ -18,6 +18,7 @@ import 'package:skill_swap/screens/Home%20Screens/see%20all.dart';
 import 'package:skill_swap/models/session_model.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart' as available;
 import '../Add skill/offer skill.dart';
+import 'package:skill_swap/theme/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   HomeScreen({Key? key}) : super(key: key);
@@ -445,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       .withOpacity(0.25),
                                 ),
                               ),
-                              child: Text(
+                              child: TranslatedText(
                                 "category_${_categories[index].toLowerCase().replaceAll(' ', '_')}".tr(),
                                 style: TextStyle(
                                   color: selected
@@ -757,11 +758,7 @@ class _SectionTitle extends StatelessWidget {
           width: 4,
           height: 18,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Theme.of(context).colorScheme.primary, Color(0xFF6B8AFF)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+            gradient: AppGradients.sectionHeaderBar,
             borderRadius: BorderRadius.circular(2),
           ),
         ),

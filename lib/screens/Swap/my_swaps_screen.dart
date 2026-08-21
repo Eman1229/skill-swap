@@ -7,6 +7,7 @@ import 'package:skill_swap/screens/Swap/my_teaching_screen.dart';
 import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/theme/app_theme.dart';
 
 
 class MySwapsScreen extends StatefulWidget {
@@ -195,22 +196,21 @@ class _DashboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: isDark ? const Color(0xFF1E293B) : AppColors.lightCardSurface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.05),
-              blurRadius: 20,
-              offset: Offset(0, 10),
-            ),
-          ],
+          border: Border.all(
+            color: isDark ? color.withValues(alpha: 0.2) : AppColors.lightCardBorder,
+          ),
+          boxShadow: isDark
+              ? []
+              : [AppColors.cardShadowLight],
         ),
         child: Row(
           children: [
@@ -248,15 +248,9 @@ class _PrimaryBtn extends StatelessWidget {
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
+        gradient: AppGradients.primaryButton,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-            blurRadius: 15,
-            offset: Offset(0, 8),
-          ),
-        ],
+        boxShadow: [AppColors.buttonShadowLight],
       ),
       child: ElevatedButton(
         onPressed: onTap,
@@ -267,7 +261,7 @@ class _PrimaryBtn extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
     );

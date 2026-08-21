@@ -19,10 +19,10 @@ import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Setting/app_settings.dart';
 import 'package:skill_swap/services/connectivity_service.dart';
 
-const Color _skillSwapPrimary    = Color(0xFF00C2FF);
-const Color _skillSwapSecondary  = Color(0xFF00C2FF);
-const Color _skillSwapBackground = Color(0xFFF0F4FF);
-const Color _skillSwapText       = Color(0xFF0D0D1A);
+const Color _skillSwapPrimary    = Color(0xFF0284C7);
+const Color _skillSwapSecondary  = Color(0xFF0EA5E9);
+const Color _skillSwapBackground = Color(0xFFF0F5FF);
+const Color _skillSwapText       = Color(0xFF0F172A);
 const Color _skillSwapSlate      = Color(0xFFB0BAD0);
 
 Future<void> main() async {
@@ -49,6 +49,9 @@ Future<void> main() async {
 
     final languageProvider = LanguageProvider.instance;
     await languageProvider.loadSavedLocale();
+
+    final appSettings = AppSettings();
+    await appSettings.loadThemeFromPrefs();
 
     runApp(
       MultiProvider(
@@ -163,7 +166,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       onSurface: _skillSwapText,
       onSurfaceVariant: const Color(0xFF4B5870),
       outline: _skillSwapSlate,
-      outlineVariant: const Color(0xFFD8E1F2),
+      outlineVariant: const Color(0xFFEEF2FF),
     );
 
     return ThemeData(

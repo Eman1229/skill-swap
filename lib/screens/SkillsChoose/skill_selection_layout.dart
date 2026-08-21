@@ -181,12 +181,11 @@ class _SkillTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(
+          TranslatedText(
             displayName,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            textScaler: TextScaler.noScaling,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 14,

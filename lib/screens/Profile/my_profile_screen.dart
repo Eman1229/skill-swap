@@ -917,7 +917,7 @@ class _SkillChips extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.28)),
             ),
-            child: Text(
+            child: TranslatedText(
               skill,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.primary,

@@ -2,11 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AppSettings {
   static final AppSettings _instance = AppSettings._internal();
   factory AppSettings() => _instance;
   AppSettings._internal();
+
+  static const String _keyDarkMode = 'is_dark_mode';
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -18,8 +21,29 @@ class AppSettings {
   ThemeMode get themeMode =>
       isDarkMode.value ? ThemeMode.dark : ThemeMode.light;
 
-  void setDarkMode(bool value) {
+  /// Load theme preference from SharedPreferences
+  Future<void> loadThemeFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.containsKey(_keyDarkMode)) {
+        final savedIsDark = prefs.getBool(_keyDarkMode) ?? true;
+        isDarkMode.value = savedIsDark;
+      }
+    } catch (e) {
+      debugPrint('Error loading theme preference: $e');
+    }
+  }
+
+  /// Update dark mode preference, persist locally and to Firestore
+  Future<void> setDarkMode(bool value) async {
     isDarkMode.value = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keyDarkMode, value);
+    } catch (e) {
+      debugPrint('Error saving theme preference: $e');
+    }
+    await _saveToFirestore();
   }
 
   // Notification Settings
@@ -95,6 +119,15 @@ class AppSettings {
 
   /// Apply Firestore data to local ValueNotifiers without triggering saves
   void _applyFromFirestore(Map<String, dynamic> data) {
+    if (data.containsKey('isDarkMode')) {
+      final firestoreDark = data['isDarkMode'] as bool?;
+      if (firestoreDark != null) {
+        isDarkMode.value = firestoreDark;
+        SharedPreferences.getInstance().then((prefs) {
+          prefs.setBool(_keyDarkMode, firestoreDark);
+        }).catchError((e) => debugPrint('Error updating pref from Firestore: $e'));
+      }
+    }
     notificationsEnabled.value = data['pushEnabled'] ?? data['notificationsEnabled'] ?? true;
     swapRequestsEnabled.value = data['swapRequestsEnabled'] ?? true;
     chatMessagesEnabled.value = data['chatMessagesEnabled'] ?? data['directMessagesEnabled'] ?? data['messagesEnabled'] ?? true;
@@ -108,6 +141,7 @@ class AppSettings {
   /// Build the Firestore payload from current ValueNotifiers
   Map<String, dynamic> _toFirestoreMap() {
     return {
+      'isDarkMode': isDarkMode.value,
       'pushEnabled': notificationsEnabled.value,
       'swapRequestsEnabled': swapRequestsEnabled.value,
       'chatMessagesEnabled': chatMessagesEnabled.value,

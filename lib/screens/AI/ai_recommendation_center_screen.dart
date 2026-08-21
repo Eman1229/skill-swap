@@ -10,6 +10,7 @@ import 'package:skill_swap/screens/AI/mentor_compass_screen.dart';
 import 'package:skill_swap/screens/AI/career_compass_screen.dart';
 import 'package:skill_swap/screens/AI/learning_roadmap_screen.dart';
 import 'package:skill_swap/services/ai/ai_profile_service.dart';
+import 'package:skill_swap/theme/app_theme.dart';
 
 class AIRecommendationCenterScreen extends StatefulWidget {
   const AIRecommendationCenterScreen({super.key});
@@ -195,22 +196,8 @@ class _AIRecommendationCenterScreenState extends State<AIRecommendationCenterScr
   }
 
   Widget _buildHeroBanner(Color primaryColor, bool isDark, bool isEligible, int remaining) {
-    return Container(
-      width: double.infinity,
+    return AISmartMatchContainer(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          colors: isDark
-              ? [const Color(0xFF0B1F3B), const Color(0xFF1E293B)]
-              : [const Color(0xFFE0F2FE), const Color(0xFFF0F4FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(
-          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-        ),
-      ),
       child: Row(
         children: [
           Container(
@@ -352,7 +339,7 @@ class _AIRecommendationCenterScreenState extends State<AIRecommendationCenterScr
                   child: Icon(icon, color: Colors.white, size: 22),
                 ),
                 const SizedBox(width: 12),
-                Text(
+                TranslatedText(
                   title,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
@@ -363,7 +350,7 @@ class _AIRecommendationCenterScreenState extends State<AIRecommendationCenterScr
                     color: gradientColors.first.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(
+                  child: TranslatedText(
                     badgeText,
                     style: TextStyle(
                       color: gradientColors.first,
@@ -375,7 +362,7 @@ class _AIRecommendationCenterScreenState extends State<AIRecommendationCenterScr
               ],
             ),
             const SizedBox(height: 14),
-            Text(
+            TranslatedText(
               description,
               style: TextStyle(
                 fontSize: 12.5,
@@ -391,7 +378,7 @@ class _AIRecommendationCenterScreenState extends State<AIRecommendationCenterScr
                 const Icon(Icons.auto_awesome_rounded, color: Color(0xFFFFD700), size: 14),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(
+                  child: TranslatedText(
                     extraInfo,
                     style: const TextStyle(
                       fontSize: 11,
