@@ -18,6 +18,8 @@ import 'package:skill_swap/services/session_reminder_service.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Setting/app_settings.dart';
 import 'package:skill_swap/services/connectivity_service.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
+import 'package:skill_swap/widgets/web_responsive_wrapper.dart';
 
 const Color _skillSwapPrimary    = Color(0xFF0284C7);
 const Color _skillSwapSecondary  = Color(0xFF0EA5E9);
@@ -57,6 +59,7 @@ Future<void> main() async {
       MultiProvider(
         providers: [
           ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
+          ChangeNotifierProvider<GuestModeService>.value(value: GuestModeService()),
           ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
           ChangeNotifierProvider<ConnectivityService>.value(
             value: ConnectivityService(),
@@ -147,7 +150,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           builder: (context, child) {
             return Directionality(
               textDirection: languageProvider.textDirection,
-              child: ConnectivityWrapper(child: child!),
+              child: WebResponsiveWrapper(
+                child: ConnectivityWrapper(child: child!),
+              ),
             );
           },
           home: const SplashScreen(),

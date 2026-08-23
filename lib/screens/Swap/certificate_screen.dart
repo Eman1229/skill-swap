@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -30,10 +31,15 @@ class _CertificateScreenState extends State<CertificateScreen> {
       final Uint8List? imageBytes = await _screenshotController.capture(pixelRatio: 3.0);
       if (imageBytes == null) return null;
 
+      if (kIsWeb) {
+        // Safe Web handle
+        return 'web_demo_certificate.png';
+      }
+
       File? savedFile;
       final fileName = 'SkillSwapX_Certificate_${widget.swap.id}.png';
 
-      if (Platform.isAndroid) {
+      if (!kIsWeb && Platform.isAndroid) {
         final publicDownloadDir = Directory('/storage/emulated/0/Download');
         if (await publicDownloadDir.exists()) {
           savedFile = File('${publicDownloadDir.path}/$fileName');
@@ -43,7 +49,7 @@ class _CertificateScreenState extends State<CertificateScreen> {
             savedFile = File('${extDir.path}/$fileName');
           }
         }
-      } else {
+      } else if (!kIsWeb) {
         final downloadsDir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
         savedFile = File('${downloadsDir.path}/$fileName');
       }

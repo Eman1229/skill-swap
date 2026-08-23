@@ -11,6 +11,8 @@ import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 import 'package:skill_swap/theme/app_theme.dart';
 
+import 'package:skill_swap/services/guest_mode_service.dart';
+
 class MyLearningScreen extends StatefulWidget {
   MyLearningScreen({Key? key}) : super(key: key);
 
@@ -29,11 +31,32 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
   @override
   void initState() {
     super.initState();
+    if (GuestModeService().isGuestMode) {
+      _uid = GuestModeService().guestUserId;
+      _analyticsStream = Stream.value(
+        AnalyticsData.empty(GuestModeService().guestUserId),
+      );
+      _swapsStream = Stream.value([
+        SwapModel(
+          id: 'swap_sarah_alex_1',
+          mentorId: 'user_sarah_1',
+          learnerId: GuestModeService().guestUserId,
+          mentorName: 'Sarah Jenkins',
+          learnerName: 'Alex Rivers (Guest)',
+          skillName: 'Flutter App Architecture & Dart',
+          status: 'ongoing',
+          progress: 0.65,
+          conversationId: 'demo_convo_101',
+          completedSessions: 3,
+          totalSessions: 5,
+          createdAt: DateTime.now().subtract(const Duration(days: 7)),
+        ),
+      ]);
+      return;
+    }
+
     _uid = _auth.currentUser?.uid;
     if (_uid != null) {
-      // Keep these stream instances for the lifetime of this screen. Creating
-      // them in build re-subscribed on every analytics update and briefly
-      // reset the cards to their loading state.
       _analyticsStream = AnalyticsService().watchAnalytics(_uid!);
       _swapsStream = _exchangeService.watchLearningSwaps(_uid!);
       _exchangeService.rebalanceUser(_uid!);

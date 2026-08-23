@@ -10,6 +10,8 @@ import 'package:skill_swap/providers/language_provider.dart';
 import 'package:skill_swap/theme/app_theme.dart';
 
 
+import 'package:skill_swap/services/guest_mode_service.dart';
+
 class MySwapsScreen extends StatefulWidget {
   MySwapsScreen({Key? key}) : super(key: key);
 
@@ -25,6 +27,7 @@ class _MySwapsScreenState extends State<MySwapsScreen> {
   Widget build(BuildContext context) {
     context.watch<LanguageProvider>();
     final uid = _auth.currentUser?.uid;
+    final isGuest = GuestModeService().isGuestMode;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -39,26 +42,28 @@ class _MySwapsScreenState extends State<MySwapsScreen> {
             style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
-      body: uid == null
-          ? Center(child: Text('please_login'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))
-          : StreamBuilder<QuerySnapshot>(
-              stream: _db
-                  .collection('swaps')
-                  .where('participants', arrayContains: uid)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
-                }
+      body: isGuest
+          ? _buildDashboard()
+          : uid == null
+              ? Center(child: Text('please_login'.tr(), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))
+              : StreamBuilder<QuerySnapshot>(
+                  stream: _db
+                      .collection('swaps')
+                      .where('participants', arrayContains: uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+                    }
 
-                final docs = snapshot.data?.docs ?? [];
-                if (docs.isEmpty) {
-                  return _buildEmptyState();
-                }
+                    final docs = snapshot.data?.docs ?? [];
+                    if (docs.isEmpty) {
+                      return _buildEmptyState();
+                    }
 
-                return _buildDashboard();
-              },
-            ),
+                    return _buildDashboard();
+                  },
+                ),
     );
   }
 

@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 import 'package:skill_swap/ui_helper/translation_helper.dart';
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'dart:html';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -481,7 +482,6 @@ class _TeachingSkillDetailScreenState extends State<TeachingSkillDetailScreen> {
                             if (result != null) {
                               setSheetState(() => isUploading = true);
                               try {
-                                File file = File(result.files.single.path!);
                                 String fileName =
                                     '${DateTime.now().millisecondsSinceEpoch}_${result.files.single.name}';
                                 Reference ref = FirebaseStorage.instance
@@ -490,12 +490,19 @@ class _TeachingSkillDetailScreenState extends State<TeachingSkillDetailScreen> {
                                       'skill_assets/${widget.skillId}/$fileName',
                                     );
 
-                                UploadTask uploadTask = ref.putFile(file);
-                                TaskSnapshot snapshot = await uploadTask;
-                                String downloadUrl = await snapshot.ref
-                                    .getDownloadURL();
-
-                                url = downloadUrl;
+                                if (kIsWeb) {
+                                  if (result.files.single.bytes != null) {
+                                    UploadTask uploadTask = ref.putData(result.files.single.bytes!);
+                                    TaskSnapshot snapshot = await uploadTask;
+                                    url = await snapshot.ref.getDownloadURL();
+                                  } else {
+                                    url = 'https://flutter.dev';
+                                  }
+                                } else {
+                                  UploadTask uploadTask = ref.putFile(File(result.files.single.path!));
+                                  TaskSnapshot snapshot = await uploadTask;
+                                  url = await snapshot.ref.getDownloadURL();
+                                }
                                 String size = _formatBytes(
                                   result.files.single.size,
                                 );

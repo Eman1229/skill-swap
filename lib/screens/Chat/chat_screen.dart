@@ -11,6 +11,7 @@ import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Chat/conversation_screen.dart';
 import 'package:skill_swap/services/chat_user_service.dart';
 import 'package:skill_swap/services/chat_repository.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -35,6 +36,44 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _loadCachedConversations();
+
+    if (GuestModeService().isGuestMode) {
+      _listingsStream = Stream.value(
+        GuestModeService().mockListings.map((m) => SwapListing(
+          id: m.id,
+          name: m.name,
+          initials: m.initials,
+          avatarColor: m.avatarColor,
+          offering: m.offering,
+          wanting: m.wanting,
+          rating: m.rating,
+          reviews: m.reviews,
+          category: m.category,
+          isLive: m.isLive,
+          skillLevel: m.skillLevel,
+          userId: m.userId,
+          description: m.description,
+          experience: m.experience,
+          imageUrl: m.imageUrl,
+          isFeatured: m.isFeatured,
+        )).toList(),
+      );
+
+      _conversationsStream = Stream.value([
+        {
+          'id': 'demo_convo_101',
+          'participants': [GuestModeService().guestUserId, 'user_sarah_1'],
+          'lastMessage': 'Awesome! Let us schedule our first 1-on-1 swap session soon!',
+          'lastMessageAt': Timestamp.now(),
+          'otherUserId': 'user_sarah_1',
+          'otherName': 'Sarah Jenkins',
+          'otherUserInitials': 'SJ',
+          'offering': 'Flutter Architecture & Web',
+          'wanting': 'UI/UX System Design',
+        }
+      ]);
+      return;
+    }
     
     // Setup mentors stream
     _listingsStream = FirebaseFirestore.instance

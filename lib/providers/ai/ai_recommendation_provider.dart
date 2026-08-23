@@ -14,6 +14,8 @@ import 'package:skill_swap/repositories/ai/ai_recommendation_repository.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
 import 'package:skill_swap/services/ai/ai_profile_service.dart';
 
+import 'package:skill_swap/services/guest_mode_service.dart';
+
 class AIRecommendationProvider extends ChangeNotifier {
   final AIRecommendationService _service = AIRecommendationService();
   final LearningRoadmapService _roadmapService = LearningRoadmapService();
@@ -51,6 +53,30 @@ class AIRecommendationProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
+
+    if (GuestModeService().isGuestMode) {
+      _aiProfile = const AIUserProfile(
+        skillsLearned: ['Flutter App Development', 'Dart'],
+        skillsTeaching: ['UI/UX Design', 'Figma System Design'],
+        interests: ['Mobile Dev', 'AI Engineering'],
+        profileSummary: 'Guest demo user practicing Flutter & UI/UX Design swaps.',
+        completedSwaps: 3,
+        averageRating: 4.9,
+        learningHours: 12.0,
+        teachingHours: 10.0,
+        learningStreak: 4,
+        totalAchievements: 5,
+        successRate: 0.96,
+        careerGoal: 'Senior Cross-Platform Mobile Architect',
+        recentSwapHistory: ['Flutter Architecture with Sarah Jenkins'],
+      );
+      _mentorRecommendations = [GuestModeService().mockAIMentorRecommendation];
+      _careerRecommendation = GuestModeService().mockAICareerRecommendation;
+      _learningRoadmap = GuestModeService().mockAILearningRoadmap;
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
 
     try {
       if (uid != null) {

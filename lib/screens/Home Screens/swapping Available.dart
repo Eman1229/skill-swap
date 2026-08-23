@@ -19,6 +19,7 @@ import 'package:skill_swap/utils/user_display_name.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 import 'package:skill_swap/theme/app_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────
@@ -208,6 +209,33 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   int _lastBuiltCategory = -1;
 
   Stream<List<SwapListing>> _buildCategoryStream(int categoryIndex) {
+    if (GuestModeService().isGuestMode) {
+      final selectedCat = _categories[categoryIndex];
+      final mockList = GuestModeService()
+          .mockListings
+          .where((m) => categoryIndex == 0 || m.category == selectedCat)
+          .map((m) => SwapListing(
+                id: m.id,
+                name: m.name,
+                initials: m.initials,
+                avatarColor: m.avatarColor,
+                offering: m.offering,
+                wanting: m.wanting,
+                rating: m.rating,
+                reviews: m.reviews,
+                category: m.category,
+                isLive: m.isLive,
+                skillLevel: m.skillLevel,
+                userId: m.userId,
+                description: m.description,
+                experience: m.experience,
+                imageUrl: m.imageUrl,
+                isFeatured: m.isFeatured,
+              ))
+          .toList();
+      return Stream.value(mockList);
+    }
+
     final query = _db
         .collection('swapListings')
         .orderBy('createdAt', descending: true);
@@ -262,7 +290,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
 
   Stream<DocumentSnapshot?> get _myListingStream {
     final uid = _auth.currentUser?.uid;
-    if (uid == null) return Stream.empty();
+    if (uid == null || GuestModeService().isGuestMode) return Stream.empty();
     return _db
         .collection('users')
         .doc(uid)
@@ -270,6 +298,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   }
 
   Stream<List<SessionModel>> get _acceptedSessionsStream {
+    if (GuestModeService().isGuestMode) {
+      return Stream.value(GuestModeService().mockSessions);
+    }
     final uid = _auth.currentUser?.uid;
     if (uid == null) return Stream.value([]);
     return _db
@@ -468,7 +499,10 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   String? liveImageUrl;
                   String liveInitials = _initials;
 
-                  if (snapshot.hasData && snapshot.data != null) {
+                  if (GuestModeService().isGuestMode) {
+                    _userName = GuestModeService().guestUserName;
+                    liveInitials = GuestModeService().guestUserInitials;
+                  } else if (snapshot.hasData && snapshot.data != null) {
                     final dataMap = snapshot.data!.data() as Map<String, dynamic>?;
                     _userName = UserDisplayName.fromMap(dataMap,
                         fallback: _auth.currentUser?.displayName ??

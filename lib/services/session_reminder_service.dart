@@ -1,13 +1,13 @@
-import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:skill_swap/models/session_model.dart';
 import 'package:skill_swap/services/fcm_service.dart';
+import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:skill_swap/utils/user_display_name.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -30,20 +30,26 @@ class SessionReminderService {
   int _id5(String sessionId) => '${sessionId}_5'.hashCode;
 
   Future<void> init() async {
+    if (kIsWeb) return;
     await _ensureTimezone();
     await _createChannel();
     await resyncAllAcceptedSessions();
   }
 
   Future<void> _ensureTimezone() async {
-    if (_tzInitialized) return;
-    tz.initializeTimeZones();
-    final timezoneInfo = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(timezoneInfo.identifier));
-    _tzInitialized = true;
+    if (_tzInitialized || kIsWeb) return;
+    try {
+      tz.initializeTimeZones();
+      final timezoneInfo = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timezoneInfo.identifier));
+      _tzInitialized = true;
+    } catch (e) {
+      debugPrint("SessionReminderService: Timezone init safely caught on web: $e");
+    }
   }
 
   Future<void> _createChannel() async {
+    if (kIsWeb) return;
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       channelId,
       channelName,
@@ -64,6 +70,7 @@ class SessionReminderService {
     required DateTime sessionStartTime,
     required String otherUserName,
   }) async {
+    if (kIsWeb) return;
     await _ensureTimezone();
     await cancelSessionReminder(sessionId);
 
@@ -75,7 +82,7 @@ class SessionReminderService {
       await _scheduleOne(
         id: _id10(sessionId),
         fireAt: t10,
-        title:'upcoming_session_title'.tr(),
+        title: 'upcoming_session_title'.tr(),
         body: 'Your class starts in 10 minutes with $otherUserName.',
         sessionId: sessionId,
         swapId: swapId,
@@ -86,7 +93,7 @@ class SessionReminderService {
       await _scheduleOne(
         id: _id5(sessionId),
         fireAt: t5,
-        title:'session_starting_soon'.tr(),
+        title: 'session_starting_soon'.tr(),
         body: 'Your class starts in 5 minutes with $otherUserName.',
         sessionId: sessionId,
         swapId: swapId,
@@ -113,6 +120,7 @@ class SessionReminderService {
     required String sessionId,
     required String swapId,
   }) async {
+    if (kIsWeb) return;
     final payload = jsonEncode({
       'type': 'session_reminder',
       'screen': 'swapping_available',
@@ -140,6 +148,7 @@ class SessionReminderService {
   }
 
   Future<void> cancelSessionReminder(String sessionId) async {
+    if (kIsWeb) return;
     await _localNotifications.cancel(id: _id10(sessionId));
     await _localNotifications.cancel(id: _id5(sessionId));
   }
@@ -148,6 +157,7 @@ class SessionReminderService {
     required String sessionId,
     required String swapId,
   }) async {
+    if (kIsWeb) return;
     await cancelSessionReminder(sessionId);
     await FirebaseFirestore.instance
         .collection('swaps')
@@ -172,6 +182,7 @@ class SessionReminderService {
   }
 
   Future<void> resyncAllAcceptedSessions() async {
+    if (kIsWeb) return;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
@@ -202,7 +213,6 @@ class SessionReminderService {
     }
   }
 
-  // No longer async — names come directly from the session document
   Future<String> resolveOtherUserName(SessionModel session, String uid) async {
     if (uid == session.mentorId) {
       final name = session.learnerName.trim();
@@ -231,6 +241,7 @@ class SessionReminderService {
     required DocumentSnapshot sessionDoc,
     required String swapId,
   }) async {
+    if (kIsWeb) return;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 

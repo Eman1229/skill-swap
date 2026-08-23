@@ -13,6 +13,7 @@ import 'package:skill_swap/screens/Chat/widgets/session_invite_card.dart';
 import 'package:skill_swap/services/fcm_service.dart';
 import 'package:skill_swap/screens/widgets/report_user_dialog.dart';
 import 'package:skill_swap/models/message.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 
 class ConversationScreen extends StatefulWidget {
   final SwapListing swap;
@@ -220,6 +221,13 @@ class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   void _updateMessagesStream() {
+    if (GuestModeService().isGuestMode) {
+      setState(() {
+        _messagesStream = GuestModeService().mockMessagesStream;
+      });
+      return;
+    }
+
     final convoId = _conversationId;
     if (convoId == null || convoId.isEmpty) return;
 
@@ -258,12 +266,13 @@ class _ConversationScreenState extends State<ConversationScreen> {
     int count = 0;
 
     for (final doc in docs) {
+      if (count >= 400) break;
       final data = doc.data() as Map<String, dynamic>;
-      final senderId = data['senderId'] as String? ?? '';
-      final status = data['status'] as String? ?? 'sent';
+      final senderId = data['senderId'] as String?;
+      final isRead = data['isRead'] as bool? ?? false;
 
-      if (senderId != uid && status != 'read') {
-        batch.update(doc.reference, {'status': 'read'});
+      if (senderId != uid && !isRead) {
+        batch.update(doc.reference, {'isRead': true});
         count++;
       }
     }
@@ -280,6 +289,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   Future<void> _initConversation() async {
+    if (GuestModeService().isGuestMode) {
+      setState(() {
+        _conversationId = 'demo_convo_101';
+      });
+      _updateMessagesStream();
+      return;
+    }
+
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
@@ -340,6 +357,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
     // Clear input controller immediately to prevent multiple submissions / duplicate messages
     _msgController.clear();
+
+    if (GuestModeService().isGuestMode) {
+      GuestModeService().addMockMessage(trimmedText);
+      return;
+    }
 
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;

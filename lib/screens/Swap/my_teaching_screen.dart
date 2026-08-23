@@ -11,6 +11,8 @@ import 'package:skill_swap/services/chat_user_service.dart';
 import 'package:skill_swap/services/analytics_service.dart';
 import 'package:skill_swap/theme/app_theme.dart';
 
+import 'package:skill_swap/services/guest_mode_service.dart';
+
 class MyTeachingScreen extends StatefulWidget {
   MyTeachingScreen({Key? key}) : super(key: key);
 
@@ -29,11 +31,32 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
   @override
   void initState() {
     super.initState();
+    if (GuestModeService().isGuestMode) {
+      _uid = GuestModeService().guestUserId;
+      _analyticsStream = Stream.value(
+        AnalyticsData.empty(GuestModeService().guestUserId),
+      );
+      _swapsStream = Stream.value([
+        SwapModel(
+          id: 'swap_alex_sarah_2',
+          mentorId: GuestModeService().guestUserId,
+          learnerId: 'user_sarah_1',
+          mentorName: 'Alex Rivers (Guest)',
+          learnerName: 'Sarah Jenkins',
+          skillName: 'UI/UX System Design & Figma',
+          status: 'completed',
+          progress: 1.0,
+          conversationId: 'demo_convo_101',
+          completedSessions: 4,
+          totalSessions: 4,
+          createdAt: DateTime.now().subtract(const Duration(days: 14)),
+        ),
+      ]);
+      return;
+    }
+
     _uid = _auth.currentUser?.uid;
     if (_uid != null) {
-      // Enforce strict 1:1 balance and synchronize any data mismatches immediately in real-time
-      // The stream references must remain stable; recreating either one from
-      // build causes StreamBuilder to detach and show a loading frame.
       _analyticsStream = AnalyticsService().watchAnalytics(_uid!);
       _swapsStream = _exchangeService.watchTeachingSwaps(_uid!);
       _exchangeService.rebalanceUser(_uid!);

@@ -10,6 +10,7 @@ import 'package:skill_swap/screens/sign%20up/sign%20up.dart';
 import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 
 class SignInScreen extends StatefulWidget {
  const SignInScreen({super.key});
@@ -429,6 +430,36 @@ class _SignInScreenState extends State<SignInScreen> {
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          // ── CONTINUE AS GUEST (WEB DEMO) ──
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Provider.of<GuestModeService>(context, listen: false).enableGuestMode();
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const SwappingAvailable()),
+                                );
+                              },
+                              icon: const Icon(Icons.flash_on_rounded, color: Color(0xFF0284C7)),
+                              label: const Text(
+                                'Continue as Guest (Web Demo)',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0284C7),
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFF0284C7), width: 1.8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                               ),
                             ),
                           ),

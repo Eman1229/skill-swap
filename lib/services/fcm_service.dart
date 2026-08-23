@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -39,6 +40,11 @@ class FcmService {
 
   Future<void> init() async {
     if (_initialized) return;
+    if (kIsWeb) {
+      _initialized = true;
+      debugPrint("FcmService: Running on Web platform — FCM native background service safely skipped.");
+      return;
+    }
 
     // 1. Initial Logic for permissions
     await _fcm.requestPermission(alert: true, badge: true, sound: true);
