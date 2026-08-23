@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<bool> hasInternet() async {
+    if (kIsWeb) return true;
     try {
       final response = await http
           .head(Uri.parse('https://www.google.com'))

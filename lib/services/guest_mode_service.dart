@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:skill_swap/models/ai/career_recommendation.dart';
 import 'package:skill_swap/models/ai/learning_roadmap_model.dart';
 import 'package:skill_swap/models/ai/mentor_recommendation.dart';
+import 'package:skill_swap/models/analytics_data.dart';
 import 'package:skill_swap/models/message.dart';
 import 'package:skill_swap/models/session_model.dart';
 
@@ -260,6 +261,57 @@ class GuestModeService extends ChangeNotifier {
   ];
 
   List<SessionModel> get mockSessions => List.unmodifiable(_mockSessions);
+
+  AnalyticsData get mockAnalyticsData => AnalyticsData(
+        uid: guestUserId,
+        name: guestUserName,
+        username: '@alex_rivers',
+        initials: guestUserInitials,
+        imageUrl: null,
+        totalXp: 1250,
+        learningHours: 14.5,
+        teachingHours: 12.0,
+        skillsLearnedCount: 3,
+        skillsTeachingCount: 2,
+        activeTeachingSwapsCount: 1,
+        activeLearningSwapsCount: 2,
+        averageRating: 4.9,
+        learningRating: 4.9,
+        teachingRating: 5.0,
+        reviewsCount: 18,
+        weeklyGrowthPercentage: 24.5,
+        monthlyGrowthPercentage: 45.0,
+        completedSessions: 8,
+        completedLearningSessions: 5,
+        completedTeachingSessions: 3,
+        attendanceRate: 0.98,
+        successRate: 0.96,
+        currentXp: 250,
+        currentLevel: 2,
+        xpRequiredForNextLevel: 1000,
+        levelProgressPercentage: 0.25,
+        completedSwaps: 4,
+        learningStreak: 5,
+        teachingStreak: 3,
+        totalAchievements: 6,
+        skillsLearned: const ['Flutter Web', 'Dart Concurrency', 'State Management'],
+        skillsTeaching: const ['UI/UX System Design', 'Figma Prototyping'],
+        weeklyActivity: const {
+          'Mon': 2,
+          'Tue': 3,
+          'Wed': 1,
+          'Thu': 4,
+          'Fri': 2,
+          'Sat': 5,
+          'Sun': 1,
+        },
+        monthlyActivity: const {},
+        skillGrowth: const {'Flutter': 0.85, 'Figma': 0.95},
+        unlockedBadges: 4,
+        totalBadges: 6,
+        firstActivityAt: DateTime.now().subtract(const Duration(days: 30)),
+        firstCompletedSwapAt: DateTime.now().subtract(const Duration(days: 20)),
+      );
 
   // Mock AI Recommendations
   MentorRecommendation get mockAIMentorRecommendation => MentorRecommendation(

@@ -30,6 +30,14 @@ class ConnectivityService extends ChangeNotifier {
   }
 
   void _onChanged(List<ConnectivityResult> results) {
+    if (kIsWeb) {
+      if (_isOffline) {
+        _isOffline = false;
+        notifyListeners();
+      }
+      return;
+    }
+
     // Offline ONLY when the OS reports zero network interfaces
     // WiFi, mobile, ethernet, vpn — any of these = keep running
     final hasAnyNetwork = results.any((r) =>

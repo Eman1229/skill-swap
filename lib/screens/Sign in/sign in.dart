@@ -450,7 +450,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               },
                               icon: const Icon(Icons.flash_on_rounded, color: Color(0xFF0284C7)),
                               label: const Text(
-                                'Continue as Guest (Web Demo)',
+                                'Continue as Guest (Demo)',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,

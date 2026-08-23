@@ -34,7 +34,7 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
     if (GuestModeService().isGuestMode) {
       _uid = GuestModeService().guestUserId;
       _analyticsStream = Stream.value(
-        AnalyticsData.empty(GuestModeService().guestUserId),
+        GuestModeService().mockAnalyticsData,
       );
       _swapsStream = Stream.value([
         SwapModel(
