@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 
 class ChatUserProfile {
   final String userId;
@@ -70,6 +71,14 @@ class ChatUserService {
         name: 'Unknown User',
         isOnline: false,
       ));
+    }
+
+    // Guest mode: return mock profiles for known demo users
+    if (GuestModeService().isGuestMode) {
+      final mockProfile = _guestMockProfile(userId);
+      if (mockProfile != null) {
+        return Stream.value(mockProfile);
+      }
     }
 
     if (!_profileCache.containsKey(userId)) {
@@ -176,5 +185,37 @@ class ChatUserService {
       _latestProfiles[userId] = updatedProfile;
       yield updatedProfile;
     }
+  }
+
+  // Guest mode mock profiles for demo user IDs
+  ChatUserProfile? _guestMockProfile(String userId) {
+    const profiles = {
+      'user_sarah_1': ChatUserProfile(
+        userId: 'user_sarah_1',
+        name: 'Sarah Jenkins',
+        isOnline: true,
+      ),
+      'user_david_2': ChatUserProfile(
+        userId: 'user_david_2',
+        name: 'David Chen',
+        isOnline: false,
+      ),
+      'user_elena_3': ChatUserProfile(
+        userId: 'user_elena_3',
+        name: 'Elena Rostova',
+        isOnline: false,
+      ),
+      'user_marcus_4': ChatUserProfile(
+        userId: 'user_marcus_4',
+        name: 'Marcus Vance',
+        isOnline: true,
+      ),
+      'guest_demo_user_101': ChatUserProfile(
+        userId: 'guest_demo_user_101',
+        name: 'Alex Rivers (Guest)',
+        isOnline: true,
+      ),
+    };
+    return profiles[userId];
   }
 }

@@ -44,8 +44,8 @@ class AIRecommendationProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   AIUserProfile? get aiProfile => _aiProfile;
-  bool get isEligibleForAI => _aiProfile?.isEligibleForRecommendations ?? false;
-  int get completedSwaps => _aiProfile?.completedSwaps ?? 0;
+  bool get isEligibleForAI => GuestModeService().isGuestMode ? true : (_aiProfile?.isEligibleForRecommendations ?? false);
+  int get completedSwaps => GuestModeService().isGuestMode ? 3 : (_aiProfile?.completedSwaps ?? 0);
 
   // ── Load All Data ───────────────────────────────────────────────────
   Future<void> loadRecommendations({String? uid}) async {
@@ -138,6 +138,10 @@ class AIRecommendationProvider extends ChangeNotifier {
 
   // ── Refresh/Regenerate ──────────────────────────────────────────────
   Future<void> refreshRecommendations({String? careerGoal, bool force = false, String? uid}) async {
+    if (GuestModeService().isGuestMode) {
+      await loadRecommendations(uid: uid);
+      return;
+    }
     debugPrint('[AI Provider] refreshRecommendations called (force: $force, uid: $uid)');
     _isLoading = true;
     _error = null;
@@ -196,6 +200,11 @@ class AIRecommendationProvider extends ChangeNotifier {
     required double averageRating,
   }) async {
     debugPrint('[AI Provider] generateRoadmap called for "${careerPath.title}"');
+    if (GuestModeService().isGuestMode) {
+      _learningRoadmap = GuestModeService().mockAILearningRoadmap;
+      notifyListeners();
+      return;
+    }
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -272,7 +281,10 @@ class AIRecommendationProvider extends ChangeNotifier {
     }
 
     try {
-      // 2. Perform actual database write in the background
+      // 2. In guest mode, skip the actual database write
+      if (GuestModeService().isGuestMode) return;
+
+      // 3. Perform actual database write in the background
       await _roadmapService.toggleTaskCompletion(taskId, isCompleted);
 
       // 3. Silently fetch database ground truth to ensure absolute alignment

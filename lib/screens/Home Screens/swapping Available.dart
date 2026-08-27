@@ -361,7 +361,9 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
   }
 
   void _refreshCategoryStream() {
-    if (_lastBuiltCategory == _selectedCategory) return;
+    // In guest mode, Stream.value completes after one emit and cannot be
+    // re-listened. Always rebuild the stream so navigating back to Home works.
+    if (!GuestModeService().isGuestMode && _lastBuiltCategory == _selectedCategory) return;
     _lastBuiltCategory = _selectedCategory;
     _categoryStream = _buildCategoryStream(_selectedCategory);
   }
@@ -395,7 +397,10 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
       canPop: _selectedIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        if (_selectedIndex != 0) setState(() => _selectedIndex = 0);
+        if (_selectedIndex != 0) setState(() {
+          _selectedIndex = 0;
+          _refreshCategoryStream();
+        });
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -414,7 +419,10 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   activeIcon: Icons.home_rounded,
                   label: 'home'.tr(),
                   selected: _selectedIndex == 0,
-                  onTap: () => setState(() => _selectedIndex = 0),
+                  onTap: () => setState(() {
+                    _selectedIndex = 0;
+                    _refreshCategoryStream();
+                  }),
                 ),
                 _NavItem(
                   icon: Icons.chat_bubble_outline_rounded,
