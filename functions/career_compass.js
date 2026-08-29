@@ -26,16 +26,37 @@ async function getOpenAiKey() {
 }
 
 async function getCompletedSwapCount(db, userId) {
+  let userDocCount = 0;
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (userDoc.exists) {
+      const userData = userDoc.data() || {};
+      userDocCount = Math.max(
+        Number(userData.completedSwaps || 0),
+        Number(userData.totalSwaps || 0),
+        Number(userData.swapsCompleted || 0),
+        Number(userData.skillExchangeCount || 0)
+      );
+    }
+  } catch (e) {
+    console.warn('Error reading userDoc in getCompletedSwapCount:', e);
+  }
+
   const snap = await db.collection('swaps').where('participants', 'array-contains', userId).get();
+  const completedDocIds = new Set();
   const exchanges = new Set();
+
   snap.docs.forEach((doc) => {
     const data = doc.data();
     const status = String(data.status || '').trim().toLowerCase();
-    if (status !== 'completed' && Number(data.progress || 0) < 1) return;
-    if (String(data.learnerId || '') !== userId && String(data.mentorId || '') !== userId) return;
-    exchanges.add(String(data.exchangeId || data.requestId || doc.id));
+    const progress = Number(data.progress || 0);
+    if (status !== 'completed' && progress < 1) return;
+    completedDocIds.add(doc.id);
+    if (data.exchangeId) exchanges.add(String(data.exchangeId));
+    if (data.requestId) exchanges.add(String(data.requestId));
   });
-  return exchanges.size;
+
+  return Math.max(userDocCount, completedDocIds.size, exchanges.size);
 }
 
 /**

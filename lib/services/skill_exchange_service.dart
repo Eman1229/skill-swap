@@ -401,10 +401,13 @@ class SkillExchangeService {
         .toList();
 
     final completedPairs = <String, List<Map<String, dynamic>>>{};
+    final completedDocIds = <String>{};
+
     for (final swap in swaps) {
       final status = _text(swap['status']).toLowerCase();
       final progress = _num(swap['progress']);
       if (status != 'completed' && progress < 1.0) continue;
+      completedDocIds.add(_text(swap['id']));
       completedPairs
           .putIfAbsent(_exchangeId(_text(swap['id']), swap), () => [])
           .add(swap);
@@ -423,6 +426,15 @@ class SkillExchangeService {
       }
     }
 
+    final userDoc = await _db.collection('users').doc(uid).get();
+    final existingUserDocSwaps = _num(userDoc.data()?['completedSwaps']).toInt();
+
+    final finalCompletedSwaps = [
+      completedExchangeIds.length,
+      completedDocIds.length,
+      existingUserDocSwaps,
+    ].reduce((a, b) => a > b ? a : b);
+
     // Marketplace listings are the single source of truth for profile skill lists.
     final learningList =
         UserSkillsService.learningSkillsFromListingDocs(listingsSnap.docs);
@@ -437,7 +449,7 @@ class SkillExchangeService {
       'teachingSkills': teachingList,
       'skillsLearnedCount': learningList.length,
       'skillsTeachingCount': teachingList.length,
-      'completedSwaps': completedExchangeIds.length,
+      'completedSwaps': finalCompletedSwaps,
       'skillExchangeCount': balancedCount,
       'skillStatsSyncedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));

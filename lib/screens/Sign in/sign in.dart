@@ -7,10 +7,14 @@ import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/screens/reset/Reset.dart';
 import 'package:skill_swap/screens/sign%20up/sign%20up.dart';
+import 'package:skill_swap/screens/SkillsChoose/Selecting%20Skills.dart';
 import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 import 'package:skill_swap/services/guest_mode_service.dart';
+import 'package:skill_swap/services/google_auth_service.dart';
+import 'package:skill_swap/widgets/google_sign_in_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignInScreen extends StatefulWidget {
  const SignInScreen({super.key});
@@ -29,6 +33,7 @@ class _SignInScreenState extends State<SignInScreen> {
   bool isPasswordVisible = false;
   bool? isEmailValid;
   bool _isLoading = false;
+  bool _rememberMe = false;
 
   String? _emailError;
   String? _passwordError;
@@ -93,6 +98,8 @@ class _SignInScreenState extends State<SignInScreen> {
         email: email,
         password: password,
       );
+
+      await _saveRememberMePreference();
 
       if (!mounted) return;
 
@@ -174,6 +181,39 @@ class _SignInScreenState extends State<SignInScreen> {
           setState(() => _generalError = e.message ?? "Something went wrong. Please try again.");
       }
 
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveRememberMePreference() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool('remember_me', _rememberMe);
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_isLoading) return;
+    _clearErrors();
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await GoogleAuthService().signIn();
+      if (!mounted || result == null) return;
+      await _saveRememberMePreference();
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => result.isNewUser ? const SkillsScreen() : HomeScreen(),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted || e.code == 'popup-closed-by-user' || e.code == 'cancelled-popup-request') return;
+      setState(() => _generalError = e.message ?? 'Google sign-in failed. Please try again.');
+    } on GoogleAuthException catch (e) {
+      if (mounted) setState(() => _generalError = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _generalError = 'Unable to sign in with Google. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -277,6 +317,17 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                           ),
 
+                          const SizedBox(height: 6),
+                          Center(
+                            child: Text(
+                              'Continue your learning journey',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+
                           SizedBox(height: 40),
 
                           // ── EMAIL FIELD ──
@@ -369,6 +420,44 @@ class _SignInScreenState extends State<SignInScreen> {
                                 ],
                               ),
                             ),
+
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _rememberMe,
+                                visualDensity: VisualDensity.compact,
+                                activeColor: Theme.of(context).colorScheme.primary,
+                                onChanged: _isLoading
+                                    ? null
+                                    : (value) => setState(() => _rememberMe = value ?? false),
+                              ),
+                              GestureDetector(
+                                onTap: _isLoading
+                                    ? null
+                                    : () => setState(() => _rememberMe = !_rememberMe),
+                                child: Text(
+                                  'Remember me',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                              const Spacer(),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => EmailVerificationScreen()),
+                                  );
+                                },
+                                child: Text(
+                                  "forgot_password".tr(),
+                                  style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                                ),
+                              ),
+                            ],
+                          ),
 
                           SizedBox(height: 24),
 
@@ -464,26 +553,19 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                           ),
 
+                          const SizedBox(height: 20),
+
+                          GoogleSignInButton(
+                            onPressed: _signInWithGoogle,
+                            isLoading: _isLoading,
+                          ),
+
                           SizedBox(height: 25),
 
                           // ── FORGOT PASSWORD + SIGN UP ──
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => EmailVerificationScreen(),
-                                    ),
-                                  );
-                                },
-                                child: Text(
-                                  "forgot_password".tr(),
-                                  style: TextStyle(color: Theme.of(context).colorScheme.primary),
-                                ),
-                              ),
                               Row(
                                 children: [
                                   Text(

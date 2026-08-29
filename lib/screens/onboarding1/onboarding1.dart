@@ -1,4 +1,4 @@
-import  'package:provider/provider.dart';
+import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:flutter/material.dart';

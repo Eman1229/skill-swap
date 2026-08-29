@@ -7,6 +7,9 @@ import 'package:skill_swap/screens/SkillsChoose/Selecting%20Skills.dart';
 import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
+import 'package:skill_swap/services/google_auth_service.dart';
+import 'package:skill_swap/widgets/google_sign_in_button.dart';
 
 class SignUpScreen extends StatefulWidget {
   SignUpScreen({Key? key}) : super(key: key);
@@ -23,6 +26,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordHidden = true;
+  bool _isGoogleLoading = false;
 
   String _completePhoneNumber = "";
 
@@ -62,6 +66,39 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.message ?? "Signup Failed")));
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_isGoogleLoading) return;
+    setState(() => _isGoogleLoading = true);
+
+    try {
+      final result = await GoogleAuthService().signIn();
+      if (!mounted || result == null) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => result.isNewUser ? const SkillsScreen() : HomeScreen(),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted || e.code == 'popup-closed-by-user' || e.code == 'cancelled-popup-request') return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Google sign-in failed. Please try again.')),
+      );
+    } on GoogleAuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to sign in with Google. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -301,6 +338,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   ),
                                 ),
                               ),
+                            ),
+
+                            const SizedBox(height: 24),
+                            GoogleSignInButton(
+                              onPressed: _signInWithGoogle,
+                              isLoading: _isGoogleLoading,
                             ),
 
                             SizedBox(height: 25),

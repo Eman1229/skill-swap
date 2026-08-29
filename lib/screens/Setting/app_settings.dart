@@ -125,7 +125,10 @@ class AppSettings {
         isDarkMode.value = firestoreDark;
         SharedPreferences.getInstance().then((prefs) {
           prefs.setBool(_keyDarkMode, firestoreDark);
-        }).catchError((e) => debugPrint('Error updating pref from Firestore: $e'));
+        }).catchError((e) {
+          debugPrint('Error updating pref from Firestore: $e');
+          return null;
+        });
       }
     }
     notificationsEnabled.value = data['pushEnabled'] ?? data['notificationsEnabled'] ?? true;

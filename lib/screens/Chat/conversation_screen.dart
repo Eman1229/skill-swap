@@ -440,6 +440,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
           );
         });
       }
+      return null;
     });
   }
 
@@ -482,6 +483,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
           );
         });
       }
+      return null;
     });
   }
 

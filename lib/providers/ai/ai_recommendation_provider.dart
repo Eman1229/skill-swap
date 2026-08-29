@@ -1,6 +1,7 @@
 // lib/providers/ai/ai_recommendation_provider.dart
 
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -44,8 +45,19 @@ class AIRecommendationProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   AIUserProfile? get aiProfile => _aiProfile;
-  bool get isEligibleForAI => GuestModeService().isGuestMode ? true : (_aiProfile?.isEligibleForRecommendations ?? false);
-  int get completedSwaps => GuestModeService().isGuestMode ? 3 : (_aiProfile?.completedSwaps ?? 0);
+
+  int get completedSwaps {
+    if (GuestModeService().isGuestMode) return 3;
+    final profileSwaps = _aiProfile?.completedSwaps ?? 0;
+    final lastSwaps = _lastCompletedSwaps ?? 0;
+    return math.max(profileSwaps, lastSwaps);
+  }
+
+  bool get isEligibleForAI {
+    if (GuestModeService().isGuestMode) return true;
+    if (_aiProfile != null && _aiProfile!.isEligibleForRecommendations) return true;
+    return completedSwaps >= kMinCompletedSwapsForAI;
+  }
 
   // ── Load All Data ───────────────────────────────────────────────────
   Future<void> loadRecommendations({String? uid}) async {
@@ -86,7 +98,7 @@ class AIRecommendationProvider extends ChangeNotifier {
       }
 
       debugPrint('[AI Provider] Fetching latest recommendations from Firestore...');
-      final eligible = _aiProfile?.isEligibleForRecommendations ?? false;
+      final eligible = isEligibleForAI;
 
       // Mentor Compass: always available regardless of swap count.
       final mentors = await _service.getLatestMentors();
@@ -112,18 +124,12 @@ class AIRecommendationProvider extends ChangeNotifier {
         listenToUserChanges(uid);
       }
 
-      // If user is newly eligible but has no career data yet, trigger generation
-      if (eligible && career == null && uid != null) {
-        final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-        final userData = userDoc.data() ?? {};
-        final completedSwaps = (userData['completedSwaps'] as num?)?.toInt() ?? 0;
-        debugPrint('[AI Provider] No career recommendation yet. User completedSwaps count: $completedSwaps');
-        if (completedSwaps >= kMinCompletedSwapsForAI) {
-          debugPrint('[AI Provider] User has completed swaps but no career analysis. Force-refreshing recommendations...');
-          _isLoading = false;
-          await refreshRecommendations(uid: uid, force: true);
-          return;
-        }
+      // If user is newly eligible but has missing recommendations, trigger generation immediately
+      if (eligible && (career == null || roadmap == null) && uid != null) {
+        debugPrint('[AI Provider] User has completed >= 2 swaps but missing career/roadmap. Force-refreshing recommendations...');
+        _isLoading = false;
+        await refreshRecommendations(uid: uid, force: true);
+        return;
       }
 
       _isLoading = false;

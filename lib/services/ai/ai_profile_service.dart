@@ -133,6 +133,7 @@ class AIProfileService {
         }
       }
 
+      final completedDocIds = <String>{};
       for (final doc in swapsSnap.docs) {
         final data = doc.data();
         final skill = _text(data['skillName']);
@@ -149,15 +150,17 @@ class AIProfileService {
         }
 
         if (!_isCompleted(data)) continue;
-        if (skill.isEmpty) continue;
 
-        final exchangeId = _exchangeId(doc.id, data);
-        completedExchangeIds.add(exchangeId);
+        completedDocIds.add(doc.id);
+        if (skill.isNotEmpty) {
+          final exchangeId = _exchangeId(doc.id, data);
+          completedExchangeIds.add(exchangeId);
+        }
 
-        if (isUserLearner) {
+        if (isUserLearner && skill.isNotEmpty) {
           recentSwapHistory.add('completed learning $skill');
         }
-        if (isUserMentor) {
+        if (isUserMentor && skill.isNotEmpty) {
           recentSwapHistory.add('completed teaching $skill');
         }
       }
@@ -170,7 +173,18 @@ class AIProfileService {
         _text(userData['location']),
       ].where((s) => s.isNotEmpty).join(' | ');
 
-      final completedSwaps = completedExchangeIds.length;
+      final userDocCompletedSwaps = [
+        _num(userData['completedSwaps']).toInt(),
+        _num(userData['totalSwaps']).toInt(),
+        _num(userData['swapsCompleted']).toInt(),
+        _num(userData['skillExchangeCount']).toInt(),
+      ].reduce((a, b) => a > b ? a : b);
+
+      final completedSwaps = [
+        completedExchangeIds.length,
+        completedDocIds.length,
+        userDocCompletedSwaps,
+      ].reduce((a, b) => a > b ? a : b);
 
       final totalSessions = [
         _num(userData['totalSessions'], 1).toInt(),
