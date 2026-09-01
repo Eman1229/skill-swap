@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const { getUserSettings, buildFcmPayload, log } = require('./utils');
+const { getUserSettings, buildFcmPayload, log, sendToUserDevices } = require('./utils');
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -7,12 +7,12 @@ if (!admin.apps.length) {
 
 function getChannelId(type) {
   switch (type) {
-    case 'chat_message': return 'chat_messages';
-    case 'swap_request': return 'swap_requests';
+    case 'chat_message': return 'chat_message';
+    case 'swap_request': return 'swap_request';
     case 'session': return 'sessions';
-    case 'asset_upload': return 'sessions';
+    case 'asset_upload': return 'asset_upload';
     case 'system': return 'system';
-    case 'assignment': return 'sessions';
+    case 'assignment': return 'assignment';
     default: return 'system';
   }
 }
@@ -26,6 +26,14 @@ exports.sendGeneralNotification = async (snapshot, context) => {
 
   if (!receiverId) {
     log(`[generalNotifier] Error: Could not resolve a valid receiverId for notification ${notificationId}`);
+    return null;
+  }
+
+  // ChatRepository creates the Firestore record for the in-app inbox and the
+  // message trigger sends its push. Sending from both triggers duplicates the
+  // Android notification.
+  if (notification.type === 'chat_message') {
+    log(`[generalNotifier] Skipping chat push for ${notificationId}; directMessageNotifier owns it.`);
     return null;
   }
 
@@ -49,76 +57,18 @@ exports.sendGeneralNotification = async (snapshot, context) => {
     return null;
   }
 
-  const tokenSnap = await admin.firestore()
-    .collection('users')
-    .doc(receiverId)
-    .collection('deviceTokens')
-    .get();
-
   const title = (notification.title || 'Skill Swap').toString();
   const body = (notification.body || '').toString();
-  
-  let fallbackToken = null;
-  if (userDoc.exists) {
-      fallbackToken = userDoc.data().fcmToken;
-      if (fallbackToken) log(`[generalNotifier] Found fallback FCM token for user ${receiverId}`);
-  } else {
-      log(`[generalNotifier] Error: User document not found for receiver ${receiverId}`);
-  }
-
-  const sends = [];
-  const tokensSent = new Set();
-
-  tokenSnap.forEach((doc) => {
-    const token = doc.id;
-    if (!tokensSent.has(token)) {
-      tokensSent.add(token);
-      log(`[generalNotifier] Queuing push notification for deviceTokens token: ${token.substring(0, 15)}...`);
-      sends.push(admin.messaging().send(buildFcmPayload({
-        fcmToken: token,
-        title,
-        body,
-        actionRoute: notification.actionRoute || '',
-        relatedId: notification.actionId || notification.referenceId || '',
-        type: notification.type || 'system',
-        channelId: getChannelId(notification.type),
-      })));
-    }
-  });
-
-  if (fallbackToken && !tokensSent.has(fallbackToken)) {
-      tokensSent.add(fallbackToken);
-      log(`[generalNotifier] Queuing push notification for fallback FCM token: ${fallbackToken.substring(0, 15)}...`);
-      sends.push(admin.messaging().send(buildFcmPayload({
-        fcmToken: fallbackToken,
-        title,
-        body,
-        actionRoute: notification.actionRoute || '',
-        relatedId: notification.actionId || notification.referenceId || '',
-        type: notification.type || 'system',
-        channelId: getChannelId(notification.type),
-      })));
-  }
-
-  if (sends.length === 0) {
-    log(`[generalNotifier] No FCM tokens found for user ${receiverId}`);
-    return null;
-  }
-
-  try {
-    const responses = await Promise.allSettled(sends);
-    let successCount = 0;
-    responses.forEach((res, idx) => {
-      if (res.status === 'fulfilled') {
-        successCount++;
-      } else {
-        log(`[generalNotifier] Failed to send push notification: ${res.reason}`);
-      }
-    });
-    log(`[generalNotifier] Successfully sent ${successCount} out of ${sends.length} push notifications for ${notificationId}`);
-  } catch (error) {
-    log(`[generalNotifier] Critical error during Promise.allSettled: ${error}`);
-  }
+  const result = await sendToUserDevices(receiverId, buildFcmPayload({
+    title,
+    body,
+    actionRoute: notification.actionRoute || '',
+    relatedId: notification.actionId || notification.referenceId || '',
+    type: notification.type || 'system',
+    channelId: getChannelId(notification.type),
+    data: { notificationId, ...(notification.data || {}) },
+  }));
+  log(`[generalNotifier] Sent ${result.sent} of ${result.tokens} push notification(s) for ${notificationId}`);
   
   return null;
 };

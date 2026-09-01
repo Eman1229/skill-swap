@@ -1,85 +1,41 @@
 const admin = require('firebase-admin');
-const { getUserSettings, buildFcmPayload, log } = require('./utils');
+const { getUserSettings, buildFcmPayload, log, sendToUserDevices } = require('./utils');
 
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
+if (!admin.apps.length) admin.initializeApp();
 
+// A chat message is the only source of chat push. Session invites are sent by
+// generalNotifier when their notification document is created.
 exports.sendDirectMessageNotification = async (snapshot, context) => {
   const message = snapshot.data() || {};
-  
-  // Skip session invites to avoid duplicate push notifications 
-  // since they are handled by sendGeneralNotification via the notifications collection.
-  if (message.type === 'session_invite') {
-    return null;
-  }
+  if (message.type === 'session_invite') return null;
 
   const chatId = context.params.chatId;
-  const senderId = (message.senderId || '').toString();
+  const senderId = String(message.senderId || '');
+  let receiverId = String(message.receiverId || message.recipientId || '');
+  const conversation = await admin.firestore().collection('conversations').doc(chatId).get();
+  const conversationData = conversation.exists ? (conversation.data() || {}) : {};
 
-  // 1. Resolve receiver ID from parent conversation document if missing in message
-  let receiverId = (message.receiverId || message.recipientId || '').toString();
-  let conversationMuted = false;
-
-  const convoDoc = await admin.firestore().collection('conversations').doc(chatId).get();
-  if (convoDoc.exists) {
-    const convoData = convoDoc.data() || {};
-    if (!receiverId) {
-      const participants = convoData.participants || [];
-      receiverId = (participants.find(p => p !== senderId) || '').toString();
-    }
-    // Check if the specific conversation is muted for the receiver
-    if (receiverId && convoData.muted && convoData.muted[receiverId] === true) {
-      conversationMuted = true;
-    }
+  if (!receiverId) {
+    receiverId = String((conversationData.participants || []).find((id) => id !== senderId) || '');
   }
+  if (!receiverId || receiverId === senderId || conversationData.muted?.[receiverId] === true) return null;
 
-  if (!receiverId || senderId === receiverId) {
-    log(`Could not resolve a valid receiverId or sender is receiver for chatId ${chatId}`);
-    return null;
-  }
-
-  if (conversationMuted) {
-    log(`Conversation ${chatId} is muted for user ${receiverId}`);
-    return null;
-  }
-
-  // 2. Retrieve receiver's settings
   const settings = await getUserSettings(receiverId);
-  if (settings) {
-    const pushEnabled = settings.pushEnabled !== false;
-    const directMessagesEnabled = settings.directMessagesEnabled !== false;
-    const chatMessagesEnabled = settings.chatMessagesEnabled !== false;
-    const messagesEnabled = settings.messagesEnabled !== false;
-    const chatNotificationsMuted = settings.chatNotificationsMuted === true;
+  if (settings && (settings.pushEnabled === false || settings.directMessagesEnabled === false ||
+      settings.chatMessagesEnabled === false || settings.messagesEnabled === false ||
+      settings.chatNotificationsMuted === true)) return null;
 
-    if (!pushEnabled || !directMessagesEnabled || !chatMessagesEnabled || !messagesEnabled || chatNotificationsMuted) {
-      log(`User ${receiverId} disabled or muted chat notifications`);
-      return null;
-    }
-  }
-
-  const senderName = (message.senderName || 'Someone').toString();
-  const body = (message.text || message.body || 'Sent you a message').toString();
-  const tokenSnap = await admin.firestore()
-    .collection('users')
-    .doc(receiverId)
-    .collection('deviceTokens')
-    .get();
-
-  const sends = [];
-  tokenSnap.forEach((doc) => {
-    sends.push(admin.messaging().send(buildFcmPayload({
-      fcmToken: doc.id,
-      title: `New message from ${senderName}`,
-      body,
-      actionRoute: '/chat',
-      relatedId: chatId,
-      type: 'message',
-      channelId: 'high_importance',
-    })));
-  });
-
-  await Promise.all(sends);
+  const senderName = String(message.senderName || 'Someone');
+  const body = String(message.text || message.body || 'Sent you a message');
+  const result = await sendToUserDevices(receiverId, buildFcmPayload({
+    title: `New message from ${senderName}`,
+    body,
+    actionRoute: '/chat',
+    relatedId: chatId,
+    type: 'chat_message',
+    channelId: 'chat_message',
+    data: { conversationId: chatId, senderId, senderName },
+  }));
+  log(`[directMessageNotifier] Sent chat push to ${result.sent} device(s) for ${chatId}`);
   return null;
 };

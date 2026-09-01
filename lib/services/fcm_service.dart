@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -14,10 +15,51 @@ import 'package:skill_swap/models/notification_settings.dart';
 import 'package:skill_swap/screens/Swap/confirm_swap_completion_screen.dart';
 import 'package:skill_swap/services/session_reminder_service.dart';
 
+const _defaultChannelId = 'system';
+const _channelIds = <String>{'chat_message', 'swap_request', 'sessions', 'asset_upload', 'system', 'assignment', 'chat_messages', 'swap_requests'};
+String _channelForData(Map<String, dynamic> data) {
+  final supplied = data['channelId'] ?? data['channel_id'];
+  if (supplied is String && _channelIds.contains(supplied)) return supplied;
+  switch (data['type']) { case 'chat_message': return 'chat_message'; case 'swap_request': return 'swap_request'; case 'session': return 'sessions'; case 'asset_upload': return 'asset_upload'; case 'assignment': return 'assignment'; default: return _defaultChannelId; }
+}
+Future<void> _createAndroidChannels(FlutterLocalNotificationsPlugin plugin) async {
+  final android = plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  if (android == null) return;
+  const channels = [AndroidNotificationChannel('chat_message', 'Chat Messages', importance: Importance.max), AndroidNotificationChannel('swap_request', 'Swap Requests', importance: Importance.high), AndroidNotificationChannel('sessions', 'Mentoring Sessions', importance: Importance.high), AndroidNotificationChannel('asset_upload', 'Learning Assets', importance: Importance.high), AndroidNotificationChannel('system', 'System Announcements', importance: Importance.defaultImportance), AndroidNotificationChannel('assignment', 'Assignments', importance: Importance.high), AndroidNotificationChannel('chat_messages', 'Chat Messages (legacy)', importance: Importance.max), AndroidNotificationChannel('swap_requests', 'Swap Requests (legacy)', importance: Importance.high)];
+  for (final channel in channels) { await android.createNotificationChannel(channel); }
+}
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   debugPrint("Background FCM received: ${message.messageId}");
+  // Android renders notification payloads while backgrounded/terminated. Render
+  // only data-only messages here so a single FCM message is never duplicated.
+  if (message.notification != null) return;
+  final plugin = FlutterLocalNotificationsPlugin();
+  await plugin.initialize(
+    settings: const InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    ),
+  );
+  await _createAndroidChannels(plugin);
+  final data = Map<String, dynamic>.from(message.data);
+  final channelId = _channelForData(data);
+  await plugin.show(
+    id: message.messageId?.hashCode.abs() ??
+        DateTime.now().millisecondsSinceEpoch.remainder(1 << 31),
+    title: data['title'] ?? 'SkillSwapX',
+    body: data['body'] ?? '',
+    notificationDetails: NotificationDetails(
+      android: AndroidNotificationDetails(
+        channelId,
+        channelId.replaceAll('_', ' '),
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+    ),
+    payload: jsonEncode(data),
+  );
 }
 
 class FcmService {
@@ -72,20 +114,22 @@ class FcmService {
     );
 
     // Channels
-    _createChannels();
+    await _createChannels();
 
     // 3. Listeners
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    _fcm.onTokenRefresh.listen((_) => saveDeviceToken());
 
     // Foreground
     FirebaseMessaging.onMessage.listen((msg) async {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      // Suppress if user is currently looking at this active conversation
+      final type = msg.data['type'] as String?;
+      // Suppress if user is currently looking at this active conversation AND it's just a chat message
       final String? convoId =
           msg.data['conversationId'] ?? msg.data['data']?['conversationId'];
-      if (convoId != null && convoId == currentActiveConvoId) {
+      if (type == 'chat_message' && convoId != null && convoId == currentActiveConvoId) {
         debugPrint(
           "FCM Service: Suppressed foreground notification for active chat $convoId",
         );
@@ -113,7 +157,6 @@ class FcmService {
 
       if (!settings.pushEnabled) return;
 
-      final type = msg.data['type'] as String?;
       if (type == 'chat_message') {
         final settingsData = settingsDoc.data();
         final bool chatMuted = settingsData?['chatNotificationsMuted'] ?? false;
@@ -163,7 +206,6 @@ class FcmService {
 
     _initialized = true;
     saveDeviceToken();
-    _startNotificationsListener();
     await SessionReminderService().init();
   }
 
@@ -215,10 +257,11 @@ class FcmService {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    // Suppress if actively viewing chat room
+    final type = data['type'] as String?;
+    // Suppress if actively viewing chat room AND it's just a chat message
     final String? convoId =
         data['conversationId'] ?? data['data']?['conversationId'];
-    if (convoId != null && convoId == currentActiveConvoId) {
+    if (type == 'chat_message' && convoId != null && convoId == currentActiveConvoId) {
       debugPrint(
         "FCM Service: Suppressed Firestore-triggered notification for active chat $convoId",
       );
@@ -235,7 +278,6 @@ class FcmService {
     final settings = NotificationSettingsModel.fromDoc(settingsDoc);
     if (!settings.pushEnabled) return;
 
-    final type = data['type'] as String?;
     if (type == 'chat_message') {
       final settingsData = settingsDoc.data();
       final bool chatMuted = settingsData?['chatNotificationsMuted'] ?? false;
@@ -268,7 +310,7 @@ class FcmService {
       title = data['senderName'] ?? data['otherName'];
     }
 
-    String channelId = _getChannelId(type);
+    String channelId = _channelForData(data);
 
     _localNotifications.show(
       id: docId.hashCode.abs() % 2147483647,
@@ -288,8 +330,12 @@ class FcmService {
     );
   }
 
-  void _createChannels() async {
+  Future<void> _createChannels() async {
     final List<AndroidNotificationChannel> channels = [
+      const AndroidNotificationChannel('chat_message', 'Chat Messages', importance: Importance.max),
+      const AndroidNotificationChannel('swap_request', 'Swap Requests', importance: Importance.high),
+      const AndroidNotificationChannel('asset_upload', 'Learning Assets', importance: Importance.high),
+      const AndroidNotificationChannel('assignment', 'Assignments', importance: Importance.high),
       const AndroidNotificationChannel(
         'chat_messages',
         'Chat Messages',
@@ -323,9 +369,7 @@ class FcmService {
         >();
     if (androidPlugin != null) {
       await androidPlugin.requestNotificationsPermission();
-      for (final channel in channels) {
-        await androidPlugin.createNotificationChannel(channel);
-      }
+      for (final channel in channels) { await androidPlugin.createNotificationChannel(channel); }
     }
   }
 
@@ -336,7 +380,7 @@ class FcmService {
     RemoteNotification? notification = msg.notification;
     String title = notification?.title ?? msg.data['title'] ?? 'Skill Swap';
     String body = notification?.body ?? msg.data['body'] ?? '';
-    String channelId = _getChannelId(msg.data['type']);
+    String channelId = _channelForData(msg.data);
 
     _localNotifications.show(
       id: msg.hashCode.abs() % 2147483647,
@@ -357,37 +401,26 @@ class FcmService {
   }
 
   String _getChannelId(String? type) {
-    switch (type) {
-      case 'chat_message':
-        return 'chat_messages';
-      case 'swap_request':
-        return 'swap_requests';
-      case 'session':
-        return 'sessions';
-      case 'asset_upload':
-        return 'sessions';
-      case 'system':
-        return 'system';
-      default:
-        return 'chat_messages';
-    }
+    return _channelForData({'type': type});
   }
 
   Future<void> saveDeviceToken() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     String? token = await _fcm.getToken();
-    if (token != null) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'fcmToken': token,
-      }, SetOptions(merge: true));
+    if (token != null && token.isNotEmpty) {
+      final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final batch = FirebaseFirestore.instance.batch();
+      batch.set(userRef, {'fcmToken': token, 'fcmTokenUpdatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+      batch.set(userRef.collection('deviceTokens').doc(token), {'token': token, 'platform': 'android', 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+      await batch.commit();
     }
   }
 
   void _handleNotificationClick(Map<String, dynamic> data) {
     final type = data['type'] as String?;
     final actionRoute = data['actionRoute'] as String?;
-    final swapId = data['actionId'] ?? data['swapId'] ?? '';
+    final swapId = data['actionId'] ?? data['swapId'] ?? data['relatedId'] ?? '';
 
     if (type == 'session_reminder') {
       SessionReminderService().handleNotificationTap(data);
@@ -440,6 +473,7 @@ class FcmService {
         data['conversationId'] ??
         data['referenceId'] ??
         data['actionId'] ??
+        data['relatedId'] ??
         nestedData['conversationId'] ??
         '';
     final String otherUserId =
