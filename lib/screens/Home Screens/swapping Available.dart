@@ -973,7 +973,7 @@ class _SwappingAvailableState extends State<SwappingAvailable> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '${'good_${_greeting.toLowerCase()}'.tr()}, $_userName',
+                      '${'${_greeting.toLowerCase()}'.tr()}, $_userName',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 17,
