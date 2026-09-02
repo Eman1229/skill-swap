@@ -6,7 +6,7 @@ import 'package:skill_swap/screens/Sign%20in/sign%20in.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
 import 'package:skill_swap/services/guest_mode_service.dart';
 
-import '../../ui_helper/ui_helper.dart';
+import '../../ui_helper/Ui_helper.dart';
 
 class OnBoardingScreen extends StatelessWidget {
   OnBoardingScreen({super.key});

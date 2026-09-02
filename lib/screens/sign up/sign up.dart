@@ -1,7 +1,7 @@
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:skill_swap/ui_helper/ui_helper.dart';
+import 'package:skill_swap/ui_helper/Ui_helper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/SkillsChoose/Selecting%20Skills.dart';
 import 'package:skill_swap/ui_helper/translation_helper.dart';
