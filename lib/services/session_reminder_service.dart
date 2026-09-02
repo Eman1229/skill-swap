@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:skill_swap/models/session_model.dart';
-import 'package:skill_swap/services/fcm_service.dart';
+import 'package:skill_swap/services/local_notification_service.dart';
 import 'package:skill_swap/ui_helper/translation_helper.dart';
 import 'package:skill_swap/utils/user_display_name.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -24,7 +24,7 @@ class SessionReminderService {
   static const String channelName = 'Session Reminders';
 
   FlutterLocalNotificationsPlugin get _localNotifications =>
-      FcmService().localNotifications;
+      LocalNotificationService.plugin;
 
   int _id10(String sessionId) => '${sessionId}_10'.hashCode;
   int _id5(String sessionId) => '${sessionId}_5'.hashCode;
@@ -174,7 +174,7 @@ class SessionReminderService {
     if (screen != 'swapping_available' || sessionId == null) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      FcmService.navigatorKey.currentState?.pushNamed(
+      LocalNotificationService.navigatorKey.currentState?.pushNamed(
         '/swappingAvailable',
         arguments: sessionId,
       );

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:skill_swap/services/local_notification_service.dart';
 
 class NotificationProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -28,8 +29,8 @@ class NotificationProvider extends ChangeNotifier {
       return;
     }
 
-    // Listen to unread notifications for the current user
-    // Supports both old field name (recipientId) and new (receiverId)
+    bool isFirstFetch = true;
+
     _unreadSubscription = _firestore
         .collection('notifications')
         .where('receiverId', isEqualTo: user.uid)
@@ -37,6 +38,19 @@ class NotificationProvider extends ChangeNotifier {
         .snapshots()
         .listen(
       (snapshot) {
+        if (!isFirstFetch) {
+          for (var change in snapshot.docChanges) {
+            if (change.type == DocumentChangeType.added) {
+              final data = change.doc.data() ?? <String, dynamic>{};
+              LocalNotificationService.showNow(
+                title: data['title'] ?? 'Skill SwapX',
+                body: data['body'] ?? 'You have a new notification',
+              );
+            }
+          }
+        }
+        isFirstFetch = false;
+
         _unreadCount = snapshot.docs.length;
         notifyListeners();
       },

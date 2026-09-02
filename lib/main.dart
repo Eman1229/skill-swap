@@ -13,7 +13,7 @@ import 'package:skill_swap/screens/offline/offlinescreen.dart';
 import 'package:skill_swap/screens/splash/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:skill_swap/services/presence_service.dart';
-import 'package:skill_swap/services/fcm_service.dart';
+import 'package:skill_swap/services/local_notification_service.dart';
 import 'package:skill_swap/services/session_reminder_service.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Setting/app_settings.dart';
@@ -35,7 +35,7 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    await FcmService().init();
+    await LocalNotificationService.init();
 
     FirebaseFirestore.instance.settings = const Settings(
       persistenceEnabled: true,
@@ -123,7 +123,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       builder: (context, _) {
         return MaterialApp(
           key: const ValueKey('SkillSwapMainApp'),
-          navigatorKey: FcmService.navigatorKey,
+          navigatorKey: LocalNotificationService.navigatorKey,
           debugShowCheckedModeBanner: false,
           locale: languageProvider.locale,
           supportedLocales: LanguageProvider.supportedLocales,

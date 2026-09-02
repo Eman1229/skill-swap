@@ -10,7 +10,7 @@ import 'package:skill_swap/services/chat_user_service.dart';
 import 'package:skill_swap/services/chat_repository.dart';
 import 'package:skill_swap/screens/Chat/widgets/swap_request_card.dart';
 import 'package:skill_swap/screens/Chat/widgets/session_invite_card.dart';
-import 'package:skill_swap/services/fcm_service.dart';
+import 'package:skill_swap/services/local_notification_service.dart';
 import 'package:skill_swap/screens/widgets/report_user_dialog.dart';
 import 'package:skill_swap/models/message.dart';
 import 'package:skill_swap/services/guest_mode_service.dart';
@@ -232,7 +232,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     if (convoId == null || convoId.isEmpty) return;
 
     // Mute foreground alerts for this active conversation
-    FcmService().currentActiveConvoId = convoId;
+    LocalNotificationService.currentActiveConversationId = convoId;
     debugPrint("ConversationScreen: Muted foreground notifications for $convoId");
 
     // Listen for typing status once convoId is available
@@ -504,8 +504,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
   @override
   void dispose() {
     // Unmute foreground alerts
-    if (FcmService().currentActiveConvoId == _conversationId) {
-      FcmService().currentActiveConvoId = null;
+    if (LocalNotificationService.currentActiveConversationId == _conversationId) {
+      LocalNotificationService.currentActiveConversationId = null;
     }
     _msgController.dispose();
     _scrollController.dispose();
