@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_swap/models/notification_settings.dart';
 import 'package:skill_swap/models/notification_model.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 
 class NotificationRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -38,6 +39,10 @@ class NotificationRepository {
   // ── NOTIFICATIONS ───────────────────────────────────────────────────
 
   Stream<List<NotificationModel>> notificationsStream() {
+    if (GuestModeService().isGuestMode) {
+      return Stream.value(GuestModeService().mockNotifications);
+    }
+
     final uid = _auth.currentUser?.uid;
     if (uid == null) {
       debugPrint("Notification Repo: UID is null, returning empty stream");
@@ -70,6 +75,8 @@ class NotificationRepository {
   }
 
   Stream<int> unreadCountStream() {
+    if (GuestModeService().isGuestMode) return Stream.value(1);
+
     final uid = _auth.currentUser?.uid;
     if (uid == null) return Stream.value(0);
 
@@ -82,6 +89,7 @@ class NotificationRepository {
   }
 
   Future<void> markAsRead(String notificationId) async {
+    if (GuestModeService().isGuestMode) return;
     await _db
         .collection('notifications')
         .doc(notificationId)
@@ -92,6 +100,7 @@ class NotificationRepository {
   }
 
   Future<void> markAllAsRead() async {
+    if (GuestModeService().isGuestMode) return;
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 

@@ -7,6 +7,7 @@ import 'package:skill_swap/models/ai/mentor_recommendation.dart';
 import 'package:skill_swap/models/analytics_data.dart';
 import 'package:skill_swap/models/message.dart';
 import 'package:skill_swap/models/session_model.dart';
+import 'package:skill_swap/models/notification_model.dart';
 
 class GuestSwapListing {
   final String id;
@@ -448,4 +449,29 @@ class GuestModeService extends ChangeNotifier {
         ],
         createdAt: DateTime.now(),
       );
+
+  List<NotificationModel> get mockNotifications => [
+        NotificationModel(
+          id: 'notif_1',
+          senderId: 'user_sarah_1',
+          senderName: 'Sarah Jenkins',
+          receiverId: guestUserId,
+          type: NotificationType.session,
+          title: 'Upcoming Session Confirmed',
+          body: 'Sarah confirmed: Flutter App Architecture & State Management tomorrow at 2:00 PM.',
+          createdAt: DateTime.now().subtract(const Duration(hours: 3)),
+          isRead: false,
+        ),
+        NotificationModel(
+          id: 'notif_2',
+          senderId: 'user_david_2',
+          senderName: 'David Chen',
+          receiverId: guestUserId,
+          type: NotificationType.swapRequest,
+          title: 'New Swap Proposal',
+          body: 'David sent a swap request for UI/UX Design tokens in exchange for Python Data Science.',
+          createdAt: DateTime.now().subtract(const Duration(days: 1)),
+          isRead: true,
+        ),
+      ];
 }

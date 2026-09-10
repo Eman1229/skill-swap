@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Profile/profile%20screen.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────
 // SEE ALL SCREEN
@@ -30,6 +31,28 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
   ];
 
   Stream<List<SwapListing>> get _swapsStream {
+    if (GuestModeService().isGuestMode) {
+      final mockList = GuestModeService().mockListings.map((m) => SwapListing(
+        id: m.id,
+        name: m.name,
+        initials: m.initials,
+        avatarColor: m.avatarColor,
+        offering: m.offering,
+        wanting: m.wanting,
+        rating: m.rating,
+        reviews: m.reviews,
+        category: m.category,
+        isLive: m.isLive,
+        skillLevel: m.skillLevel,
+        userId: m.userId,
+        description: m.description,
+        experience: m.experience,
+        imageUrl: m.imageUrl,
+        isFeatured: m.isFeatured,
+      )).toList();
+      return Stream.value(mockList);
+    }
+
     return _db.collection('swapListings').snapshots().asyncMap((snap) async {
       debugPrint('SeeAllScreen: Received ${snap.docs.length} documents from Firestore');
       final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -273,7 +296,35 @@ class _SeeAllScreenState extends State<SeeAllScreen> {
         child: Center(
           child: GestureDetector(
             onTap: () {
-              // TODO: navigate to Skill Detail screen
+              final all = GuestModeService().isGuestMode
+                  ? GuestModeService().mockListings.map((m) => SwapListing(
+                        id: m.id,
+                        name: m.name,
+                        initials: m.initials,
+                        avatarColor: m.avatarColor,
+                        offering: m.offering,
+                        wanting: m.wanting,
+                        rating: m.rating,
+                        reviews: m.reviews,
+                        category: m.category,
+                        isLive: m.isLive,
+                        skillLevel: m.skillLevel,
+                        userId: m.userId,
+                        description: m.description,
+                        experience: m.experience,
+                        imageUrl: m.imageUrl,
+                        isFeatured: m.isFeatured,
+                      )).toList()
+                  : <SwapListing>[];
+              final currentSwaps = _applyFilters(all);
+              if (currentSwaps.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProfileScreen(swap: currentSwaps.first),
+                  ),
+                );
+              }
             },
             child: Text(
               'Skill detail',

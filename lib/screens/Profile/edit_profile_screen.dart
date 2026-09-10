@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:skill_swap/screens/Home%20Screens/swapping%20Available.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final SwapListing swap;
@@ -72,6 +73,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _saveChanges() async {
     if (_nameController.text.trim().isEmpty) return;
+
+    if (GuestModeService().isGuestMode) {
+      setState(() => _isSaving = true);
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Profile updated successfully! (Demo)'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+        Navigator.pop(context);
+      }
+      return;
+    }
 
     setState(() => _isSaving = true);
 

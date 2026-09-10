@@ -14,6 +14,7 @@ import 'package:skill_swap/screens/Setting/help_center_screen.dart';
 import 'package:skill_swap/screens/Setting/about_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -52,6 +53,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.person_outline_rounded,
             title: 'profile_info'.tr(),
             onTap: () async {
+              if (GuestModeService().isGuestMode) {
+                final mockListing = GuestModeService().mockListings.first;
+                final mySwap = SwapListing(
+                  id: mockListing.id,
+                  name: GuestModeService().guestUserName,
+                  initials: GuestModeService().guestUserInitials,
+                  avatarColor: mockListing.avatarColor,
+                  offering: mockListing.offering,
+                  wanting: mockListing.wanting,
+                  rating: 5.0,
+                  reviews: 12,
+                  category: mockListing.category,
+                  isLive: true,
+                  skillLevel: 'Advanced',
+                  userId: GuestModeService().guestUserId,
+                  description: mockListing.description,
+                  experience: mockListing.experience,
+                  imageUrl: mockListing.imageUrl,
+                  isFeatured: true,
+                );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EditProfileScreen(swap: mySwap),
+                  ),
+                );
+                return;
+              }
+
               final uid = FirebaseAuth.instance.currentUser?.uid;
               if (uid == null) return;
               final snap = await FirebaseFirestore.instance

@@ -13,6 +13,7 @@ import 'package:skill_swap/screens/Chat/conversation_screen.dart';
 import 'package:skill_swap/screens/Profile/edit_listing_screen.dart';
 import 'package:skill_swap/screens/widgets/report_user_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────
 // GLOBAL PROFILE IMAGE NOTIFIER b
@@ -849,6 +850,16 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         child: ElevatedButton(
                           onPressed: () async {
+                            if (GuestModeService().isGuestMode) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ConfirmSwapScreen(swap: swap),
+                                ),
+                              );
+                              return;
+                            }
+
                             final uid = FirebaseAuth.instance.currentUser?.uid;
                             if (uid == null) return;
 

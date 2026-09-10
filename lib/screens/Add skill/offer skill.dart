@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart'; //  Supabase instead of
 import 'dart:io';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 
 class OfferSkillScreen extends StatefulWidget {
   OfferSkillScreen({super.key});
@@ -178,6 +179,23 @@ class _OfferSkillScreenState extends State<OfferSkillScreen> {
   // ── Submit ───────────────────────────────────────────────────────
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (GuestModeService().isGuestMode) {
+      setState(() => _isLoading = true);
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Skill listing created successfully! (Demo)'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+        Navigator.pop(context);
+      }
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {

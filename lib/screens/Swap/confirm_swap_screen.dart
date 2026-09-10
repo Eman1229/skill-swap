@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/services/swap_request_repository.dart';
 import 'package:skill_swap/services/user_skills_service.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 
 class ConfirmSwapScreen extends StatefulWidget {
   final SwapListing swap;
@@ -23,6 +24,23 @@ class _ConfirmSwapScreenState extends State<ConfirmSwapScreen> {
 
   Future<void> _handleConfirmSwap() async {
     if (_isSending) return;
+
+    if (GuestModeService().isGuestMode) {
+      setState(() => _isSending = true);
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (mounted) {
+        setState(() => _isSending = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${'swap_request_sent'.tr()} ${widget.swap.name}!'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.pop(context);
+      }
+      return;
+    }
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;

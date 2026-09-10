@@ -21,6 +21,7 @@ import 'package:skill_swap/screens/Swap/certificate_screen.dart';
 import 'package:skill_swap/services/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:skill_swap/theme/app_theme.dart';
+import 'package:skill_swap/services/guest_mode_service.dart';
 
 class SkillDetailScreen extends StatefulWidget {
   final SwapModel swap;
@@ -85,6 +86,85 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
   @override
   Widget build(BuildContext context) {
     context.watch<LanguageProvider>();
+
+    if (GuestModeService().isGuestMode) {
+      final swap = widget.swap;
+      final sessions = GuestModeService().mockSessions;
+      final int totalSessions = swap.totalSessions > 0 ? swap.totalSessions : 5;
+      final int completedSessions = swap.completedSessions > 0 ? swap.completedSessions : 3;
+      final int remainingSessions = (totalSessions - completedSessions).clamp(0, totalSessions);
+      final double progressPercentage = totalSessions > 0 ? (completedSessions / totalSessions).clamp(0.0, 1.0) : 0.6;
+      final nextSession = sessions.isNotEmpty ? sessions.first : null;
+
+      return Scaffold(
+        backgroundColor: _isDark ? const Color(0xFF0A0F1D) : Theme.of(context).scaffoldBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: _textColor, size: 18),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            swap.skillName,
+            style: TextStyle(
+              color: _textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Progress Section
+                _buildProgressCard(completedSessions, totalSessions, remainingSessions, progressPercentage),
+                const SizedBox(height: 24),
+
+                // 2. Upcoming Session Card
+                if (nextSession != null) ...[
+                  _buildUpcomingSessionCard(nextSession),
+                  const SizedBox(height: 24),
+                ],
+
+                // 3. Course Materials Section
+                _buildCourseMaterialsSection(swap, 2, 1, 1, 2),
+                const SizedBox(height: 24),
+
+                // 4. Session Timeline Section
+                _buildSessionTimeline(swap, sessions),
+                const SizedBox(height: 24),
+
+                // 5. Swap Status Stepper Section
+                _buildSwapStatusCard(swap, sessions, completedSessions, totalSessions),
+                const SizedBox(height: 24),
+
+                // 6. Reviews & Ratings Section
+                _buildReviewsCard(swap),
+                const SizedBox(height: 24),
+
+                // 7. Certificate Section
+                _buildCertificateCard(swap),
+                const SizedBox(height: 24),
+
+                // 8. Course Details Section
+                _buildCourseDetailsCard(swap, totalSessions),
+                const SizedBox(height: 24),
+
+                // 9. Completion Workflow Section
+                _buildCompletionWorkflowSection(swap),
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return StreamBuilder<DocumentSnapshot>(
       stream: _db.collection('swaps').doc(widget.swap.id).snapshots(),
