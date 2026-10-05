@@ -1,0 +1,6 @@
+# Only the push sender lives here; the app's data stays in Firebase.
+project_id = "dvmqgwosltkmtltwfvpp"
+
+[functions.send-push]
+# The function verifies the caller's Firebase ID token itself.
+verify_jwt = false

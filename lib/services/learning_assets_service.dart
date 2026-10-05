@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:skill_swap/models/learning_asset.dart';
 import 'package:skill_swap/models/swap_model.dart';
+import 'package:skill_swap/services/push_notification_service.dart';
 
 class LearningAssetsService {
   LearningAssetsService({
@@ -79,8 +80,10 @@ class LearningAssetsService {
     final learnerIds = <String>{course.learnerId}
       ..removeWhere((id) => id.isEmpty || id == teacherId);
 
+    final notificationIds = <String>[];
     for (final learnerId in learnerIds) {
       final notificationRef = _db.collection('notifications').doc();
+      notificationIds.add(notificationRef.id);
       final message =
           '$teacherName uploaded \'$documentName\' for ${course.skillName}.';
       batch.set(notificationRef, {
@@ -110,6 +113,7 @@ class LearningAssetsService {
     }
 
     await batch.commit();
+    PushNotificationService.dispatchAll(notificationIds);
   }
 
   /// Ensures we always send a proper MIME type (e.g. "application/pdf")

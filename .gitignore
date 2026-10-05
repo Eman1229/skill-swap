@@ -45,3 +45,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .vercel
+
+# Firebase service account key (secret)
+service-account.json

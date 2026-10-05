@@ -9,6 +9,7 @@ import 'package:skill_swap/services/skill_exchange_service.dart';
 import 'package:skill_swap/services/session_reminder_service.dart';
 import 'package:skill_swap/utils/user_display_name.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:skill_swap/services/push_notification_service.dart';
 
 class SessionInviteCard extends StatefulWidget {
   final String sessionId;
@@ -492,7 +493,7 @@ class _SessionInviteCardState extends State<SessionInviteCard> {
             ? '$senderName accepted your invitation for session "$sessionTitle".'
             : '$senderName declined your invitation for session "$sessionTitle".';
 
-        await FirebaseFirestore.instance.collection('notifications').add({
+        final notificationRef = await FirebaseFirestore.instance.collection('notifications').add({
           'senderId': uid,
           'senderName': senderName,
           'senderProfilePic': '',
@@ -513,6 +514,7 @@ class _SessionInviteCardState extends State<SessionInviteCard> {
             'status': newStatus,
           },
         });
+        PushNotificationService.dispatchAll([notificationRef.id]);
       }
     } catch (e) {
       debugPrint("Error in background post-session update actions: $e");
@@ -648,7 +650,7 @@ class _SessionInviteCardState extends State<SessionInviteCard> {
       final displayMentorName = UserDisplayName.isUsable(mentorName) ? mentorName : 'Someone';
 
       if (learnerId.isNotEmpty) {
-        await FirebaseFirestore.instance.collection('notifications').add({
+        final notificationRef = await FirebaseFirestore.instance.collection('notifications').add({
           'senderId': uid,
           'senderName': displayMentorName,
           'senderProfilePic': '',
@@ -669,6 +671,7 @@ class _SessionInviteCardState extends State<SessionInviteCard> {
             'status': 'completed',
           },
         });
+        PushNotificationService.dispatchAll([notificationRef.id]);
       }
     } catch (e) {
       debugPrint("Error in background session complete actions: $e");

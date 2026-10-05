@@ -10,6 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skill_swap/screens/Home%20Screens/Home%20Screen1.dart';
 import 'package:skill_swap/screens/offline/offlinescreen.dart';
 import 'package:skill_swap/screens/onboarding1/onboarding1.dart';
+import 'package:skill_swap/services/notification_router.dart';
+import 'package:skill_swap/services/push_notification_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -67,10 +69,12 @@ class _SplashScreenState extends State<SplashScreen> {
           context,
           MaterialPageRoute(builder: (_) => HomeScreen()),
         );
+        NotificationRouter.markReady();
         return;
       }
 
       if (!shouldRememberUser && user != null) {
+        await PushNotificationService.unregister();
         await FirebaseAuth.instance.signOut();
         if (!mounted) return;
       }
@@ -79,11 +83,13 @@ class _SplashScreenState extends State<SplashScreen> {
         context,
         MaterialPageRoute(builder: (context) => OnBoardingScreen()),
       );
+      NotificationRouter.markReady(openPending: false);
     } else {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => OfflineScreen()),
       );
+      NotificationRouter.markReady(openPending: false);
     }
   }
 

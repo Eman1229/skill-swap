@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/swap_request.dart';
 import 'package:flutter/foundation.dart';
 import 'package:skill_swap/services/skill_exchange_service.dart';
+import 'package:skill_swap/services/push_notification_service.dart';
 
 class SwapRequestRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -228,7 +229,7 @@ class SwapRequestRepository {
       final String actionId = data?['requestId'] ?? '';
       final String actionRoute = '/swap';
 
-      await _db.collection('notifications').add({
+      final notificationRef = await _db.collection('notifications').add({
         'senderId': uid,
         'senderName': senderName,
         'senderProfilePic': senderProfilePic,
@@ -249,6 +250,7 @@ class SwapRequestRepository {
       });
       
       debugPrint('Swap request notification document created for $receiverId');
+      PushNotificationService.dispatchAll([notificationRef.id]);
     } catch (e) {
       debugPrint('Error creating swap request notification document: $e');
     }

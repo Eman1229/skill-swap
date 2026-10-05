@@ -19,6 +19,7 @@ import 'package:skill_swap/models/session_model.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart' as available;
 import '../Add skill/offer skill.dart';
 import 'package:skill_swap/theme/app_theme.dart';
+import 'package:skill_swap/services/push_notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   HomeScreen({Key? key}) : super(key: key);
@@ -165,6 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _signOut() async {
+    await PushNotificationService.unregister();
     await _auth.signOut();
     if (!mounted) return;
     Navigator.pushReplacement(

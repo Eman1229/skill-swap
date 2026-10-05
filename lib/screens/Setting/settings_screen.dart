@@ -15,6 +15,7 @@ import 'package:skill_swap/screens/Setting/about_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:skill_swap/providers/language_provider.dart';
 import 'package:skill_swap/services/guest_mode_service.dart';
+import 'package:skill_swap/services/push_notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -314,6 +315,7 @@ class _LogoutButton extends StatelessWidget {
       width: double.infinity,
       child: OutlinedButton(
         onPressed: () async {
+          await PushNotificationService.unregister();
           await FirebaseAuth.instance.signOut();
           if (context.mounted) {
             Navigator.pushAndRemoveUntil(

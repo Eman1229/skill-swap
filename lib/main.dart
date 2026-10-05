@@ -14,6 +14,7 @@ import 'package:skill_swap/screens/splash/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:skill_swap/services/presence_service.dart';
 import 'package:skill_swap/services/local_notification_service.dart';
+import 'package:skill_swap/services/push_notification_service.dart';
 import 'package:skill_swap/services/session_reminder_service.dart';
 import 'package:skill_swap/screens/Home Screens/swapping Available.dart';
 import 'package:skill_swap/screens/Setting/app_settings.dart';
@@ -49,6 +50,9 @@ Future<void> main() async {
           'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bXFnd29zbHRrbXRsdHdmdnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMTg3NjcsImV4cCI6MjA5Mzg5NDc2N30.OlvpVDEcYSzm8C-hu-JYTh-bjgLVoK1JajmrQMsDULY',
     );
 
+    // Needs Supabase (used to send pushes) to be initialized first.
+    await PushNotificationService.init();
+
     final languageProvider = LanguageProvider.instance;
     await languageProvider.loadSavedLocale();
 
@@ -60,7 +64,12 @@ Future<void> main() async {
         providers: [
           ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
           ChangeNotifierProvider<GuestModeService>.value(value: GuestModeService()),
-          ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          // Not lazy: its Firestore listener shows the in-app banners, so it
+          // must run even before any screen reads the unread count.
+          ChangeNotifierProvider<NotificationProvider>(
+            create: (_) => NotificationProvider(),
+            lazy: false,
+          ),
           ChangeNotifierProvider<ConnectivityService>.value(
             value: ConnectivityService(),
           ),
@@ -102,6 +111,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // `inactive` (e.g. notification shade pulled down) is still foreground
+    // for FCM, so the OS would not draw the push itself.
+    LocalNotificationService.isAppInForeground =
+        state == AppLifecycleState.resumed || state == AppLifecycleState.inactive;
     if (state == AppLifecycleState.resumed) {
       PresenceService().setUserOnline();
       ConnectivityService().retryConnection();

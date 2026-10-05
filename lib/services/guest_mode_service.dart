@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skill_swap/models/ai/career_recommendation.dart';
 import 'package:skill_swap/models/ai/learning_roadmap_model.dart';
@@ -50,7 +51,13 @@ class GuestSwapListing {
 class GuestModeService extends ChangeNotifier {
   static final GuestModeService _instance = GuestModeService._internal();
   factory GuestModeService() => _instance;
-  GuestModeService._internal();
+  GuestModeService._internal() {
+    // Guest mode is only a demo for signed-out users; leave it as soon as a
+    // real account signs in, otherwise the app keeps showing mock data.
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null && _isGuestMode) disableGuestMode();
+    });
+  }
 
   bool _isGuestMode = false;
   bool get isGuestMode => _isGuestMode;

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:skill_swap/services/push_notification_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -121,17 +122,8 @@ class NotificationService {
       await notificationRef.set(notificationData);
       debugPrint("Stored notification document: ${notificationRef.id}");
 
-      // 5. Trigger FCM message or local heads-up fallback if token is registered
-      final userDoc = await _db.collection('users').doc(receiverId).get();
-      if (userDoc.exists && userDoc.data() != null) {
-        final fcmToken = userDoc.data()?['fcmToken'] as String?;
-        if (fcmToken != null && fcmToken.isNotEmpty) {
-          // FCM configuration details (handled by client's listener stream trigger fallback)
-          debugPrint(
-            "FCM token found for recipient. Notification delivered successfully!",
-          );
-        }
-      }
+      // 5. Push to the recipient's devices (works with their app closed)
+      PushNotificationService.dispatchAll([notificationRef.id]);
     } catch (e) {
       debugPrint("Error sending notification: $e");
     }

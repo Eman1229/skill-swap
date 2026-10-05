@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skill_swap/models/message.dart';
 import 'package:skill_swap/models/conversation.dart';
 import 'package:flutter/foundation.dart';
+import 'package:skill_swap/services/push_notification_service.dart';
 
 class ChatRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -152,7 +153,7 @@ class ChatRepository {
     }
 
     try {
-      await _db.collection('notifications').add({
+      final notificationRef = await _db.collection('notifications').add({
         'senderId': uid,
         'senderName': senderName,
         'senderProfilePic': senderProfilePic,
@@ -173,6 +174,7 @@ class ChatRepository {
           'type': 'chat_message',
         },
       });
+      PushNotificationService.dispatchAll([notificationRef.id]);
     } catch (e) {
       debugPrint("Error adding push notification: $e");
     }

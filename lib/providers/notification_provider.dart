@@ -38,14 +38,11 @@ class NotificationProvider extends ChangeNotifier {
         .snapshots()
         .listen(
       (snapshot) {
+        // The first snapshot is the existing backlog, not new events.
         if (!isFirstFetch) {
           for (var change in snapshot.docChanges) {
             if (change.type == DocumentChangeType.added) {
-              final data = change.doc.data() ?? <String, dynamic>{};
-              LocalNotificationService.showNow(
-                title: data['title'] ?? 'Skill SwapX',
-                body: data['body'] ?? 'You have a new notification',
-              );
+              _maybeShowBanner(user.uid, change.doc.id, change.doc.data() ?? {});
             }
           }
         }
@@ -58,6 +55,57 @@ class NotificationProvider extends ChangeNotifier {
         debugPrint('NotificationProvider stream error: $e');
       },
     );
+  }
+
+  final Set<String> _shownIds = {};
+
+  Future<void> _maybeShowBanner(
+      String uid, String docId, Map<String, dynamic> data) async {
+    // In the background the FCM push (sent by PushNotificationService.dispatch)
+    // is already on screen.
+    if (!LocalNotificationService.isAppInForeground) return;
+    if (!_shownIds.add(docId)) return;
+    // With offline persistence the first snapshot can come from cache, and
+    // docs that arrived while the app was closed then show up as "added".
+    // Those were already delivered by FCM.
+    final createdAt = data['createdAt'];
+    if (createdAt is Timestamp &&
+        DateTime.now().difference(createdAt.toDate()) > const Duration(minutes: 2)) {
+      return;
+    }
+
+    final type = data['type']?.toString();
+    final nested = data['data'] is Map ? data['data'] as Map : const {};
+    final convoId = (nested['conversationId'] ?? data['actionId'])?.toString();
+    final isChat = type == 'chat_message' || type == 'chat';
+    if (isChat && convoId != null &&
+        convoId == LocalNotificationService.currentActiveConversationId) {
+      return;
+    }
+
+    try {
+      final settings = (await _firestore
+              .collection('users').doc(uid)
+              .collection('settings').doc('notifications')
+              .get())
+          .data() ?? const {};
+      if (settings['pushEnabled'] == false) return;
+      if (isChat && (settings['chatMessagesEnabled'] == false ||
+          settings['directMessagesEnabled'] == false ||
+          settings['chatNotificationsMuted'] == true)) {
+        return;
+      }
+      if (type == 'swap_request' && settings['swapRequestsEnabled'] == false) return;
+      if (isChat && convoId != null && convoId.isNotEmpty) {
+        final convo = await _firestore.collection('conversations').doc(convoId).get();
+        final muted = convo.data()?['muted'];
+        if (muted is Map && muted[uid] == true) return;
+      }
+    } catch (e) {
+      debugPrint('NotificationProvider: settings check failed, showing anyway: $e');
+    }
+
+    await LocalNotificationService.showFromNotificationDoc(docId, data);
   }
 
   /// Mark a single notification as read
